@@ -1,0 +1,454 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-guenet-gold: #38bdf8;
+  /* Modern Light Blue accent to match #4B9BDC */
+  --color-guenet-green: #4B9BDC;
+  /* Primary Brand Color */
+  --color-guenet-dark: #1e293b;
+  --color-guenet-white: #ffffff;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: linear-gradient(135deg, #f0f7fd 0%, #e2effc 50%, #ffffff 100%);
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Beautiful Modern Blobs Background */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+body::before {
+  top: -10%;
+  left: -5%;
+  width: 45vw;
+  height: 45vw;
+  background: #4B9BDC;
+}
+
+body::after {
+  bottom: -15%;
+  right: -5%;
+  width: 50vw;
+  height: 50vw;
+  background: #38bdf8;
+}
+
+/* Overriding white backgrounds to render as glassmorphism contextually */
+.bg-white {
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+}
+
+.shadow-sm,
+.shadow-md,
+.shadow-lg {
+  box-shadow: 0 8px 32px rgba(75, 155, 220, 0.1) !important;
+}
+
+.rounded-lg,
+.rounded-xl,
+.rounded-2xl {
+  border-radius: 20px !important;
+}
+
+/* Buttons */
+.bg-guenet-green,
+.bg-blue-600 {
+  background: linear-gradient(135deg, #4B9BDC 0%, #3a85c2 100%) !important;
+  box-shadow: 0 4px 15px rgba(75, 155, 220, 0.3);
+  border: none !important;
+  color: white !important;
+}
+
+.bg-guenet-green:hover,
+.bg-blue-600:hover {
+  background: linear-gradient(135deg, #3a85c2 0%, #295b86 100%) !important;
+  box-shadow: 0 6px 20px rgba(75, 155, 220, 0.4);
+}
+
+.text-guenet-green {
+  color: #4B9BDC !important;
+}
+
+.border-guenet-green {
+  border-color: #4B9BDC !important;
+}
+
+.ring-guenet-green {
+  --tw-ring-color: #4B9BDC !important;
+}
+
+/* Card hover scaling globally */
+tr,
+.p-6,
+.p-4 {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(75, 155, 220, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(75, 155, 220, 0.4);
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 155, 220, 0.7);
+}
+
+/* Page transitions */
+main {
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Beautiful Form Elements */
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.025em;
+  transition: color 0.3s ease;
+}
+
+.form-input,
+.form-select,
+input[type="date"] {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(75, 155, 220, 0.2) !important;
+  border-radius: 16px !important;
+  color: #1e293b !important;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(10px);
+}
+
+.form-input:hover,
+.form-select:hover,
+input[type="date"]:hover {
+  border-color: rgba(75, 155, 220, 0.5) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02), 0 4px 12px rgba(75, 155, 220, 0.1);
+}
+
+.form-input:focus,
+.form-select:focus,
+input[type="date"]:focus {
+  outline: none !important;
+  border-color: #4B9BDC !important;
+  box-shadow: 0 0 0 4px rgba(75, 155, 220, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+  background: #ffffff !important;
+  transform: translateY(-2px);
+}
+
+.form-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.form-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Specific styling for Datepickers to make them native-like but beautiful */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: 0.2s;
+  padding: 5px;
+  background-color: rgba(75, 155, 220, 0.1);
+  border-radius: 8px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  background-color: rgba(75, 155, 220, 0.2);
+}
+
+/* Textarea styling */
+.form-textarea,
+textarea.form-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(75, 155, 220, 0.2) !important;
+  border-radius: 16px !important;
+  color: #1e293b !important;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(10px);
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-textarea:hover,
+textarea.form-input:hover {
+  border-color: rgba(75, 155, 220, 0.5) !important;
+}
+
+.form-textarea:focus,
+textarea.form-input:focus {
+  outline: none !important;
+  border-color: #4B9BDC !important;
+  box-shadow: 0 0 0 4px rgba(75, 155, 220, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+  background: #ffffff !important;
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Scroll margin for sticky header */
+.scroll-mt-28 {
+  scroll-margin-top: 7rem;
+}
+
+/* Tabular numbers */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mobile Optimizations - Scale down widgets */
+@media (max-width: 768px) {
+
+  /* Reduce global padding and spacing */
+  .p-12 {
+    padding: 1.5rem !important;
+  }
+
+  .p-10 {
+    padding: 1.25rem !important;
+  }
+
+  .p-8 {
+    padding: 1.15rem !important;
+  }
+
+  .p-6,
+  .px-6,
+  .py-6 {
+    padding: 0.85rem !important;
+  }
+
+  .p-4,
+  .px-4,
+  .py-4 {
+    padding: 0.75rem !important;
+  }
+
+  .p-3 {
+    padding: 0.5rem !important;
+  }
+
+  .p-2 {
+    padding: 0.35rem !important;
+  }
+
+  .gap-10 {
+    gap: 1.5rem !important;
+  }
+
+  .gap-8 {
+    gap: 1.25rem !important;
+  }
+
+  .gap-6 {
+    gap: 1rem !important;
+  }
+
+  .gap-5 {
+    gap: 0.85rem !important;
+  }
+
+  .gap-4 {
+    gap: 0.75rem !important;
+  }
+
+  .space-y-12>*+* {
+    margin-top: 1.5rem !important;
+  }
+
+  .space-y-10>*+* {
+    margin-top: 1.25rem !important;
+  }
+
+  .space-y-8 {
+    margin-top: 1.15rem !important;
+    margin-bottom: 1.15rem !important;
+  }
+
+  .space-y-8>*+* {
+    margin-top: 1.15rem !important;
+  }
+
+  .space-y-6>*+* {
+    margin-top: 1rem !important;
+  }
+
+  .space-y-4>*+* {
+    margin-top: 0.75rem !important;
+  }
+
+  /* Scale down text */
+  h1.text-5xl,
+  .text-5xl {
+    font-size: 2rem !important;
+    line-height: 2.25rem !important;
+  }
+
+  h1.text-4xl,
+  .text-4xl {
+    font-size: 1.75rem !important;
+    line-height: 2.25rem !important;
+  }
+
+  h1.text-3xl,
+  .text-3xl {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+
+  h2.text-2xl,
+  .text-2xl {
+    font-size: 1.25rem !important;
+    line-height: 1.65rem !important;
+  }
+
+  .text-xl {
+    font-size: 1.05rem !important;
+    line-height: 1.45rem !important;
+  }
+
+  .text-lg {
+    font-size: 0.95rem !important;
+  }
+
+  .text-base {
+    font-size: 0.85rem !important;
+  }
+
+  .text-sm {
+    font-size: 0.75rem !important;
+  }
+
+  /* Make cards and containers slightly smaller */
+  .rounded-\[2\.5rem\] {
+    border-radius: 24px !important;
+  }
+
+  .rounded-3xl {
+    border-radius: 20px !important;
+  }
+
+  .rounded-2xl {
+    border-radius: 16px !important;
+  }
+
+  .rounded-xl {
+    border-radius: 12px !important;
+  }
+
+  .rounded-lg {
+    border-radius: 10px !important;
+  }
+
+  /* Hero Banner specific scaling */
+  .lg\:flex-row {
+    flex-direction: column !important;
+  }
+
+  /* Form elements smaller on mobile */
+  .form-input,
+  .form-select,
+  input[type="date"],
+  .form-textarea {
+    padding: 0.6rem 0.8rem !important;
+    font-size: 0.85rem !important;
+    border-radius: 10px !important;
+  }
+
+  /* Navigation buttons and actions on cards */
+  .nav-button {
+    padding: 0.3rem !important;
+  }
+
+  /* Grid gap reduction */
+  .grid {
+    gap: 0.85rem !important;
+  }
+
+  /* Adjust icon sizes */
+  .lucide {
+    transform: scale(0.85);
+  }
+}

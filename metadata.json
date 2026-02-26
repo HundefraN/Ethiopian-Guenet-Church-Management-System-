@@ -1,0 +1,5 @@
+{
+  "name": "Ethiopian Guenet Church Management System",
+  "description": "A management system for the Ethiopian Guenet Church with role-based access control for Super Admins, Pastors, and Servants.",
+  "requestFramePermissions": []
+}
