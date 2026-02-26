@@ -19,3 +19,4 @@ View your app in AI Studio: https://ai.studio/apps/b537b8b2-e078-41a4-9de1-517ae
 3. Run the app:
    `npm run dev`
 # Ethiopian-Guenet-Church-Management-System-
+# Ethiopian-Guenet-Church-Management-System-
