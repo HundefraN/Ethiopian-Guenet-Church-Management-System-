@@ -5,7 +5,9 @@ import { supabase } from "../supabaseClient";
 import { Church } from "../types";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import { logActivity } from "../utils/activityLogger";
+import { useTheme } from "../context/ThemeContext";
+import { logActivity, getObjectDiff } from "../utils/activityLogger";
+import { ds } from "../utils/darkStyles";
 import ConfirmDialog from "../components/ConfirmDialog";
 
 interface ChurchWithCount extends Church {
@@ -14,6 +16,8 @@ interface ChurchWithCount extends Church {
 
 export default function Churches() {
   const { profile } = useAuth();
+  const { isDark } = useTheme();
+  const d = ds(isDark);
   const [churches, setChurches] = useState<ChurchWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -162,29 +166,37 @@ export default function Churches() {
 
     try {
       setSubmitting(true);
-      const updates = { name: newChurch.name, location: newChurch.location, map_link: newChurch.map_link };
+      const originalUpdates = { name: newChurch.name, location: newChurch.location, map_link: newChurch.map_link };
+      const diff = getObjectDiff(
+        { name: editingChurch.name, location: editingChurch.location, map_link: editingChurch.map_link },
+        originalUpdates
+      );
+
+      if (!diff) {
+        toast.error("No changes detected");
+        setSubmitting(false);
+        return;
+      }
 
       const { error } = await supabase
         .from("churches")
-        .update(updates)
+        .update(diff.new)
         .eq("id", editingChurch.id);
 
       if (error) throw error;
 
+      const changedFields = Object.keys(diff.new).join(", ");
       await logActivity(
         "UPDATE",
         "CHURCH",
-        `Updated church "${editingChurch.name}" to "${newChurch.name}"`,
+        `Updated church "${editingChurch.name}" (Changed: ${changedFields})`,
         editingChurch.id,
-        {
-          old: { name: editingChurch.name, location: editingChurch.location },
-          new: updates
-        }
+        diff
       );
 
-      setChurches(churches.map(c => c.id === editingChurch.id ? { ...c, ...updates } : c));
+      setChurches(churches.map(c => c.id === editingChurch.id ? { ...c, ...diff.new } : c));
       if (selectedChurch?.id === editingChurch.id) {
-        setSelectedChurch({ ...selectedChurch, ...updates });
+        setSelectedChurch({ ...selectedChurch, ...diff.new } as any);
       }
 
       setNewChurch({ name: "", location: "", map_link: "" });
@@ -347,7 +359,7 @@ export default function Churches() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8 items-start">
+      <motion.div layout className="flex flex-col lg:flex-row gap-8 items-start">
         {/* ═══════════════ DETAILS PANEL ═══════════════ */}
         <AnimatePresence>
           {selectedChurch && (
@@ -358,7 +370,7 @@ export default function Churches() {
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
               className="w-full lg:w-[420px] order-1 lg:sticky lg:top-6 z-10"
             >
-              <div className="rounded-[2rem] p-7 md:p-8 relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(40px) saturate(200%)', border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 20px 60px rgba(8,112,184,0.08), 0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div className="rounded-[2rem] p-7 md:p-8 relative overflow-hidden" style={d.detailPanel}>
                 {/* Holographic top border */}
                 <div className="absolute top-0 left-0 w-full h-1 rounded-t-[2rem]" style={{ background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #3b82f6)', backgroundSize: '200% 100%', animation: 'shimmer 3s linear infinite' }}></div>
 
@@ -375,14 +387,14 @@ export default function Churches() {
                           });
                           setIsEditModalOpen(true);
                         }}
-                        className="p-2.5 rounded-xl transition-all duration-200 text-blue-400 hover:text-blue-600" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)' }}
+                        className="p-2.5 rounded-xl transition-all duration-200 text-blue-400 hover:text-blue-600" style={d.editButton}
                         title="Edit Church"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => handleDeleteChurchClick(selectedChurch)}
-                        className="p-2.5 rounded-xl transition-all duration-200 text-red-400 hover:text-red-600" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}
+                        className="p-2.5 rounded-xl transition-all duration-200 text-red-400 hover:text-red-600" style={d.deleteButton}
                         title="Delete Church"
                       >
                         <Trash2 size={16} />
@@ -391,7 +403,7 @@ export default function Churches() {
                   )}
                   <button
                     onClick={() => setSelectedChurch(null)}
-                    className="p-2.5 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600" style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.06)' }}
+                    className="p-2.5 rounded-xl transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-600" style={d.subtleButton}
                   >
                     <X size={18} />
                   </button>
@@ -401,10 +413,10 @@ export default function Churches() {
                   <Building className="text-blue-600" size={30} />
                 </div>
 
-                <h2 className="text-2xl font-black text-gray-900 leading-tight mb-2 pr-28">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 leading-tight mb-2 pr-28">
                   {selectedChurch.name}
                 </h2>
-                <div className="flex items-center gap-2 text-gray-500 text-sm mb-6 font-semibold rounded-xl inline-flex px-3.5 py-2" style={{ background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px solid #e2e8f0' }}>
+                <div className="flex items-center gap-2 text-gray-500 text-sm mb-6 font-semibold rounded-xl inline-flex px-3.5 py-2" style={d.locationBadge}>
                   <MapPin size={15} className="text-blue-500" />
                   <span>{selectedChurch.location || "No location specified"}</span>
                 </div>
@@ -417,7 +429,7 @@ export default function Churches() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mb-7 flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl font-bold transition-all group text-sm"
-                    style={{ background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', color: '#059669', border: '1px solid rgba(16,185,129,0.2)', boxShadow: '0 4px 16px rgba(16,185,129,0.08)' }}
+                    style={d.mapsButton}
                   >
                     <Map size={18} className="group-hover:rotate-12 transition-transform" />
                     <span>View on Google Maps</span>
@@ -440,13 +452,13 @@ export default function Churches() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.1 }}
                         className="p-5 rounded-2xl relative overflow-hidden group"
-                        style={{ background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', border: '1px solid rgba(59,130,246,0.12)' }}
+                        style={d.statBlue}
                       >
                         <div className="absolute -right-3 -top-3 text-blue-200/40 transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
                           <Users size={56} />
                         </div>
-                        <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.15em] mb-1">Members</h3>
-                        <p className="text-3xl font-black text-blue-950 relative z-10">
+                        <h3 className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-[0.15em] mb-1">Members</h3>
+                        <p className="text-3xl font-black text-blue-950 dark:text-blue-50 relative z-10">
                           {selectedChurch.members && selectedChurch.members[0] ? selectedChurch.members[0].count : 0}
                         </p>
                       </motion.div>
@@ -456,13 +468,13 @@ export default function Churches() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.15 }}
                         className="p-5 rounded-2xl relative overflow-hidden group"
-                        style={{ background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)', border: '1px solid rgba(139,92,246,0.12)' }}
+                        style={d.statPurple}
                       >
                         <div className="absolute -right-3 -top-3 text-purple-200/40 transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
                           <Shield size={56} />
                         </div>
-                        <h3 className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] mb-1">Departments</h3>
-                        <p className="text-3xl font-black text-purple-950 relative z-10">
+                        <h3 className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-[0.15em] mb-1">Departments</h3>
+                        <p className="text-3xl font-black text-purple-950 dark:text-purple-50 relative z-10">
                           {churchStats.deptCount}
                         </p>
                       </motion.div>
@@ -472,16 +484,16 @@ export default function Churches() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.2 }}
                         className="p-5 rounded-2xl relative overflow-hidden group col-span-2"
-                        style={{ background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)', border: '1px solid rgba(99,102,241,0.12)' }}
+                        style={d.statIndigo}
                       >
                         <div className="absolute -right-2 -bottom-4 text-indigo-200/30 transform group-hover:scale-110 transition-transform duration-300">
                           <BookOpen size={72} />
                         </div>
                         <div className="flex items-center gap-2 mb-1">
                           <TrendingUp size={14} className="text-indigo-500" />
-                          <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-[0.15em]">Total Servants</h3>
+                          <h3 className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.15em]">Total Servants</h3>
                         </div>
-                        <p className="text-3xl font-black text-indigo-950 relative z-10">
+                        <p className="text-3xl font-black text-indigo-950 dark:text-indigo-50 relative z-10">
                           {churchStats.departments.reduce((acc, curr) => acc + curr.servantCount, 0)}
                         </p>
                       </motion.div>
@@ -494,7 +506,7 @@ export default function Churches() {
                         Ministry Breakdown
                       </h3>
                       {churchStats.departments.length === 0 ? (
-                        <div className="text-center py-8 rounded-2xl text-gray-400 text-sm font-medium" style={{ background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px dashed #e2e8f0' }}>
+                        <div className="text-center py-8 rounded-2xl text-gray-500 dark:text-gray-400 text-sm font-medium" style={d.emptyInner}>
                           No departments found.
                         </div>
                       ) : (
@@ -506,9 +518,9 @@ export default function Churches() {
                               transition={{ delay: 0.1 + idx * 0.05 }}
                               key={idx}
                               className="p-4 rounded-xl flex justify-between items-center hover:shadow-md transition-all group cursor-default"
-                              style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)' }}
+                              style={d.listItem}
                             >
-                              <span className="font-bold text-gray-700 group-hover:text-blue-700 transition-colors text-sm">
+                              <span className="font-bold text-gray-700 dark:text-gray-400 group-hover:text-blue-700 transition-colors text-sm">
                                 {dept.name}
                               </span>
                               <span className="text-blue-600 px-3 py-1 rounded-lg text-xs font-bold" style={{ background: 'rgba(59,130,246,0.08)' }}>
@@ -531,7 +543,7 @@ export default function Churches() {
         </AnimatePresence>
 
         {/* ═══════════════ MAIN LIST ═══════════════ */}
-        <div className={`flex-1 transition-all duration-200 order-2`}>
+        <motion.div layout className="flex-1 order-2">
           {/* Search Bar */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -541,15 +553,10 @@ export default function Churches() {
           >
             <div
               className="p-1.5 rounded-2xl flex items-center transition-all duration-300"
-              style={{
-                background: searchFocused ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.8)',
-                backdropFilter: 'blur(20px)',
-                border: searchFocused ? '1.5px solid rgba(59,130,246,0.3)' : '1.5px solid rgba(0,0,0,0.06)',
-                boxShadow: searchFocused ? '0 8px 32px rgba(59,130,246,0.12), 0 0 0 4px rgba(59,130,246,0.06)' : '0 4px 20px rgba(0,0,0,0.03)',
-              }}
+              style={d.searchBar(searchFocused)}
             >
               <div className="pl-4 pr-2">
-                <Search size={20} className={`transition-colors duration-200 ${searchFocused ? 'text-blue-500' : 'text-gray-400'}`} />
+                <Search size={20} className={`transition-colors duration-200 ${searchFocused ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'}`} />
               </div>
               <input
                 type="text"
@@ -558,12 +565,12 @@ export default function Churches() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
-                className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400"
+                className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="p-2 mr-2 text-gray-400 hover:text-blue-500 rounded-xl hover:bg-blue-50 transition-colors"
+                  className="p-2 mr-2 text-gray-500 dark:text-gray-400 hover:text-blue-500 rounded-xl hover:bg-blue-50 transition-colors"
                   title="Clear search"
                 >
                   <X size={16} />
@@ -586,12 +593,12 @@ export default function Churches() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="text-center py-20 rounded-[2rem]"
-              style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(20px)', border: '1px solid rgba(0,0,0,0.06)' }}
+              style={d.emptyState}
             >
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)' }}>
-                <Building className="h-10 w-10 text-gray-300" />
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5" style={d.emptyIcon}>
+                <Building className="h-10 w-10 text-gray-500 dark:text-gray-400" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">No churches found</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">No churches found</h3>
               <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
                 We couldn't find any churches matching your search. Try adjusting your query.
               </p>
@@ -599,314 +606,339 @@ export default function Churches() {
           ) : (
             <motion.div
               layout
-              className={`grid grid-cols-1 ${selectedChurch ? 'xl:grid-cols-2' : 'md:grid-cols-2 xl:grid-cols-3'} gap-5`}
+              transition={{
+                layout: {
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 40,
+                  mass: 1,
+                  delay: 0
+                }
+              }}
+              className="flex flex-col gap-3"
             >
               <AnimatePresence>
                 {filteredChurches.map((church, index) => (
                   <motion.div
                     layout
-                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 15, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3, delay: index * 0.04, type: "spring", stiffness: 150 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 400,
+                      damping: 30,
+                      mass: 0.8,
+                      delay: Math.min(index * 0.015, 0.3),
+                      layout: {
+                        duration: 0.3,
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 40,
+                        mass: 1,
+                        delay: 0
+                      }
+                    }}
                     key={church.id}
                     onClick={() => handleChurchClick(church)}
-                    className={`group cursor-pointer relative overflow-hidden rounded-[1.5rem] transition-all duration-300`}
-                    whileHover={{ y: -4, scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ scale: 1.005, backgroundColor: isDark ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.9)' }}
+                    className="group cursor-pointer relative overflow-hidden rounded-2xl flex items-center p-4 gap-4 transition-all border border-transparent hover:shadow-lg"
                     style={{
-                      background: selectedChurch?.id === church.id ? 'rgba(239,246,255,0.95)' : 'rgba(255,255,255,0.8)',
-                      backdropFilter: 'blur(20px)',
-                      border: selectedChurch?.id === church.id ? '1.5px solid rgba(59,130,246,0.3)' : '1.5px solid rgba(0,0,0,0.06)',
-                      boxShadow: selectedChurch?.id === church.id ? '0 12px 40px rgba(59,130,246,0.15)' : '0 4px 20px rgba(0,0,0,0.03)',
+                      ...(selectedChurch?.id === church.id ? d.cardActive : d.card),
+                      borderColor: selectedChurch?.id === church.id
+                        ? (isDark ? 'rgba(59, 130, 246, 0.5)' : 'rgba(59, 130, 246, 0.3)')
+                        : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)')
                     }}
                   >
                     {/* Active indicator bar */}
                     {selectedChurch?.id === church.id && (
                       <motion.div
                         layoutId="activeChurchBar"
-                        className="absolute top-0 left-0 w-full h-1"
-                        style={{ background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)' }}
+                        className="absolute left-0 top-0 bottom-0 w-1.5"
+                        style={{ background: 'linear-gradient(to bottom, #3b82f6, #8b5cf6, #ec4899)' }}
                       />
                     )}
 
-                    <div className="p-6">
-                      {/* Hover glow */}
-                      <div className={`absolute top-0 right-0 w-40 h-40 rounded-full blur-[60px] -mr-10 -mt-10 transition-all duration-500 ${selectedChurch?.id === church.id ? 'bg-blue-200/40' : 'bg-transparent group-hover:bg-blue-100/30'}`}></div>
+                    {/* Icon */}
+                    <div className="shrink-0 pl-2">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${selectedChurch?.id === church.id ? 'text-white' : 'text-blue-600 group-hover:text-white'}`}
+                        style={{
+                          background: selectedChurch?.id === church.id
+                            ? 'linear-gradient(135deg, #3b82f6, #6366f1)'
+                            : 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+                          boxShadow: selectedChurch?.id === church.id ? '0 8px 24px rgba(59,130,246,0.3)' : 'none',
+                        }}
+                      >
+                        <Building size={20} />
+                      </div>
+                    </div>
 
-                      <div className="flex items-start justify-between mb-5 relative z-10">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${selectedChurch?.id === church.id ? 'text-white' : 'text-blue-600 group-hover:text-white'}`}
-                          style={{
-                            background: selectedChurch?.id === church.id
-                              ? 'linear-gradient(135deg, #3b82f6, #6366f1)'
-                              : 'linear-gradient(135deg, #eff6ff, #dbeafe)',
-                            boxShadow: selectedChurch?.id === church.id ? '0 8px 24px rgba(59,130,246,0.3)' : 'none',
-                          }}
-                        >
-                          <Building size={26} />
-                        </div>
-                        <span className="text-[9px] font-bold uppercase tracking-[0.15em] px-3 py-1.5 rounded-full" style={{ background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1px solid rgba(16,185,129,0.15)' }}>
-                          Active
+                    {/* Main Info */}
+                    <div className="flex-1 min-w-0 flex flex-col gap-1">
+                      <h3 className="text-lg font-black text-gray-900 dark:text-gray-100 transition-colors leading-tight group-hover:text-blue-600">
+                        {church.name}
+                      </h3>
+                      <div className="flex items-center gap-1.5 text-sm text-gray-500 font-medium">
+                        <MapPin size={12} className="shrink-0 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors" />
+                        <span className="truncate max-w-[200px]">{church.location || "No location specified"}</span>
+                        {church.map_link && (
+                          <div className="flex items-center justify-center w-5 h-5 rounded-md shrink-0 ml-1" style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981' }} title="Map link available">
+                            <Map size={10} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-6 mr-4 hidden sm:flex">
+                      <div className="flex flex-col items-center">
+                        <span className="text-xl font-black text-gray-900 dark:text-gray-100 tabular-nums leading-none">
+                          {church.members && church.members[0] ? church.members[0].count : 0}
                         </span>
+                        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Members</span>
                       </div>
+                    </div>
 
-                      <div className="relative z-10">
-                        <h3 className="text-xl font-black text-gray-900 mb-2 group-hover:text-blue-700 transition-colors leading-tight">
-                          {church.name}
-                        </h3>
-                        <div className="flex items-center justify-between gap-2 text-gray-500 text-sm mb-6 font-medium">
-                          <div className="flex items-center gap-2 truncate">
-                            <MapPin size={14} className="shrink-0 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                            <span className="truncate">{church.location || "No location specified"}</span>
-                          </div>
-                          {church.map_link && (
-                            <div className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0" style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981' }} title="Map link available">
-                              <Map size={13} />
-                            </div>
-                          )}
+                    {/* Arrow/Indicator */}
+                    <div className="text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors pr-2">
+                      {selectedChurch?.id === church.id ? (
+                        <div className="bg-blue-500 text-white rounded-full p-1">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
-
-                        <div className="pt-5 border-t flex items-center justify-between" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold" style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}>
-                              <Users size={14} />
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className="block text-2xl font-black text-gray-900 leading-none tabular-nums">
-                              {church.members && church.members[0] ? church.members[0].count : 0}
-                            </span>
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.15em]">Members</span>
-                          </div>
-                        </div>
-                      </div>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                      )}
                     </div>
                   </motion.div>
                 ))}
               </AnimatePresence>
             </motion.div>
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* ═══════════════ ADD CHURCH MODAL ═══════════════ */}
       <AnimatePresence>
-        {isModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-[100] p-4"
-            style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(24px) saturate(180%)' }}
-          >
+        {
+          isModalOpen && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 30 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 30 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem]"
-              style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(40px)', boxShadow: '0 25px 80px rgba(0,0,0,0.12)', border: '1px solid rgba(255,255,255,0.9)' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-center justify-center z-[100] p-4"
+              style={d.modalOverlay}
             >
-              <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)' }}></div>
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 30 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 30 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem]"
+                style={d.modalContent}
+              >
+                <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)' }}></div>
 
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Add Church</h2>
-                  <p className="text-sm text-gray-500 mt-1 font-medium">Register a new branch location</p>
-                </div>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-900 transition-colors" style={{ background: 'rgba(0,0,0,0.04)' }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddChurch} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Church Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={newChurch.name}
-                    onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
-                    className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
-                    style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                    placeholder="e.g. Guenet Addis Ababa"
-                  />
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">Add Church</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Register a new branch location</p>
+                  </div>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 transition-colors" style={d.subtleButton}
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Location</label>
-                  <input
-                    type="text"
-                    value={newChurch.location}
-                    onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
-                    className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
-                    style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                    placeholder="e.g. Bole, Addis Ababa"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Map Link (Google Maps URL)</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
-                      <Map size={18} />
-                    </div>
+                <form onSubmit={handleAddChurch} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Church Name</label>
                     <input
-                      type="url"
-                      value={newChurch.map_link}
-                      onChange={(e) => setNewChurch({ ...newChurch, map_link: e.target.value })}
-                      className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
-                      style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                      placeholder="https://maps.google.com/..."
+                      type="text"
+                      required
+                      value={newChurch.name}
+                      onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
+                      className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                      style={d.formInput}
+                      placeholder="e.g. Guenet Addis Ababa"
                     />
                   </div>
-                  <p className="mt-2 ml-1 text-[11px] text-gray-500 font-medium">
-                    Paste a map link to help people find this church.
-                  </p>
-                </div>
 
-                <div className="flex justify-end gap-3 mt-8 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-6 py-3 font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    type="submit"
-                    disabled={submitting || !hasAddChanges}
-                    className="px-6 py-3 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 8px 24px rgba(59,130,246,0.25)' }}
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        <span>Saving...</span>
-                      </>
-                    ) : (
-                      <span>Add Church</span>
-                    )}
-                  </motion.button>
-                </div>
-              </form>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Location</label>
+                    <input
+                      type="text"
+                      value={newChurch.location}
+                      onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
+                      className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                      style={d.formInput}
+                      placeholder="e.g. Bole, Addis Ababa"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Map Link (Google Maps URL)</label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 dark:text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                        <Map size={18} />
+                      </div>
+                      <input
+                        type="url"
+                        value={newChurch.map_link}
+                        onChange={(e) => setNewChurch({ ...newChurch, map_link: e.target.value })}
+                        className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                        style={d.formInput}
+                        placeholder="https://maps.google.com/..."
+                      />
+                    </div>
+                    <p className="mt-2 ml-1 text-[11px] text-gray-500 font-medium">
+                      Paste a map link to help people find this church.
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end gap-3 mt-8 pt-6" style={d.modalFooterBorder}>
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-6 py-3 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      type="submit"
+                      disabled={submitting || !hasAddChanges}
+                      className="px-6 py-3 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                      style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 8px 24px rgba(59,130,246,0.25)' }}
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin" />
+                          <span>Saving...</span>
+                        </>
+                      ) : (
+                        <span>Add Church</span>
+                      )}
+                    </motion.button>
+                  </div>
+                </form>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )
+        }
+      </AnimatePresence >
 
       {/* ═══════════════ EDIT CHURCH MODAL ═══════════════ */}
       <AnimatePresence>
-        {isEditModalOpen && editingChurch && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-[100] p-4"
-            style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(24px) saturate(180%)' }}
-          >
+        {
+          isEditModalOpen && editingChurch && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 30 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 30 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem]"
-              style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(40px)', boxShadow: '0 25px 80px rgba(0,0,0,0.12)', border: '1px solid rgba(255,255,255,0.9)' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-center justify-center z-[100] p-4"
+              style={d.modalOverlay}
             >
-              <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)' }}></div>
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 30 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 30 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem]"
+                style={d.modalContent}
+              >
+                <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)' }}></div>
 
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Edit Church</h2>
-                  <p className="text-sm text-gray-500 mt-1 font-medium">Update details for this branch</p>
-                </div>
-                <button
-                  onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "", map_link: "" }); }}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-900 transition-colors" style={{ background: 'rgba(0,0,0,0.04)' }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleEditChurch} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Church Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={newChurch.name}
-                    onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
-                    className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
-                    style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                    placeholder="e.g. Guenet Addis Ababa"
-                  />
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">Edit Church</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Update details for this branch</p>
+                  </div>
+                  <button
+                    onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "", map_link: "" }); }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 transition-colors" style={d.subtleButton}
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Location</label>
-                  <input
-                    type="text"
-                    value={newChurch.location}
-                    onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
-                    className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
-                    style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                    placeholder="e.g. Bole, Addis Ababa"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Map Link (Google Maps URL)</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
-                      <Map size={18} />
-                    </div>
+                <form onSubmit={handleEditChurch} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Church Name</label>
                     <input
-                      type="url"
-                      value={newChurch.map_link}
-                      onChange={(e) => setNewChurch({ ...newChurch, map_link: e.target.value })}
-                      className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
-                      style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                      placeholder="https://maps.google.com/..."
+                      type="text"
+                      required
+                      value={newChurch.name}
+                      onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
+                      className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                      style={d.formInput}
+                      placeholder="e.g. Guenet Addis Ababa"
                     />
                   </div>
-                </div>
 
-                <div className="flex justify-end gap-3 mt-8 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                  <button
-                    type="button"
-                    onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "", map_link: "" }); }}
-                    className="px-6 py-3 font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    type="submit"
-                    disabled={submitting || !hasEditChanges}
-                    className="px-6 py-3 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', boxShadow: '0 8px 24px rgba(99,102,241,0.25)' }}
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        <span>Updating...</span>
-                      </>
-                    ) : (
-                      <span>Update Church</span>
-                    )}
-                  </motion.button>
-                </div>
-              </form>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Location</label>
+                    <input
+                      type="text"
+                      value={newChurch.location}
+                      onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
+                      className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                      style={d.formInput}
+                      placeholder="e.g. Bole, Addis Ababa"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Map Link (Google Maps URL)</label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 dark:text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                        <Map size={18} />
+                      </div>
+                      <input
+                        type="url"
+                        value={newChurch.map_link}
+                        onChange={(e) => setNewChurch({ ...newChurch, map_link: e.target.value })}
+                        className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                        style={d.formInput}
+                        placeholder="https://maps.google.com/..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 mt-8 pt-6" style={d.modalFooterBorder}>
+                    <button
+                      type="button"
+                      onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "", map_link: "" }); }}
+                      className="px-6 py-3 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      type="submit"
+                      disabled={submitting || !hasEditChanges}
+                      className="px-6 py-3 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                      style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', boxShadow: '0 8px 24px rgba(99,102,241,0.25)' }}
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin" />
+                          <span>Updating...</span>
+                        </>
+                      ) : (
+                        <span>Update Church</span>
+                      )}
+                    </motion.button>
+                  </div>
+                </form>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )
+        }
+      </AnimatePresence >
 
       <ConfirmDialog
         isOpen={confirmOpen}
@@ -924,6 +956,6 @@ export default function Churches() {
           100% { background-position: 200% 0; }
         }
       `}</style>
-    </motion.div>
+    </motion.div >
   );
 }

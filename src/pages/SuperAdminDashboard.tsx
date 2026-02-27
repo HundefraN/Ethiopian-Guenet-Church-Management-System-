@@ -14,6 +14,8 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { Link } from "react-router-dom";
 import { logActivity } from "../utils/activityLogger";
 import { springPresets, containerVariants as sharedContainerVariants, itemVariants as sharedItemVariants, interactivePresets } from "../utils/animations";
+import { useTheme } from "../context/ThemeContext";
+import { ds } from "../utils/darkStyles";
 
 // Animated counter component using framer-motion for smooth, realistic counting
 function AnimatedNumber({ value }: { value: number }) {
@@ -30,7 +32,7 @@ function AnimatedNumber({ value }: { value: number }) {
 // Modern Donut chart component using framer-motion path animations
 function DonutChart({ segments }: { segments: { value: number; color: string; label: string }[] }) {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
-  if (total === 0) return <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No data</div>;
+  if (total === 0) return <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">No data</div>;
 
   let cumulativePercent = 0;
   const radius = 42;
@@ -70,17 +72,19 @@ function DonutChart({ segments }: { segments: { value: number; color: string; la
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={springPresets.bouncy}
-          className="text-4xl font-black text-gray-900"
+          className="text-4xl font-black text-gray-900 dark:text-gray-100"
         >
           {total}
         </motion.span>
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic">platform</span>
+        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest italic">platform</span>
       </div>
     </div>
   );
 }
 
 export default function SuperAdminDashboard() {
+  const { isDark } = useTheme();
+  const d = ds(isDark);
   const { settings } = useAuth();
   const [loading, setLoading] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(settings?.is_maintenance_mode || false);
@@ -269,7 +273,9 @@ export default function SuperAdminDashboard() {
           { label: "Members", value: stats.members, recent: stats.recentMembers, icon: Users, gradient: "from-emerald-600 to-teal-400", bgLight: "bg-emerald-50", textColor: "text-emerald-600" },
         ].map((card, i) => (
           <motion.div key={i} variants={itemVariants}
-            className="group bg-white rounded-[1.5rem] p-5 md:p-6 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-150 relative overflow-hidden">
+            className="group bg-white rounded-[1.5rem] p-5 md:p-6 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-150 relative overflow-hidden"
+            style={d.card}
+          >
             <div className="absolute -top-6 -right-6 opacity-[0.04] group-hover:opacity-[0.08] group-hover:scale-110 transition-all duration-200">
               <card.icon size={100} />
             </div>
@@ -277,14 +283,14 @@ export default function SuperAdminDashboard() {
               <card.icon size={20} />
             </div>
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-3xl md:text-4xl font-black text-gray-900 tabular-nums"><AnimatedNumber value={card.value} /></h3>
+              <h3 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-gray-100 tabular-nums"><AnimatedNumber value={card.value} /></h3>
               {card.recent > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-800/50">
                   <ArrowUpRight size={12} />+{card.recent}
                 </span>
               )}
             </div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{card.label}</p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{card.label}</p>
           </motion.div>
         ))}
       </motion.div>
@@ -293,14 +299,14 @@ export default function SuperAdminDashboard() {
       <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
         {/* Role Distribution Donut */}
-        <motion.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-[1.5rem] p-6 md:p-8 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+        <motion.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-[1.5rem] p-6 md:p-8 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)]" style={d.card}>
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-md">
               <Eye size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Role Distribution</h2>
-              <p className="text-xs text-gray-400 font-medium">People across the platform</p>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Role Distribution</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">People across the platform</p>
             </div>
           </div>
           <div className="w-44 h-44 mx-auto mb-6">
@@ -318,23 +324,23 @@ export default function SuperAdminDashboard() {
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
-                <span className="text-sm text-gray-600 font-medium flex-1">{item.label}</span>
-                <span className="text-sm font-bold text-gray-900 tabular-nums">{item.value}</span>
-                <span className="text-xs font-semibold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md w-12 text-center">{item.pct}%</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium flex-1">{item.label}</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-gray-200 tabular-nums">{item.value}</span>
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-md w-12 text-center" style={d.iconBox}>{item.pct}%</span>
               </div>
             ))}
           </div>
         </motion.div>
 
         {/* Growth & Performance */}
-        <motion.div variants={itemVariants} className="lg:col-span-3 bg-white rounded-[1.5rem] p-6 md:p-8 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+        <motion.div variants={itemVariants} className="lg:col-span-3 bg-white rounded-[1.5rem] p-6 md:p-8 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)]" style={d.card}>
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white shadow-md">
               <TrendingUp size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Growth Analytics</h2>
-              <p className="text-xs text-gray-400 font-medium">Performance metrics — last 30 days</p>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Growth Analytics</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Performance metrics — last 30 days</p>
             </div>
           </div>
 
@@ -344,7 +350,7 @@ export default function SuperAdminDashboard() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Users size={16} className="text-emerald-500" />
-                  <span className="text-sm font-bold text-gray-700">Member Growth</span>
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-400">Member Growth</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-black px-2.5 py-1 rounded-lg border ${memberGrowth >= 0 ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-red-600 bg-red-50 border-red-100'}`}>
@@ -352,7 +358,7 @@ export default function SuperAdminDashboard() {
                   </span>
                 </div>
               </div>
-              <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div className="relative h-3 rounded-full overflow-hidden" style={d.iconBox}>
                 <motion.div
                   className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
                   initial={{ width: '0%' }}
@@ -360,7 +366,7 @@ export default function SuperAdminDashboard() {
                   transition={{ duration: 0.2, delay: 0.05 }}
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-2 font-medium">{stats.recentMembers} new registrations in 30 days</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">{stats.recentMembers} new registrations in 30 days</p>
             </div>
 
             {/* Church Expansion */}
@@ -368,13 +374,13 @@ export default function SuperAdminDashboard() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Building size={16} className="text-blue-500" />
-                  <span className="text-sm font-bold text-gray-700">Church Expansion</span>
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-400">Church Expansion</span>
                 </div>
                 <span className={`text-xs font-black px-2.5 py-1 rounded-lg border ${churchGrowth >= 0 ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-red-600 bg-red-50 border-red-100'}`}>
                   {churchGrowth >= 0 ? '+' : ''}{churchGrowth}%
                 </span>
               </div>
-              <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div className="relative h-3 rounded-full overflow-hidden" style={d.iconBox}>
                 <motion.div
                   className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full"
                   initial={{ width: '0%' }}
@@ -382,14 +388,14 @@ export default function SuperAdminDashboard() {
                   transition={{ duration: 0.2, delay: 0.05 }}
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-2 font-medium">{stats.recentChurches} new branches established</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">{stats.recentChurches} new branches established</p>
             </div>
 
             {/* Member Status Breakdown */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <BarChart3 size={16} className="text-violet-500" />
-                <span className="text-sm font-bold text-gray-700">Member Status</span>
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-400">Member Status</span>
               </div>
               <div className="flex gap-3">
                 {[
@@ -397,9 +403,9 @@ export default function SuperAdminDashboard() {
                   { label: "Transfer", value: stats.transferMembers, color: "from-amber-400 to-amber-500", bg: "bg-amber-50", text: "text-amber-700" },
                   { label: "Deceased", value: stats.deceasedMembers, color: "from-gray-400 to-gray-500", bg: "bg-gray-50", text: "text-gray-600" },
                 ].map((item, i) => (
-                  <div key={i} className={`flex-1 ${item.bg} rounded-xl p-4 text-center border border-gray-100/40`}>
-                    <span className={`block text-2xl font-black ${item.text} tabular-nums`}>{item.value}</span>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{item.label}</span>
+                  <div key={i} className={`flex-1 ${item.bg} dark:bg-gray-800/30 rounded-xl p-4 text-center border border-gray-100/40 dark:border-gray-800/50`} style={d.emptyInner}>
+                    <span className={`block text-2xl font-black ${item.text} dark:text-gray-100 tabular-nums`}>{item.value}</span>
+                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{item.label}</span>
                   </div>
                 ))}
               </div>
@@ -411,18 +417,18 @@ export default function SuperAdminDashboard() {
       {/* ═══════════ Activity & Metrics ═══════════ */}
       <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Live Activity Feed */}
-        <motion.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-[1.5rem] border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="px-8 py-6 border-b border-gray-100/60 flex items-center justify-between">
+        <motion.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-[1.5rem] border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
+          <div className="px-8 py-6 flex items-center justify-between" style={d.innerBorder}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center text-white shadow-md">
                 <Activity size={18} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Live Activity</h2>
-                <p className="text-xs text-gray-400 font-medium">Real-time system events</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Live Activity</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Real-time system events</p>
               </div>
             </div>
-            <Link to="/activities" className="text-sm font-bold text-[#4B9BDC] hover:text-[#1A365D] bg-blue-50 px-4 py-2 rounded-xl transition-colors">
+            <Link to="/activities" className="text-sm font-bold text-[#4B9BDC] hover:text-[#1A365D] bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-xl transition-colors">
               View All
             </Link>
           </div>
@@ -430,7 +436,7 @@ export default function SuperAdminDashboard() {
             <div className="space-y-1">
               {recentActivities.length > 0 ? (
                 recentActivities.map((log, i) => (
-                  <div key={log.id} className="flex items-start gap-4 p-4 hover:bg-gray-50/80 rounded-xl transition-all group">
+                  <div key={log.id} className="flex items-start gap-4 p-4 hover:bg-gray-50/80 rounded-xl transition-all group" style={d.listItem}>
                     <div className="relative">
                       {log.profiles?.avatar_url ? (
                         <img src={log.profiles.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover ring-2 ring-white shadow-sm" />
@@ -444,12 +450,12 @@ export default function SuperAdminDashboard() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 leading-snug">{log.details}</p>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-snug">{log.details}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs font-medium text-gray-400">{log.profiles?.full_name || "Unknown"}</span>
-                        <span className="text-gray-300">·</span>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{log.profiles?.full_name || "Unknown"}</span>
+                        <span className="text-gray-500 dark:text-gray-400">·</span>
                         <span
-                          className="text-xs font-medium text-gray-400"
+                          className="text-xs font-medium text-gray-500 dark:text-gray-400"
                           title={new Date(log.created_at).toLocaleString('en-US', {
                             year: 'numeric',
                             month: 'short',
@@ -465,7 +471,7 @@ export default function SuperAdminDashboard() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12"><p className="text-gray-400 text-sm font-medium">No recent activity</p></div>
+                <div className="text-center py-12"><p className="text-gray-500 dark:text-gray-400 text-sm font-medium">No recent activity</p></div>
               )}
             </div>
           </div>
@@ -503,10 +509,10 @@ export default function SuperAdminDashboard() {
                 { label: 'Avg Servants / Branch', value: stats.churches > 0 ? Math.round(stats.servants / stats.churches) : 0, icon: Shield },
               ].map((metric, i) => (
                 <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-gray-400">
+                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400">
                     <metric.icon size={14} />
                   </div>
-                  <span className="flex-1 text-sm text-gray-400 font-medium">{metric.label}</span>
+                  <span className="flex-1 text-sm text-gray-500 dark:text-gray-400 font-medium">{metric.label}</span>
                   <span className="text-sm font-black text-white tabular-nums">{metric.value}</span>
                 </div>
               ))}
@@ -516,15 +522,15 @@ export default function SuperAdminDashboard() {
       </motion.div>
 
       {/* ═══════════ Comprehensive Logs ═══════════ */}
-      <motion.div variants={itemVariants} className="bg-white rounded-[1.5rem] border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div className="px-8 py-6 border-b border-gray-100/60 flex items-center justify-between">
+      <motion.div variants={itemVariants} className="bg-white rounded-[1.5rem] border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
+        <div className="px-8 py-6 flex items-center justify-between" style={d.innerBorder}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white shadow-md">
               <Zap size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Comprehensive Audit Logs</h2>
-              <p className="text-xs text-gray-400 font-medium">Complete system activity history</p>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Comprehensive Audit Logs</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Complete system activity history</p>
             </div>
           </div>
         </div>

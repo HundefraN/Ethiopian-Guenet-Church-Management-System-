@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
 import { logActivity } from "../utils/activityLogger";
 import { springPresets, containerVariants as sharedContainerVariants, itemVariants as sharedItemVariants, interactivePresets } from "../utils/animations";
+import { useTheme } from "../context/ThemeContext";
+import { ds } from "../utils/darkStyles";
 
 // Animated counter using high-performance springs
 function AnimatedNumber({ value }: { value: number }) {
@@ -25,12 +27,16 @@ function AnimatedNumber({ value }: { value: number }) {
 }
 
 export default function ServantDashboard() {
+  const { isDark } = useTheme();
+  const d = ds(isDark);
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [filterFocused, setFilterFocused] = useState(false);
 
   useEffect(() => {
     if (profile?.department_id) { fetchMembers(); }
@@ -38,11 +44,21 @@ export default function ServantDashboard() {
   }, [profile?.department_id]);
 
   const fetchMembers = async () => {
-    const { data, error } = await supabase
+    // If we have a church_id, fetch all members in that church
+    // Otherwise, if we only have a department_id (unlikely given the new requirement), fallback
+    let query = supabase
       .from("members")
       .select("*")
-      .eq("department_id", profile?.department_id)
       .order("created_at", { ascending: false });
+
+    if (profile?.church_id) {
+      query = query.eq("church_id", profile.church_id);
+    } else if (profile?.department_id) {
+      query = query.eq("department_id", profile.department_id);
+    }
+
+    const { data, error } = await query;
+
     if (error) { toast.error("Failed to load members"); }
     else if (data) { setMembers(data); }
     setLoading(false);
@@ -132,13 +148,15 @@ export default function ServantDashboard() {
           { label: "Filtered", value: filteredMembers.length, icon: Filter, gradient: "from-amber-500 to-orange-500" },
         ].map((card, i) => (
           <motion.div key={i} variants={itemVariants}
-            className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] relative overflow-hidden group hover:-translate-y-0.5 transition-all">
+            className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] relative overflow-hidden group hover:-translate-y-0.5 transition-all"
+            style={d.card}
+          >
             <div className="absolute -top-4 -right-4 opacity-[0.04]"><card.icon size={70} /></div>
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white mb-3 shadow-md`}>
               <card.icon size={18} />
             </div>
-            <h3 className="text-3xl font-black text-gray-900 tabular-nums"><AnimatedNumber value={card.value} /></h3>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{card.label}</p>
+            <h3 className="text-3xl font-black text-gray-900 dark:text-gray-100 tabular-nums"><AnimatedNumber value={card.value} /></h3>
+            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-0.5">{card.label}</p>
           </motion.div>
         ))}
       </motion.div>
@@ -146,40 +164,46 @@ export default function ServantDashboard() {
       {/* ═══════════ Search & Filter ═══════════ */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
             placeholder="Search by name, phone, or email…"
-            className="w-full pl-11 pr-4 py-3 bg-white rounded-xl border border-gray-200 text-sm font-medium text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#4B9BDC] focus:ring-4 focus:ring-[#4B9BDC]/10 transition-all"
+            style={d.searchBar(searchFocused)}
+            className="w-full pl-11 pr-4 py-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium text-gray-800 dark:text-gray-200 placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:border-[#4B9BDC] focus:ring-4 focus:ring-[#4B9BDC]/10 transition-all"
           />
         </div>
         <div className="relative">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="appearance-none bg-white border border-gray-200 rounded-xl pl-4 pr-10 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:border-[#4B9BDC] focus:ring-4 focus:ring-[#4B9BDC]/10 transition-all cursor-pointer"
+            onFocus={() => setFilterFocused(true)}
+            onBlur={() => setFilterFocused(false)}
+            style={d.searchBar(filterFocused)}
+            className="appearance-none bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl pl-4 pr-10 py-3 text-sm font-semibold text-gray-700 dark:text-gray-400 focus:outline-none focus:border-[#4B9BDC] focus:ring-4 focus:ring-[#4B9BDC]/10 transition-all cursor-pointer"
           >
             <option value="all">All Status</option>
             <option value="Active">Active</option>
             <option value="Transfer">Transfer</option>
             <option value="Death">Deceased</option>
           </select>
-          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none" />
         </div>
       </motion.div>
 
       {/* ═══════════ Members List ═══════════ */}
-      <motion.div variants={itemVariants} className="bg-white rounded-[1.5rem] border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div className="px-6 md:px-8 py-5 border-b border-gray-100/60 flex justify-between items-center">
+      <motion.div variants={itemVariants} className="bg-white rounded-[1.5rem] border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
+        <div className="px-6 md:px-8 py-5 flex justify-between items-center" style={d.innerBorder}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white shadow-md">
               <Users size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Department Members</h2>
-              <p className="text-xs text-gray-400 font-medium">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Church Members</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                 {filteredMembers.length} {filteredMembers.length === 1 ? 'member' : 'members'} {searchQuery || statusFilter !== "all" ? '(filtered)' : ''}
               </p>
             </div>
@@ -189,30 +213,30 @@ export default function ServantDashboard() {
         {loading ? (
           <div className="p-12 text-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500 mx-auto mb-4" />
-            <p className="text-gray-400 font-medium text-sm">Loading members...</p>
+            <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">Loading members...</p>
           </div>
-        ) : !profile?.department_id ? (
+        ) : !profile?.church_id ? (
           <div className="p-16 text-center">
             <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Users className="text-red-400" size={28} />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Not Assigned</h3>
-            <p className="text-gray-400 text-sm">You are not currently assigned to a department.</p>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">No Church Assigned</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">You are not currently assigned to a church.</p>
           </div>
         ) : filteredMembers.length === 0 ? (
           <div className="p-16 text-center">
             <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Users className="text-gray-300" size={28} />
+              <Users className="text-gray-500 dark:text-gray-400" size={28} />
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-1">
               {searchQuery || statusFilter !== "all" ? "No matching members" : "No members yet"}
             </h3>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
               {searchQuery || statusFilter !== "all" ? "Try adjusting your search or filters." : "Register new members to get started."}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-gray-50 dark:divide-gray-800">
             <AnimatePresence>
               {filteredMembers.map((member) => (
                 <motion.div
@@ -223,6 +247,7 @@ export default function ServantDashboard() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                   className="flex items-center gap-4 px-6 md:px-8 py-4 hover:bg-gray-50/50 transition-colors group"
+                  style={d.listItem}
                 >
                   {/* Avatar */}
                   <div className="shrink-0">
@@ -238,15 +263,15 @@ export default function ServantDashboard() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-sm font-bold text-gray-900 truncate">{member.full_name}</span>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${member.status === 'Active' ? 'bg-emerald-50 text-emerald-600' :
-                        member.status === 'Transfer' ? 'bg-amber-50 text-amber-600' :
-                          'bg-gray-100 text-gray-500'
+                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{member.full_name}</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${member.status === 'Active' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' :
+                        member.status === 'Transfer' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' :
+                          'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
                         }`}>
                         {member.status || 'Active'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-400 font-medium">
+                    <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 font-medium">
                       {member.phone && (
                         <span className="flex items-center gap-1">
                           <Phone size={11} /> {member.phone}
@@ -266,11 +291,11 @@ export default function ServantDashboard() {
                   {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => navigate(`/members/edit/${member.id}`)}
-                      className="p-2.5 rounded-xl bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors" title="Edit">
+                      className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors" title="Edit">
                       <Eye size={15} />
                     </button>
                     <button onClick={() => deleteMember(member.id)}
-                      className="p-2.5 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 transition-colors" title="Delete">
+                      className="p-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-400 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors" title="Delete">
                       <Trash2 size={15} />
                     </button>
                   </div>

@@ -127,20 +127,20 @@ export default function ChangeRoleModal({
   ) : false;
 
   return (
-    <div className="fixed inset-0 bg-white/5 flex items-center justify-center z-50 p-4 backdrop-blur-2xl transition-all duration-300">
-      <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl border border-white/50 overflow-hidden animate-in fade-in zoom-in duration-300">
-        <div className="px-8 py-6 border-b border-gray-100/50 flex justify-between items-center bg-gradient-to-r from-gray-50/80 to-white">
+    <div className="fixed inset-0 bg-white/5 dark:bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-2xl transition-all duration-300">
+      <div className="bg-white dark:bg-gray-900 rounded-[32px] w-full max-w-md shadow-2xl border border-white/50 dark:border-gray-800 overflow-hidden animate-in fade-in zoom-in duration-300">
+        <div className="px-8 py-6 border-b border-gray-100/50 dark:border-gray-800/50 flex justify-between items-center bg-gradient-to-r from-gray-50/80 dark:from-gray-950/80 to-white dark:to-gray-900">
           <div>
-            <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
+            <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
               Change User Role
             </h2>
-            <p className="text-sm font-medium text-gray-500 mt-0.5">
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-0.5">
               Update permissions and access levels
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-900 p-2 hover:bg-gray-100 rounded-2xl transition-all duration-200"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all duration-200"
           >
             <X size={20} />
           </button>
@@ -148,7 +148,7 @@ export default function ChangeRoleModal({
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div className="space-y-3">
-            <label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+            <label className="text-[13px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1">
               Select New Assignment
             </label>
             <div className="grid grid-cols-2 gap-4">
@@ -157,8 +157,8 @@ export default function ChangeRoleModal({
                 type="button"
                 onClick={() => setRole("pastor")}
                 className={`group relative flex flex-col items-center justify-center p-5 rounded-[24px] border-2 transition-all duration-300 ${role === "pastor"
-                  ? "border-guenet-green bg-guenet-green/5 shadow-lg shadow-guenet-green/10"
-                  : "border-gray-100 bg-gray-50/50 hover:border-guenet-green/30 hover:bg-white hover:shadow-md text-gray-500"
+                  ? "border-guenet-green bg-guenet-green/5 dark:bg-guenet-green/10 shadow-lg shadow-guenet-green/10"
+                  : "border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:border-guenet-green/30 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md text-gray-500"
                   }`}
               >
                 {role === "pastor" && (
@@ -167,18 +167,18 @@ export default function ChangeRoleModal({
                   </div>
                 )}
                 <div
-                  className={`p-3 rounded-2xl mb-3 transition-colors duration-300 ${role === "pastor" ? "bg-guenet-green text-white" : "bg-white text-gray-400 group-hover:text-guenet-green"
+                  className={`p-3 rounded-2xl mb-3 transition-colors duration-300 ${role === "pastor" ? "bg-guenet-green text-white" : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 group-hover:text-guenet-green"
                     }`}
                 >
                   <User size={28} />
                 </div>
                 <span
-                  className={`text-sm font-bold tracking-tight transition-colors ${role === "pastor" ? "text-guenet-green" : "text-gray-600"
+                  className={`text-sm font-bold tracking-tight transition-colors ${role === "pastor" ? "text-guenet-green" : "text-gray-600 dark:text-gray-400"
                     }`}
                 >
                   Pastor
                 </span>
-                <p className="text-[10px] mt-1 text-gray-400 font-medium">Church Lead</p>
+                <p className="text-[10px] mt-1 text-gray-500 dark:text-gray-400 font-medium">Church Lead</p>
               </button>
 
               {/* Servant Option */}
@@ -186,8 +186,8 @@ export default function ChangeRoleModal({
                 type="button"
                 onClick={() => setRole("servant")}
                 className={`group relative flex flex-col items-center justify-center p-5 rounded-[24px] border-2 transition-all duration-300 ${role === "servant"
-                  ? "border-guenet-green bg-guenet-green/5 shadow-lg shadow-guenet-green/10"
-                  : "border-gray-100 bg-gray-50/50 hover:border-guenet-green/30 hover:bg-white hover:shadow-md text-gray-500"
+                  ? "border-guenet-green bg-guenet-green/5 dark:bg-guenet-green/10 shadow-lg shadow-guenet-green/10"
+                  : "border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:border-guenet-green/30 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md text-gray-500"
                   }`}
               >
                 {role === "servant" && (
@@ -196,36 +196,36 @@ export default function ChangeRoleModal({
                   </div>
                 )}
                 <div
-                  className={`p-3 rounded-2xl mb-3 transition-colors duration-300 ${role === "servant" ? "bg-guenet-green text-white" : "bg-white text-gray-400 group-hover:text-guenet-green"
+                  className={`p-3 rounded-2xl mb-3 transition-colors duration-300 ${role === "servant" ? "bg-guenet-green text-white" : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 group-hover:text-guenet-green"
                     }`}
                 >
                   <Users size={28} />
                 </div>
                 <span
-                  className={`text-sm font-bold tracking-tight transition-colors ${role === "servant" ? "text-guenet-green" : "text-gray-600"
+                  className={`text-sm font-bold tracking-tight transition-colors ${role === "servant" ? "text-guenet-green" : "text-gray-600 dark:text-gray-400"
                     }`}
                 >
                   Servant
                 </span>
-                <p className="text-[10px] mt-1 text-gray-400 font-medium">Dept Worker</p>
+                <p className="text-[10px] mt-1 text-gray-500 dark:text-gray-400 font-medium">Dept Worker</p>
               </button>
             </div>
           </div>
 
           <div className="space-y-4 animate-in slide-in-from-bottom-2 duration-500">
             <div>
-              <label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
+              <label className="text-[13px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
                 Church Assignment
               </label>
               <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-guenet-green transition-colors">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 group-focus-within:text-guenet-green transition-colors">
                   <Building size={20} />
                 </div>
                 <select
                   required
                   value={churchId}
                   onChange={handleChurchChange}
-                  className="form-select pl-12 h-14"
+                  className="form-select pl-12 h-14 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 >
                   <option value="">Select Church</option>
                   {churches.map((church) => (
@@ -239,17 +239,17 @@ export default function ChangeRoleModal({
 
             {role === "servant" && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
+                <label className="text-[13px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
                   Department (Optional)
                 </label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-guenet-green transition-colors">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 group-focus-within:text-guenet-green transition-colors">
                     <Users size={20} />
                   </div>
                   <select
                     value={departmentId}
                     onChange={(e) => setDepartmentId(e.target.value)}
-                    className="form-select pl-12 h-14"
+                    className="form-select pl-12 h-14 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                   >
                     <option value="">Select Department</option>
                     {departments.map((dept) => (
@@ -267,7 +267,7 @@ export default function ChangeRoleModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 h-12 rounded-2xl text-gray-500 font-bold hover:bg-gray-100 hover:text-gray-900 transition-all active:scale-95 translate-all"
+              className="flex-1 h-12 rounded-2xl text-gray-500 dark:text-gray-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-all active:scale-95 translate-all"
             >
               Cancel
             </button>

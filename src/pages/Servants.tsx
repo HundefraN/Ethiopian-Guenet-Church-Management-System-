@@ -27,6 +27,8 @@ import ChangeRoleModal from "../components/ChangeRoleModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
+import { useTheme } from "../context/ThemeContext";
+import { ds } from "../utils/darkStyles";
 
 interface Servant extends Profile {
   email?: string;
@@ -44,6 +46,8 @@ interface Servant extends Profile {
 
 export default function Servants() {
   const { profile } = useAuth();
+  const { isDark } = useTheme();
+  const d = ds(isDark);
   const [servants, setServants] = useState<Servant[]>([]);
   const [churches, setChurches] = useState<Church[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -54,6 +58,8 @@ export default function Servants() {
   const [changeRoleUser, setChangeRoleUser] = useState<Servant | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [members, setMembers] = useState<any[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState("");
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<() => void>(() => { });
@@ -76,6 +82,7 @@ export default function Servants() {
       if (profile.church_id) {
         setFormData((prev) => ({ ...prev, church_id: profile.church_id! }));
         fetchDepartments(profile.church_id);
+        fetchMembers(profile.church_id);
       }
     }
   }, [profile]);
@@ -104,8 +111,23 @@ export default function Servants() {
         church_id: profile?.church_id || "",
         department_ids: [],
       });
+      setSelectedMemberId("");
     }
   }, [editingServant, profile, isModalOpen]);
+
+  const fetchMembers = async (churchId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("members")
+        .select("*")
+        .eq("church_id", churchId)
+        .order("full_name");
+      if (error) throw error;
+      setMembers(data || []);
+    } catch (err) {
+      console.error("Error fetching members:", err);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -183,10 +205,31 @@ export default function Servants() {
   const handleChurchChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const churchId = e.target.value;
     setFormData({ ...formData, church_id: churchId, department_ids: [] });
+    setSelectedMemberId("");
     if (churchId) {
       await fetchDepartments(churchId);
+      await fetchMembers(churchId);
     } else {
       setDepartments([]);
+      setMembers([]);
+    }
+  };
+
+  const handleMemberSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const memberId = e.target.value;
+    setSelectedMemberId(memberId);
+    if (memberId) {
+      const member = members.find(m => m.id === memberId);
+      if (member) {
+        setFormData(prev => ({
+          ...prev,
+          full_name: member.full_name,
+          email: member.email || "",
+          department_ids: member.department_id ? [member.department_id] : prev.department_ids,
+        }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, full_name: "", email: "" }));
     }
   };
 
@@ -242,32 +285,49 @@ export default function Servants() {
           return;
         }
 
-        const updates: any = { full_name: formData.full_name, department_id: null };
+        const oldChurch = churches.find(c => c.id === editingServant.church_id)?.name || "Unknown";
+        const newChurch = churches.find(c => c.id === (profile?.role === "super_admin" ? formData.church_id : editingServant.church_id))?.name || oldChurch;
+        const oldDepts = editingServant.profile_departments?.map(pd => pd.departments?.name).filter(Boolean).sort().join(", ") || "None";
+        const newDepts = departments.filter(d => formData.department_ids.includes(d.id)).map(d => d.name).sort().join(", ") || "None";
+
+        const logOld: any = { full_name: editingServant.full_name, departments: oldDepts };
+        const logNew: any = { full_name: formData.full_name, departments: newDepts };
+
         if (profile?.role === "super_admin") {
-          updates.church_id = formData.church_id;
+          logOld.church_id = editingServant.church_id;
+          logOld.church = oldChurch;
+          logNew.church_id = formData.church_id;
+          logNew.church = newChurch;
         }
 
-        const { error } = await supabase.from("profiles").update(updates).eq("id", editingServant.id);
+        const diff = getObjectDiff(logOld, logNew);
+
+        if (!diff) {
+          toast.error("No changes detected");
+          setSubmitting(false);
+          return;
+        }
+
+        const dbUpdates: any = { department_id: null };
+        if ('full_name' in diff.new) dbUpdates.full_name = diff.new.full_name;
+        if ('church_id' in diff.new) dbUpdates.church_id = diff.new.church_id;
+
+        const { error } = await supabase.from("profiles").update(dbUpdates).eq("id", editingServant.id);
         if (error) throw error;
 
         servantId = editingServant.id;
 
-        const oldChurch = churches.find(c => c.id === editingServant.church_id)?.name || "Unknown";
-        const newChurch = churches.find(c => c.id === (profile?.role === "super_admin" ? formData.church_id : editingServant.church_id))?.name || oldChurch;
-        const oldDepts = editingServant.profile_departments?.map(pd => pd.departments?.name).filter(Boolean).join(", ") || "None";
-        const newDepts = departments.filter(d => formData.department_ids.includes(d.id)).map(d => d.name).join(", ") || "None";
-
-        const logOld = { full_name: editingServant.full_name, church: oldChurch, departments: oldDepts };
-        const logNew = { full_name: formData.full_name, church: newChurch, departments: newDepts };
-        const diff = getObjectDiff(logOld, logNew);
-
-        if (diff) {
-          await logActivity("UPDATE", "SERVANT", `Updated servant ${formData.full_name}`, editingServant.id, diff);
-        }
+        const changedFields = Object.keys(diff.new).filter(k => k !== 'church_id').join(", ");
+        await logActivity("UPDATE", "SERVANT", `Updated servant "${editingServant.full_name}" (Changed: ${changedFields})`, editingServant.id, diff);
         toast.success("Servant updated successfully");
       } else {
+        if (!editingServant && !selectedMemberId && profile?.role !== "super_admin") {
+          toast.error("Please select a member first");
+          return;
+        }
+
         if (!formData.full_name || !formData.email || !formData.password || !formData.church_id) {
-          toast.error("Full name, email, password and church are required");
+          toast.error("Member details (name, email, password) and church are required");
           return;
         }
 
@@ -393,10 +453,10 @@ export default function Servants() {
       className="space-y-8 pb-10"
     >
       {/* ═══════════════ ULTRA HERO HEADER ═══════════════ */}
-      <div className="relative overflow-hidden rounded-[2rem] p-8 md:p-10 shadow-lg" style={{ background: 'linear-gradient(135deg, #431407 0%, #7c2d12 40%, #c2410c 70%, #f97316 100%)' }}>
-        <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-25 blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #fb923c, transparent)' }}></div>
-        <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full opacity-20 blur-[60px]" style={{ background: 'radial-gradient(circle, #fbbf24, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
-        <div className="absolute top-1/2 left-1/3 w-72 h-72 rounded-full opacity-10 blur-[100px]" style={{ background: 'radial-gradient(circle, #f97316, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
+      <div className="relative overflow-hidden rounded-[2rem] p-8 md:p-10 shadow-lg" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-25 blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
+        <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full opacity-20 blur-[60px]" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
+        <div className="absolute top-1/2 left-1/3 w-72 h-72 rounded-full opacity-10 blur-[100px]" style={{ background: 'radial-gradient(circle, #3178B5, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
@@ -407,10 +467,10 @@ export default function Servants() {
               transition={{ delay: 0.1 }}
               className="flex items-center gap-3 mb-4"
             >
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(251,146,60,0.3), rgba(251,191,36,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                <Flame size={24} className="text-orange-200" />
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <Flame size={24} className="text-blue-100" />
               </div>
-              <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#fdba74' }}>
+              <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
                 <Sparkles size={10} className="inline mr-1" /> Ministry Team
               </div>
             </motion.div>
@@ -419,7 +479,7 @@ export default function Servants() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
               className="text-4xl md:text-5xl font-black tracking-tight mb-3"
-              style={{ background: 'linear-gradient(135deg, #ffffff 0%, #fdba74 50%, #fbbf24 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+              style={{ background: 'linear-gradient(135deg, #ffffff 0%, #7EC8F2 50%, #4B9BDC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
             >
               Servants Directory
             </motion.h1>
@@ -427,7 +487,7 @@ export default function Servants() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-orange-200/60 max-w-lg text-sm md:text-base font-medium"
+              className="text-blue-100/70 max-w-lg text-sm md:text-base font-medium"
             >
               Manage church servants, department assignments, and access levels.
             </motion.p>
@@ -440,12 +500,12 @@ export default function Servants() {
             className="flex flex-wrap items-center gap-4"
           >
             <div className="flex items-center gap-3 px-5 py-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)' }}>
                 <Users size={18} className="text-white" />
               </div>
               <div>
                 <p className="text-2xl font-black text-white leading-none">{servants.length}</p>
-                <p className="text-[10px] font-bold text-orange-300/60 uppercase tracking-wider">Servants</p>
+                <p className="text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">Servants</p>
               </div>
             </div>
 
@@ -455,7 +515,7 @@ export default function Servants() {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsModalOpen(true)}
                 className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shrink-0"
-                style={{ background: 'linear-gradient(135deg, #ffffff, #ffedd5)', color: '#ea580c', boxShadow: '0 8px 32px rgba(249,115,22,0.3), inset 0 1px 0 rgba(255,255,255,0.8)' }}
+                style={{ background: 'linear-gradient(135deg, #ffffff, #e8f1fa)', color: '#3178B5', boxShadow: '0 8px 32px rgba(49,120,181,0.3), inset 0 1px 0 rgba(255,255,255,0.8)' }}
               >
                 <Plus size={18} />
                 <span>Register Servant</span>
@@ -474,14 +534,14 @@ export default function Servants() {
         <div
           className="p-1.5 rounded-2xl flex items-center transition-all duration-300 max-w-3xl"
           style={{
-            background: searchFocused ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.8)',
+            background: searchFocused ? (isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.95)') : (isDark ? 'rgba(15,23,42,0.55)' : 'rgba(255,255,255,0.8)'),
             backdropFilter: 'blur(20px)',
-            border: searchFocused ? '1.5px solid rgba(249,115,22,0.3)' : '1.5px solid rgba(0,0,0,0.06)',
-            boxShadow: searchFocused ? '0 8px 32px rgba(249,115,22,0.1), 0 0 0 4px rgba(249,115,22,0.05)' : '0 4px 20px rgba(0,0,0,0.03)',
+            border: searchFocused ? (isDark ? '1.5px solid rgba(75,155,220,0.4)' : '1.5px solid rgba(75,155,220,0.4)') : (isDark ? '1.5px solid rgba(75,155,220,0.12)' : '1.5px solid rgba(0,0,0,0.06)'),
+            boxShadow: searchFocused ? (isDark ? '0 8px 32px rgba(0,0,0,0.3), 0 0 0 4px rgba(75,155,220,0.08)' : '0 8px 32px rgba(75,155,220,0.15), 0 0 0 4px rgba(75,155,220,0.05)') : (isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 4px 20px rgba(0,0,0,0.03)'),
           }}
         >
           <div className="pl-4 pr-2">
-            <Search size={20} className={`transition-colors duration-200 ${searchFocused ? 'text-orange-500' : 'text-gray-400'}`} />
+            <Search size={20} className={`transition-colors duration-200 ${searchFocused ? 'text-[#4B9BDC]' : 'text-gray-500 dark:text-gray-400'}`} />
           </div>
           <input
             type="text"
@@ -490,12 +550,12 @@ export default function Servants() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400"
+            className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="p-2 mr-2 text-gray-400 hover:text-orange-500 rounded-xl hover:bg-orange-50 transition-colors"
+              className="p-2 mr-2 text-gray-500 dark:text-gray-400 hover:text-[#4B9BDC] rounded-xl hover:bg-blue-50 transition-colors"
               title="Clear search"
             >
               <X size={16} />
@@ -508,9 +568,9 @@ export default function Servants() {
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="relative">
-            <div className="w-14 h-14 rounded-full border-[3px] border-orange-100 border-t-orange-500 animate-spin"></div>
+            <div className="w-14 h-14 rounded-full border-[3px] border-blue-100 border-t-[#4B9BDC] animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <Flame size={18} className="text-orange-400" />
+              <Flame size={18} className="text-[#4B9BDC]" />
             </div>
           </div>
         </div>
@@ -519,12 +579,12 @@ export default function Servants() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center py-20 rounded-[2rem]"
-          style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(20px)', border: '1px solid rgba(0,0,0,0.06)' }}
+          style={d.emptyState}
         >
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)' }}>
-            <Users className="h-10 w-10 text-gray-300" />
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5" style={d.emptyIcon}>
+            <Users className="h-10 w-10 text-gray-500 dark:text-gray-400" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900">No servants found</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">No servants found</h3>
           <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
             Try adjusting your search or register a new servant.
           </p>
@@ -535,24 +595,33 @@ export default function Servants() {
             {filteredServants.map((servant, index) => (
               <motion.div
                 layout
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                initial={{ opacity: 0, y: 15, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3, delay: index * 0.04, type: "spring", stiffness: 150 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 30,
+                  mass: 0.8,
+                  delay: Math.min(index * 0.015, 0.3),
+                  layout: {
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 40,
+                    mass: 1,
+                    delay: 0
+                  }
+                }}
                 key={servant.id}
                 whileHover={{ y: -4, scale: 1.01 }}
-                className="group relative overflow-hidden rounded-[1.5rem] flex flex-col transition-all duration-300"
-                style={{
-                  background: 'rgba(255,255,255,0.8)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1.5px solid rgba(0,0,0,0.06)',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                }}
+                className="group relative overflow-hidden rounded-[1.5rem] flex flex-col"
+
+                style={d.card}
               >
-                <div className={`h-1 ${servant.is_blocked ? 'bg-red-500' : ''}`} style={!servant.is_blocked ? { background: 'linear-gradient(90deg, #f97316, #f59e0b, #eab308)' } : {}}></div>
+                <div className={`h-1 ${servant.is_blocked ? 'bg-red-500' : ''}`} style={!servant.is_blocked ? { background: 'linear-gradient(90deg, #3178B5, #4B9BDC, #7EC8F2)' } : {}}></div>
 
                 <div className="p-5 flex flex-col flex-1">
-                  <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] -mr-8 -mt-8 opacity-0 group-hover:opacity-20 transition-opacity duration-500" style={{ background: 'radial-gradient(circle, #f97316, transparent)' }}></div>
+                  <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] -mr-8 -mt-8 opacity-0 group-hover:opacity-20 transition-opacity duration-500" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)' }}></div>
 
                   <div className="flex items-start justify-between mb-4 mt-1">
                     <div className="relative">
@@ -567,7 +636,7 @@ export default function Servants() {
                         <div
                           className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner transition-all duration-300 ${servant.is_blocked ? "grayscale scale-95" : "group-hover:scale-105"}`}
                           style={{
-                            background: servant.is_blocked ? 'linear-gradient(135deg, #fef2f2, #fee2e2)' : 'linear-gradient(135deg, #fff7ed, #ffedd5)',
+                            background: servant.is_blocked ? 'linear-gradient(135deg, #fef2f2, #fee2e2)' : (isDark ? 'rgba(75,155,220,0.12)' : 'linear-gradient(135deg, #f2f8fd, #e8f1fa)'),
                             color: servant.is_blocked ? '#fca5a5' : '#f97316'
                           }}
                         >
@@ -590,7 +659,7 @@ export default function Servants() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 z-10 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(0,0,0,0.06)' }}>
+                    <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 z-10 p-1 rounded-xl" style={d.actionPill}>
                       <button
                         onClick={() => handleBlockToggleClick(servant)}
                         className={`p-2 rounded-lg transition-colors ${servant.is_blocked ? "text-emerald-600 hover:bg-emerald-50" : "text-red-500 hover:bg-red-50"}`}
@@ -601,7 +670,7 @@ export default function Servants() {
                       {profile?.role === "super_admin" && (
                         <button
                           onClick={() => setChangeRoleUser(servant)}
-                          className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          className="p-2 text-[#4B9BDC] hover:text-[#3178B5] hover:bg-blue-50 rounded-lg transition-colors"
                           title="Change Role"
                         >
                           <RefreshCw size={14} />
@@ -620,21 +689,21 @@ export default function Servants() {
                   </div>
 
                   <div className="flex-1">
-                    <h3 className={`text-lg font-black leading-tight mb-1 ${servant.is_blocked ? "text-gray-500" : "text-gray-900 group-hover:text-orange-600 transition-colors"}`}>
+                    <h3 className={`text-lg font-black leading-tight mb-1 ${servant.is_blocked ? "text-gray-500" : "text-gray-900 dark:text-gray-100 group-hover:text-[#3178B5] transition-colors"}`}>
                       {servant.full_name}
                     </h3>
-                    <span className="text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-md mb-3 inline-block" style={{ background: 'rgba(249,115,22,0.08)', color: '#ea580c' }}>
+                    <span className="text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-md mb-3 inline-block" style={{ background: 'rgba(75,155,220,0.08)', color: '#3178B5' }}>
                       Servant
                     </span>
 
-                    <div className="rounded-xl p-3 mt-2 space-y-2" style={{ background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px solid rgba(0,0,0,0.04)' }}>
+                    <div className="rounded-xl p-3 mt-2 space-y-2" style={d.infoBox}>
                       <div className="flex items-center justify-between gap-2 text-sm font-medium">
                         <div className="flex items-center gap-2 truncate">
-                          <Building size={14} className={servant.churches ? "text-orange-500" : "text-gray-400"} />
+                          <Building size={14} className={servant.churches ? "text-[#4B9BDC]" : "text-gray-500 dark:text-gray-400"} />
                           {servant.churches ? (
-                            <span className="text-gray-700 truncate text-xs font-semibold">{servant.churches.name}</span>
+                            <span className="text-gray-700 dark:text-gray-400 truncate text-xs font-semibold">{servant.churches.name}</span>
                           ) : (
-                            <span className="text-gray-400 italic text-xs">No Branch Assigned</span>
+                            <span className="text-gray-500 dark:text-gray-400 italic text-xs dark:text-gray-500">No Branch Assigned</span>
                           )}
                         </div>
                         {servant.churches?.map_link && (
@@ -652,8 +721,8 @@ export default function Servants() {
                         )}
                       </div>
                       {servant.profile_departments && servant.profile_departments.length > 0 && (
-                        <div className="flex items-start gap-2 pt-2" style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}>
-                          <Shield size={13} className="text-purple-500 mt-0.5" />
+                        <div className="flex items-start gap-2 pt-2" style={d.innerBorder}>
+                          <Shield size={13} className="text-[#4B9BDC] mt-0.5" />
                           <div className="flex flex-wrap gap-1">
                             {servant.profile_departments.map((pd) => (
                               <span key={pd.departments?.id} className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(139,92,246,0.08)', color: '#7c3aed', border: '1px solid rgba(139,92,246,0.15)' }}>
@@ -698,7 +767,7 @@ export default function Servants() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 flex items-center justify-center z-[100] p-4"
-            style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(24px) saturate(180%)' }}
+            style={d.modalOverlay}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 30 }}
@@ -706,100 +775,41 @@ export default function Servants() {
               exit={{ scale: 0.9, opacity: 0, y: 30 }}
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
               className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem] max-h-[90vh] overflow-y-auto"
-              style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(40px)', boxShadow: '0 25px 80px rgba(0,0,0,0.12)', border: '1px solid rgba(255,255,255,0.9)' }}
+              style={d.modalContent}
             >
-              <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #f97316, #f59e0b, #eab308)' }}></div>
+              <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #3178B5, #4B9BDC, #7EC8F2)' }}></div>
 
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
                     {editingServant ? "Edit Servant" : "Register Servant"}
                   </h2>
-                  <p className="text-sm text-gray-500 mt-1 font-medium">Manage servant profile</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Manage servant profile</p>
                 </div>
                 <button
                   onClick={handleCloseModal}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-900 transition-colors" style={{ background: 'rgba(0,0,0,0.04)' }}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 transition-colors" style={d.subtleButton}
                 >
                   <X size={18} />
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Full Name</label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400">
-                      <User size={18} />
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      value={formData.full_name}
-                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                      className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
-                      style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                      placeholder="e.g. Abebe Kebede"
-                    />
-                  </div>
-                </div>
-
-                {!editingServant && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Email Address</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400">
-                          <Mail size={18} />
-                        </div>
-                        <input
-                          type="email"
-                          required
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
-                          style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                          placeholder="servant@example.com"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Temporary Password</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400">
-                          <Shield size={18} />
-                        </div>
-                        <input
-                          type="password"
-                          required
-                          value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
-                          style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                          placeholder="Min. 6 characters"
-                        />
-                      </div>
-                      <PasswordStrengthMeter password={formData.password} />
-                    </div>
-                  </>
-                )}
-
                 {profile?.role === "super_admin" && (
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Assign Branch</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Assign Branch</label>
                     <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
                         <Building size={18} />
                       </div>
                       <select
                         required
                         value={formData.church_id}
                         onChange={handleChurchChange}
-                        className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 appearance-none"
-                        style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
+                        className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400 appearance-none"
+                        style={d.formInput}
                       >
-                        <option value="" disabled className="text-gray-400">Select a church...</option>
+                        <option value="" disabled className="text-gray-500 dark:text-gray-400">Select a church...</option>
                         {churches.map((church) => (
                           <option key={church.id} value={church.id}>{church.name}</option>
                         ))}
@@ -808,16 +818,109 @@ export default function Servants() {
                   </div>
                 )}
 
+                {editingServant ? (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Full Name</label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
+                        <User size={18} />
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={formData.full_name}
+                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                        style={d.formInput}
+                        placeholder="e.g. Abebe Kebede"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Select Member from Church</label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
+                        <User size={18} />
+                      </div>
+                      <select
+                        required
+                        value={selectedMemberId}
+                        onChange={handleMemberSelect}
+                        className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 appearance-none"
+                        style={d.formInput}
+                      >
+                        <option value="" disabled>Select a member...</option>
+                        {members.map(m => (
+                          <option key={m.id} value={m.id}>{m.full_name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* Fallback full name input if you still want to allow overrides or not strictly bound to members */}
+                  </div>
+                )}
+
+                {!editingServant && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Email Address</label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
+                          <Mail size={18} />
+                        </div>
+                        <input
+                          type="email"
+                          required
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                          style={d.formInput}
+                          placeholder="servant@example.com"
+                        />
+                      </div>
+                      {selectedMemberId && members.find(m => m.id === selectedMemberId)?.email && formData.email === members.find(m => m.id === selectedMemberId)?.email && (
+                        <p className="mt-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium ml-1 flex items-start gap-1">
+                          <span className="text-lg leading-none">&bull;</span> Using the member's existing email. You can edit this above if you'd like to use a different one.
+                        </p>
+                      )}
+                      {selectedMemberId && !members.find(m => m.id === selectedMemberId)?.email && !formData.email && (
+                        <p className="mt-1.5 text-xs text-amber-600 font-medium ml-1 flex items-start gap-1">
+                          <span className="text-lg leading-none">&bull;</span> This member doesn't have an email in their profile. Please provide one for login.
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Temporary Password</label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
+                          <Shield size={18} />
+                        </div>
+                        <input
+                          type="password"
+                          required
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                          style={d.formInput}
+                          placeholder="Min. 6 characters"
+                        />
+                      </div>
+                      <PasswordStrengthMeter password={formData.password} />
+                    </div>
+                  </>
+                )}
+
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1 flex justify-between">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1 flex justify-between">
                     <span>Assign Departments</span>
                     {formData.department_ids.length > 0 && (
-                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(249,115,22,0.08)', color: '#ea580c', border: '1px solid rgba(249,115,22,0.15)' }}>
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(75,155,220,0.08)', color: '#3178B5', border: '1px solid rgba(249,115,22,0.15)' }}>
                         {formData.department_ids.length} Selected
                       </span>
                     )}
                   </label>
-                  <div className="rounded-2xl p-4 max-h-48 overflow-y-auto space-y-2" style={{ background: '#f8fafc', border: '1.5px solid rgba(0,0,0,0.06)' }}>
+                  <div className="rounded-2xl p-4 max-h-48 overflow-y-auto space-y-2" style={d.checkboxArea}>
                     {departments.length === 0 ? (
                       <p className="text-sm font-medium text-gray-500 italic text-center py-4">
                         No departments available. Select a church first.
@@ -836,9 +939,9 @@ export default function Servants() {
                                 setFormData((prev) => ({ ...prev, department_ids: prev.department_ids.filter((id) => id !== dept.id) }));
                               }
                             }}
-                            className="rounded-md border-gray-300 text-orange-500 focus:ring-orange-500 w-5 h-5"
+                            className="rounded-md border-gray-300 text-[#4B9BDC] focus:ring-orange-500 w-5 h-5"
                           />
-                          <label htmlFor={`dept-${dept.id}`} className="text-sm font-bold text-gray-700 cursor-pointer select-none flex-1">
+                          <label htmlFor={`dept-${dept.id}`} className="text-sm font-bold text-gray-700 dark:text-gray-400 cursor-pointer select-none flex-1">
                             {dept.name}
                           </label>
                         </div>
@@ -847,11 +950,11 @@ export default function Servants() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-8 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                <div className="flex justify-end gap-3 mt-8 pt-6" style={d.modalFooterBorder}>
                   <button
                     type="button"
                     onClick={handleCloseModal}
-                    className="px-6 py-3 font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                    className="px-6 py-3 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
                   >
                     Cancel
                   </button>
@@ -861,7 +964,7 @@ export default function Servants() {
                     type="submit"
                     disabled={submitting || !hasChanges}
                     className="px-6 py-3 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' }}
+                    style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)', boxShadow: '0 8px 24px rgba(49,120,181,0.25)' }}
                   >
                     {submitting ? (
                       <Loader2 className="animate-spin" size={18} />

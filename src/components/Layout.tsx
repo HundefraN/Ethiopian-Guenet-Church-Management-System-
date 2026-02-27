@@ -5,10 +5,12 @@ import MobileHeader from "./MobileHeader";
 import { Menu } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { springPresets } from "../utils/animations";
+import { useTheme } from "../context/ThemeContext";
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
+  const { isDark } = useTheme();
 
   return (
     <div className="layout-root">
@@ -19,7 +21,7 @@ export default function Layout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-white/5 backdrop-blur-xl lg:hidden"
+            className={`fixed inset-0 z-40 backdrop-blur-xl lg:hidden ${isDark ? 'bg-black/50' : 'bg-white/5'}`}
             onClick={() => setSidebarOpen(false)}
           />
         )}

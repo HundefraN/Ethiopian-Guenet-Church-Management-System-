@@ -40,14 +40,14 @@ export default function ConfirmDialog({
         : "text-blue-600";
   const bgColor =
     type === "danger"
-      ? "bg-red-50"
+      ? "bg-red-50 dark:bg-red-900/20"
       : type === "warning"
-        ? "bg-yellow-50"
-        : "bg-blue-50";
+        ? "bg-yellow-50 dark:bg-yellow-900/20"
+        : "bg-blue-50 dark:bg-blue-900/20";
 
   return (
-    <div className="fixed inset-0 bg-white/10 backdrop-blur-2xl z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-xl w-full max-w-md shadow-xl scale-100 transform transition-all">
+    <div className="fixed inset-0 bg-white/10 dark:bg-black/50 backdrop-blur-2xl z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-md shadow-xl scale-100 transform transition-all border border-transparent dark:border-gray-800">
         <div className="p-6">
           <div className="flex items-start gap-4">
             <div
@@ -56,18 +56,18 @@ export default function ConfirmDialog({
               <Icon size={24} />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 {title}
               </h3>
-              <p className="text-gray-500 text-sm leading-relaxed">{message}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{message}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end gap-3">
+        <div className="bg-gray-50 dark:bg-gray-800/50 px-6 py-4 rounded-b-xl flex justify-end gap-3 border-t dark:border-gray-800">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+            className="px-4 py-2 text-gray-700 dark:text-gray-400 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
           >
             {cancelText}
           </button>

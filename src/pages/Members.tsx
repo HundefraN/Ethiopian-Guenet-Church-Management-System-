@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Search,
   Plus,
@@ -24,22 +24,32 @@ import { supabase } from "../supabaseClient";
 import { Member } from "../types";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import MemberDetailsModal from "../components/MemberDetailsModal";
+import { useTheme } from "../context/ThemeContext";
+import { ds } from "../utils/darkStyles";
+import MemberDetails from "../components/MemberDetails";
+import MasterDetailLayout from "../components/common/MasterDetailLayout";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { logActivity } from "../utils/activityLogger";
 
 interface MemberWithDetails extends Member {
   departments: {
     name: string;
+    id?: string;
   } | null;
   churches: {
     name: string;
+    map_link?: string;
   } | null;
+  isProfile?: boolean;
+  role?: string;
 }
 
 export default function Members() {
   const { profile } = useAuth();
+  const { isDark } = useTheme();
+  const d = ds(isDark);
   const navigate = useNavigate();
+  const { id } = useParams();
   const [members, setMembers] = useState<MemberWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,6 +69,17 @@ export default function Members() {
     }
   }, [profile]);
 
+  useEffect(() => {
+    if (id && members.length > 0) {
+      const m = members.find((m) => m.id === id);
+      if (m) {
+        setViewingMember(m);
+      }
+    } else if (!id) {
+      setViewingMember(null);
+    }
+  }, [id, members]);
+
   const fetchMembers = async () => {
     try {
       setLoading(true);
@@ -73,21 +94,50 @@ export default function Members() {
           )
         `);
 
-      if (profile?.role === "pastor" && profile.church_id) {
+      let profilesQuery = supabase.from("profiles").select(`
+          id, full_name, role, church_id, department_id, avatar_url, email,
+          departments ( name ),
+          churches ( name, map_link ),
+          profile_departments ( departments ( id, name ) )
+        `).in("role", ["pastor", "servant"]);
+
+      if ((profile?.role === "pastor" || profile?.role === "servant") && profile.church_id) {
         query = query.eq("church_id", profile.church_id);
-      } else if (profile?.role === "servant") {
-        if (profile.department_id) {
-          query = query.eq("department_id", profile.department_id);
-        } else if (profile.church_id) {
-          query = query.eq("church_id", profile.church_id);
-        }
+        profilesQuery = profilesQuery.eq("church_id", profile.church_id);
       }
 
-      const { data, error } = await query.order("full_name");
+      const [membersRes, profilesRes] = await Promise.all([query.order("full_name"), profilesQuery]);
 
-      if (error) throw error;
+      if (membersRes.error) throw membersRes.error;
 
-      setMembers((data as any) || []);
+      const regularMembers = (membersRes.data as any[]) || [];
+      const fetchedProfiles = (profilesRes.data as any[]) || [];
+
+      // Avoid duplicates: if a member already has the same email, don't show the profile twice
+      const memberEmails = new Set(regularMembers.map((m: any) => m.email?.toLowerCase()).filter(Boolean));
+
+      const profileMembers = fetchedProfiles
+        .filter((p: any) => !memberEmails.has(p.email?.toLowerCase()))
+        .map((p: any) => ({
+          id: p.id,
+          church_id: p.church_id || '',
+          department_id: p.department_id || p.profile_departments?.[0]?.departments?.id || null,
+          full_name: p.full_name || 'Unknown',
+          phone: null,
+          email: p.email || null,
+          photo: p.avatar_url || undefined,
+          churches: p.churches || null,
+          departments: p.departments || p.profile_departments?.[0]?.departments || null,
+          role: p.role,
+          isProfile: true,
+          status: "Active"
+        } as unknown as MemberWithDetails));
+
+      let allMembers = [...regularMembers, ...profileMembers];
+
+      allMembers.sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+      setMembers(allMembers);
     } catch (error) {
       console.error("Error fetching members:", error);
       toast.error("Failed to load members");
@@ -151,6 +201,9 @@ export default function Members() {
 
   // color for member initials
   const getInitialColor = (name: string) => {
+    if (!name || name.length === 0) {
+       return ['#94a3b8', '#64748b']; // default gray
+    }
     const colors = [
       ['#06b6d4', '#0891b2'], // cyan
       ['#8b5cf6', '#7c3aed'], // violet
@@ -161,11 +214,49 @@ export default function Members() {
       ['#ef4444', '#dc2626'], // red
       ['#14b8a6', '#0d9488'], // teal
     ];
-    const idx = name.charCodeAt(0) % colors.length;
-    return colors[idx];
+    const idx = (name.charCodeAt(0) || 0) % colors.length;
+    return colors[idx] || colors[0];
   };
 
   return (
+    <MasterDetailLayout
+      isOpen={!!id}
+      onClose={() => navigate("/members")}
+      detail={<MemberDetails member={viewingMember} />}
+      title={viewingMember?.full_name || "Member Details"}
+      actions={
+        viewingMember && canEdit && (
+          !viewingMember.isProfile ? (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => handleEditMember(viewingMember)}
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                title="Edit"
+              >
+                <Edit2 size={18} />
+              </button>
+              <button
+                onClick={() => handleDeleteClick(viewingMember.id)}
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                title="Delete"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => navigate(viewingMember.role === 'pastor' ? '/pastors' : '/servants')}
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                title="Manage Profile"
+              >
+                <Edit2 size={18} />
+              </button>
+            </div>
+          )
+        )
+      }
+    >
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -173,26 +264,26 @@ export default function Members() {
       className="space-y-8 pb-10"
     >
       {/* ═══════════════ ULTRA HERO HEADER ═══════════════ */}
-      <div className="relative overflow-hidden rounded-[2rem] p-8 md:p-10 shadow-lg" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2b1d 40%, #134e4a 70%, #14b8a6 100%)' }}>
+      <div className="relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem] p-4 sm:p-6 md:p-10 shadow-lg" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
         {/* Animated mesh orbs */}
-        <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-25 blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #2dd4bf, transparent)' }}></div>
-        <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full opacity-20 blur-[60px]" style={{ background: 'radial-gradient(circle, #34d399, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
-        <div className="absolute top-1/2 left-1/3 w-72 h-72 rounded-full opacity-10 blur-[100px]" style={{ background: 'radial-gradient(circle, #a78bfa, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-25 blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
+        <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full opacity-20 blur-[60px]" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
+        <div className="absolute top-1/2 left-1/3 w-72 h-72 rounded-full opacity-10 blur-[100px]" style={{ background: 'radial-gradient(circle, #3178B5, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
 
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+        <div className="relative z-10 flex flex-col xl:flex-row xl:items-end justify-between gap-4 sm:gap-6 md:gap-8">
           <div className="text-white">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="flex items-center gap-3 mb-4"
+              className="flex items-center gap-3 mb-3 md:mb-4"
             >
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(45,212,191,0.3), rgba(52,211,153,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                <Heart size={24} className="text-teal-200" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <Heart size={20} className="text-blue-100 md:w-6 md:h-6" />
               </div>
-              <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#5eead4' }}>
+              <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
                 <Sparkles size={10} className="inline mr-1" /> Community
               </div>
             </motion.div>
@@ -200,16 +291,16 @@ export default function Members() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="text-4xl md:text-5xl font-black tracking-tight mb-3"
-              style={{ background: 'linear-gradient(135deg, #ffffff 0%, #5eead4 50%, #a78bfa 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+              className="text-3xl md:text-5xl font-black tracking-tight mb-2 md:mb-3"
+              style={{ background: 'linear-gradient(135deg, #ffffff 0%, #7EC8F2 50%, #4B9BDC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
             >
-              Members Directory
+              Members
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-teal-200/60 max-w-lg text-sm md:text-base font-medium"
+              className="text-blue-100/70 max-w-lg text-sm md:text-base font-medium hidden xl:block"
             >
               View and manage all church members, their contact details, and ministry engagements.
             </motion.p>
@@ -219,15 +310,15 @@ export default function Members() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
-            className="flex flex-wrap items-center gap-4"
+            className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 md:gap-4 w-full xl:w-auto"
           >
-            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #14b8a6, #059669)' }}>
-                <Users size={18} className="text-white" />
+            <div className="flex items-center gap-3 px-4 py-3 md:px-5 md:py-3 rounded-2xl flex-1 sm:flex-initial min-w-[140px]" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)' }}>
+                <Users size={16} className="text-white md:w-[18px] md:h-[18px]" />
               </div>
-              <div>
-                <p className="text-2xl font-black text-white leading-none">{members.length}</p>
-                <p className="text-[10px] font-bold text-teal-300/60 uppercase tracking-wider">Total Members</p>
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-black text-white leading-none truncate">{members.length}</p>
+                <p className="text-[9px] md:text-[10px] font-bold text-blue-200/70 uppercase tracking-wider truncate">Members</p>
               </div>
             </div>
 
@@ -236,10 +327,10 @@ export default function Members() {
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleAddMember}
-                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shrink-0"
-                style={{ background: 'linear-gradient(135deg, #ffffff, #d1fae5)', color: '#059669', boxShadow: '0 8px 32px rgba(16,185,129,0.3), inset 0 1px 0 rgba(255,255,255,0.8)' }}
+                className="flex items-center justify-center gap-2 px-5 py-3.5 md:px-6 md:py-3.5 rounded-2xl font-bold text-xs md:text-sm shrink-0 w-full sm:w-auto sm:ml-auto md:ml-0 mt-1 sm:mt-0"
+                style={{ background: 'linear-gradient(135deg, #ffffff, #e8f1fa)', color: '#3178B5', boxShadow: '0 8px 32px rgba(49,120,181,0.3), inset 0 1px 0 rgba(255,255,255,0.8)' }}
               >
-                <Plus size={18} />
+                <Plus size={16} className="md:w-[18px] md:h-[18px]" />
                 <span>Add Member</span>
               </motion.button>
             )}
@@ -256,28 +347,28 @@ export default function Members() {
         <div
           className="p-1.5 rounded-2xl flex items-center transition-all duration-300 max-w-3xl"
           style={{
-            background: searchFocused ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.8)',
+            background: searchFocused ? (isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.95)') : (isDark ? 'rgba(15,23,42,0.55)' : 'rgba(255,255,255,0.8)'),
             backdropFilter: 'blur(20px)',
-            border: searchFocused ? '1.5px solid rgba(20,184,166,0.3)' : '1.5px solid rgba(0,0,0,0.06)',
-            boxShadow: searchFocused ? '0 8px 32px rgba(20,184,166,0.1), 0 0 0 4px rgba(20,184,166,0.05)' : '0 4px 20px rgba(0,0,0,0.03)',
+            border: searchFocused ? (isDark ? '1.5px solid rgba(75,155,220,0.4)' : '1.5px solid rgba(75,155,220,0.4)') : (isDark ? '1.5px solid rgba(75,155,220,0.12)' : '1.5px solid rgba(0,0,0,0.06)'),
+            boxShadow: searchFocused ? (isDark ? '0 8px 32px rgba(0,0,0,0.3), 0 0 0 4px rgba(75,155,220,0.08)' : '0 8px 32px rgba(75,155,220,0.15), 0 0 0 4px rgba(75,155,220,0.05)') : (isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 4px 20px rgba(0,0,0,0.03)'),
           }}
         >
           <div className="pl-4 pr-2">
-            <Search size={20} className={`transition-colors duration-200 ${searchFocused ? 'text-teal-500' : 'text-gray-400'}`} />
+            <Search size={20} className={`transition-colors duration-200 ${searchFocused ? 'text-[#4B9BDC]' : 'text-gray-500 dark:text-gray-400'}`} />
           </div>
           <input
             type="text"
-            placeholder="Search members by name, email, phone, or department..."
+            placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400"
+            className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="p-2 mr-2 text-gray-400 hover:text-teal-500 rounded-xl hover:bg-teal-50 transition-colors"
+              className="p-2 mr-2 text-gray-500 dark:text-gray-400 hover:text-[#4B9BDC] rounded-xl hover:bg-blue-50 transition-colors"
               title="Clear search"
             >
               <X size={16} />
@@ -286,13 +377,13 @@ export default function Members() {
         </div>
       </motion.div>
 
-      {/* ═══════════════ MEMBER CARDS GRID ═══════════════ */}
+      {/* ═══════════════ MEMBER CARDS LIST ═══════════════ */}
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="relative">
-            <div className="w-14 h-14 rounded-full border-[3px] border-teal-100 border-t-teal-500 animate-spin"></div>
+            <div className="w-14 h-14 rounded-full border-[3px] border-blue-100 border-t-[#4B9BDC] animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <Users size={18} className="text-teal-400" />
+              <Users size={18} className="text-[#4B9BDC]" />
             </div>
           </div>
         </div>
@@ -301,12 +392,12 @@ export default function Members() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center py-20 rounded-[2rem]"
-          style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(20px)', border: '1px solid rgba(0,0,0,0.06)' }}
+          style={d.emptyState}
         >
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)' }}>
-            <Users className="h-10 w-10 text-gray-300" />
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5" style={d.emptyIcon}>
+            <Users className="h-10 w-10 text-gray-500 dark:text-gray-400" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900">No members found</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">No members found</h3>
           <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
             We couldn't find any members matching your search criteria.
           </p>
@@ -314,7 +405,7 @@ export default function Members() {
       ) : (
         <motion.div
           layout
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+          className="flex flex-col gap-3"
         >
           <AnimatePresence>
             {filteredMembers.map((member, index) => {
@@ -322,128 +413,83 @@ export default function Members() {
               return (
                 <motion.div
                   layout
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  initial={{ opacity: 0, y: 15, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3, delay: index * 0.03, type: "spring", stiffness: 150 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 30,
+                    mass: 0.8,
+                    delay: Math.min(index * 0.015, 0.3),
+                    layout: {
+                      type: "spring",
+                      stiffness: 400,
+                      damping: 40,
+                      mass: 1,
+                      delay: 0
+                    }
+                  }}
                   key={member.id}
-                  whileHover={{ y: -4, scale: 1.01 }}
-                  className="group relative overflow-hidden rounded-[1.5rem] flex flex-col transition-all duration-300"
+                  onClick={() => navigate(`/members/${member.id}`)}
+                  whileHover={{ scale: 1.005, backgroundColor: isDark ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.9)' }}
+                  className="group relative overflow-hidden rounded-xl md:rounded-2xl flex items-center p-3 md:p-4 gap-3 md:gap-4 cursor-pointer transition-all border border-transparent hover:shadow-lg"
                   style={{
-                    background: 'rgba(255,255,255,0.8)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1.5px solid rgba(0,0,0,0.06)',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                    ...d.card,
+                    borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'
                   }}
                 >
-                  {/* Top gradient bar */}
-                  <div className="h-1" style={{ background: `linear-gradient(90deg, ${c1}, ${c2})` }}></div>
+                  {/* Left accent bar */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: `linear-gradient(to bottom, ${c1}, ${c2})` }}></div>
 
-                  <div className="p-5 flex flex-col flex-1">
-                    {/* Hover glow */}
-                    <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] -mr-8 -mt-8 opacity-0 group-hover:opacity-20 transition-opacity duration-500" style={{ background: `radial-gradient(circle, ${c1}, transparent)` }}></div>
-
-                    <div className="flex items-start justify-between mb-4 mt-1">
-                      <div className="relative">
-                        {member.photo ? (
-                          <img
-                            src={member.photo}
-                            alt={member.full_name}
-                            className="w-14 h-14 rounded-2xl object-cover shadow-sm"
-                            style={{ border: `2px solid ${c1}33` }}
-                          />
-                        ) : (
-                          <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform"
-                            style={{ background: `linear-gradient(135deg, ${c1}15, ${c1}25)`, color: c1 }}
-                          >
-                            <span className="text-xl font-black uppercase">
-                              {member.full_name.charAt(0)}
-                            </span>
-                          </div>
-                        )}
+                  {/* Avatar */}
+                  <div className="shrink-0 pl-1 md:pl-2">
+                    {member.photo ? (
+                      <img
+                        src={member.photo}
+                        alt={member.full_name}
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover shadow-sm ring-2 ring-offset-2 ring-transparent group-hover:ring-blue-100/50 transition-all"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shadow-inner text-white font-bold text-base md:text-lg"
+                        style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}
+                      >
+                        {member.full_name.charAt(0)}
                       </div>
+                    )}
+                  </div>
 
-                      <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 z-10 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(0,0,0,0.06)' }}>
-                        <button
-                          onClick={() => setViewingMember(member)}
-                          className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="View Details"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        {canEdit && (
-                          <>
-                            <button
-                              onClick={() => handleEditMember(member)}
-                              className="p-2 text-teal-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors"
-                              title="Edit"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteClick(member.id)}
-                              className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex-1">
-                      <h3 className="text-lg font-black leading-tight mb-1 text-gray-900 group-hover:text-teal-700 transition-colors">
+                  {/* Main Info */}
+                  <div className="flex-1 min-w-0 flex flex-col gap-0.5 md:gap-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-[#3178B5] transition-colors">
                         {member.full_name}
                       </h3>
-                      <span className="text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-md mb-3 inline-block" style={{ background: `${c1}10`, color: c1 }}>
-                        Member
-                      </span>
 
-                      <div className="space-y-2.5 mt-2">
-                        {member.email && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(0,0,0,0.04)' }}>
-                              <Mail size={11} className="text-gray-400" />
-                            </div>
-                            <span className="truncate text-xs font-medium">{member.email}</span>
-                          </div>
-                        )}
-                        {member.phone && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(0,0,0,0.04)' }}>
-                              <Phone size={11} className="text-gray-400" />
-                            </div>
-                            <span className="text-xs font-medium">{member.phone}</span>
-                          </div>
-                        )}
-                        {!member.email && !member.phone && (
-                          <div className="text-xs text-gray-400 italic pl-1 font-medium">No contact info</div>
-                        )}
-                      </div>
+                    </div>
 
-                      {/* Organization Info */}
-                      <div className="rounded-xl p-3 mt-4 space-y-2" style={{ background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px solid rgba(0,0,0,0.04)' }}>
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <Building size={13} className={member.churches ? "text-teal-500" : "text-gray-400"} />
-                          {member.churches ? (
-                            <span className="text-gray-700 truncate text-xs font-semibold">{member.churches.name}</span>
-                          ) : (
-                            <span className="text-gray-400 italic text-xs">No Branch</span>
-                          )}
+                    <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                      {member.email && (
+                        <div className="flex items-center gap-1.5 truncate">
+                          <Mail size={12} className="shrink-0 opacity-70" />
+                          <span className="truncate max-w-[150px]">{member.email}</span>
                         </div>
-
-                        <div className="flex items-start gap-2 pt-2" style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}>
-                          <Briefcase size={13} className={member.departments ? "text-emerald-500 mt-0.5" : "text-gray-400"} />
-                          {member.departments ? (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1px solid rgba(16,185,129,0.15)' }}>
-                              {member.departments.name}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 italic text-xs mt-0.5">No Department</span>
-                          )}
+                      )}
+                      {member.phone && (
+                        <div className="flex items-center gap-1.5 truncate hidden sm:flex">
+                          <Phone size={12} className="shrink-0 opacity-70" />
+                          <span>{member.phone}</span>
                         </div>
-                      </div>
+                      )}
+                    </div>
+                  </div>
+
+
+
+                  {/* Actions - MOVED TO TOP BAR */}
+                  <div className="flex items-center gap-1 pl-1 md:pl-2">
+                    <div className="text-gray-500 dark:text-gray-400 group-hover:text-[#4B9BDC] transition-colors">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                     </div>
                   </div>
                 </motion.div>
@@ -451,14 +497,6 @@ export default function Members() {
             })}
           </AnimatePresence>
         </motion.div>
-      )}
-
-      {/* Member Details Modal */}
-      {viewingMember && (
-        <MemberDetailsModal
-          member={viewingMember}
-          onClose={() => setViewingMember(null)}
-        />
       )}
 
       {/* Confirmation Dialog */}
@@ -471,5 +509,6 @@ export default function Members() {
         type={confirmType}
       />
     </motion.div>
+    </MasterDetailLayout>
   );
 }

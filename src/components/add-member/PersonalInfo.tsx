@@ -41,7 +41,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Upload size={32} className="text-gray-400" />
+                <Upload size={32} className="text-gray-500 dark:text-gray-400" />
               )}
             </div>
             <label className="absolute bottom-0 right-0 bg-guenet-green text-white p-2 rounded-full cursor-pointer hover:bg-guenet-green/90 shadow-md transition-transform hover:scale-110">

@@ -130,7 +130,7 @@ export default function UpdatePassword() {
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Lock size={18} className="text-gray-400" />
+                                        <Lock size={18} className="text-gray-500 dark:text-gray-400" />
                                     </div>
                                     <input
                                         type="password"
@@ -152,7 +152,7 @@ export default function UpdatePassword() {
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <CheckCircle size={18} className="text-gray-400" />
+                                        <CheckCircle size={18} className="text-gray-500 dark:text-gray-400" />
                                     </div>
                                     <input
                                         type="password"

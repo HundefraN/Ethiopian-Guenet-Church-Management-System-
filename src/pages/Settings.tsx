@@ -5,6 +5,7 @@ import {
   Shield,
   User,
   Moon,
+  Sun,
   Globe,
   AlertTriangle,
   Loader2,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { supabase } from "../supabaseClient";
 import toast from "react-hot-toast";
 import { logActivity, getObjectDiff } from "../utils/activityLogger";
@@ -26,6 +28,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Settings() {
   const { profile, user, settings: globalSettings, refreshProfile } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
   const [activeTab, setActiveTab] = useState("General");
   const [updating, setUpdating] = useState(false);
   const [formData, setFormData] = useState({
@@ -201,24 +204,28 @@ export default function Settings() {
         }
       }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: formData.full_name,
-          avatar_url: avatarUrl,
-        })
-        .eq("id", profile.id);
-
-      if (error) throw error;
-
       const logOld = { full_name: profile.full_name, avatar_url: profile.avatar_url };
       const logNew = { full_name: formData.full_name, avatar_url: avatarUrl };
 
       const diff = getObjectDiff(logOld, logNew);
 
-      if (diff) {
-        await logActivity("UPDATE", "PROFILE", `Updated profile`, profile.id, diff);
+      if (!diff) {
+        toast.error("No changes detected");
+        setUpdating(false);
+        return;
       }
+
+      if (Object.keys(diff.new).length > 0) {
+        const { error } = await supabase
+          .from("profiles")
+          .update(diff.new)
+          .eq("id", profile.id);
+
+        if (error) throw error;
+      }
+
+      const changedFields = Object.keys(diff.new).join(", ");
+      await logActivity("UPDATE", "PROFILE", `Updated profile (Changed: ${changedFields})`, profile.id, diff);
 
       toast.success("Profile updated successfully");
       // Refresh the profile in context so sidebar/header updates immediately
@@ -307,8 +314,8 @@ export default function Settings() {
     >
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
             Configure application preferences
           </p>
         </div>
@@ -321,8 +328,8 @@ export default function Settings() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex items-center gap-3 text-sm font-medium ${activeTab === tab.id
-                ? "bg-guenet-green/10 text-guenet-green"
-                : "text-gray-600 hover:bg-gray-50"
+                ? "bg-[#4B9BDC]/10 text-[#4B9BDC] dark:bg-[#4B9BDC]/20"
+                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
             >
               <tab.icon size={18} />
@@ -340,66 +347,91 @@ export default function Settings() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"
+                className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm"
               >
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                   General Settings
                 </h2>
 
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                      <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
                         <Globe size={20} />
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">Language</div>
-                        <div className="text-sm text-gray-500">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">Language</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           Change interface language
                         </div>
                       </div>
                     </div>
-                    <select className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                    <select className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-gray-200">
                       <option>English</option>
                       <option>Amharic</option>
                       <option>Oromo</option>
                     </select>
                   </div>
 
-                  <div className="h-px bg-gray-50"></div>
+                  <div className="h-px bg-gray-50 dark:bg-gray-800"></div>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
-                        <Moon size={20} />
+                      <div className={`p-2 rounded-lg transition-colors ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-purple-50 text-purple-600'}`}>
+                        {isDark ? <Moon size={20} /> : <Sun size={20} />}
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
                           Appearance
                         </div>
-                        <div className="text-sm text-gray-500">
-                          Toggle dark mode
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                         </div>
                       </div>
                     </div>
-                    <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200">
-                      <span className="translate-x-1 inline-block h-4 w-4 transform rounded-full bg-white transition" />
+                    <button
+                      onClick={toggleTheme}
+                      className={`relative inline-flex h-7 w-[52px] items-center rounded-full transition-all duration-300 ${isDark
+                        ? 'bg-gradient-to-r from-indigo-600 to-blue-500 shadow-lg shadow-indigo-500/25'
+                        : 'bg-gray-200'
+                        }`}
+                    >
+                      <motion.span
+                        layout
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        className={`inline-flex items-center justify-center h-5 w-5 rounded-full shadow-md ${isDark
+                          ? 'translate-x-[27px] bg-white'
+                          : 'translate-x-1 bg-white'
+                          }`}
+                      >
+                        <AnimatePresence mode="wait">
+                          {isDark ? (
+                            <motion.div key="moon" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                              <Moon size={11} className="text-indigo-600" />
+                            </motion.div>
+                          ) : (
+                            <motion.div key="sun" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                              <Sun size={11} className="text-amber-500" />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.span>
                     </button>
                   </div>
 
                   {profile?.role === "super_admin" && globalSettings && (
                     <>
-                      <div className="h-px bg-gray-50"></div>
+                      <div className="h-px bg-gray-50 dark:bg-gray-800"></div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-red-50 rounded-lg text-red-600">
+                          <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400">
                             <AlertTriangle size={20} />
                           </div>
                           <div>
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               Maintenance Mode
                             </div>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
                               Disable access for non-admins
                             </div>
                           </div>
@@ -409,7 +441,7 @@ export default function Settings() {
                           disabled={updating}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${globalSettings.is_maintenance_mode
                             ? "bg-guenet-green"
-                            : "bg-gray-200"
+                            : "bg-gray-200 dark:bg-gray-700"
                             }`}
                         >
                           {updating ? (
@@ -437,9 +469,9 @@ export default function Settings() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"
+                className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm"
               >
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
                   My Profile
                 </h2>
 
@@ -450,26 +482,26 @@ export default function Settings() {
                         <img
                           src={preview}
                           alt="Profile"
-                          className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                          className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-lg"
                         />
                       ) : (
-                        <div className="w-24 h-24 rounded-full bg-guenet-green/10 flex items-center justify-center text-2xl font-bold text-guenet-green border-4 border-white shadow-lg">
+                        <div className="w-24 h-24 rounded-full bg-guenet-green/10 flex items-center justify-center text-2xl font-bold text-guenet-green border-4 border-white dark:border-gray-800 shadow-lg">
                           {formData.full_name?.charAt(0) || "U"}
                         </div>
                       )}
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="absolute bottom-0 right-0 p-1.5 bg-white rounded-full shadow-md border border-gray-100 text-gray-500 hover:text-guenet-green transition-colors"
+                        className="absolute bottom-0 right-0 p-1.5 bg-white dark:bg-gray-800 rounded-full shadow-md border border-gray-100 dark:border-gray-700 text-gray-500 hover:text-guenet-green transition-colors"
                       >
                         <Edit2 size={16} />
                       </button>
                     </div>
                     <div className="text-center sm:text-left">
-                      <h3 className="text-lg font-medium text-gray-900">
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                         {profile.full_name}
                       </h3>
-                      <p className="text-sm text-gray-500 capitalize">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
                         {profile.role.replace("_", " ")}
                       </p>
                     </div>
@@ -477,13 +509,13 @@ export default function Settings() {
 
                   <div className="grid grid-cols-1 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
                         Profile Picture
                       </label>
                       <div
                         className={`relative border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${dragActive
                           ? "border-guenet-green bg-guenet-green/5"
-                          : "border-gray-200 hover:border-guenet-green/50 hover:bg-gray-50"
+                          : "border-gray-200 dark:border-gray-700 hover:border-guenet-green/50 hover:bg-gray-50 dark:hover:bg-gray-800"
                           }`}
                         onDragEnter={handleDrag}
                         onDragLeave={handleDrag}
@@ -520,13 +552,13 @@ export default function Settings() {
                             className="cursor-pointer"
                             onClick={() => fileInputRef.current?.click()}
                           >
-                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-500">
+                            <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-500">
                               <Upload size={20} />
                             </div>
-                            <p className="text-sm font-medium text-gray-900">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-200">
                               Click to upload or drag and drop
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               SVG, PNG, JPG or GIF (max. 5MB)
                             </p>
                           </div>
@@ -535,7 +567,7 @@ export default function Settings() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
                         Full Name
                       </label>
                       <input
@@ -544,20 +576,20 @@ export default function Settings() {
                         onChange={(e) =>
                           setFormData({ ...formData, full_name: e.target.value })
                         }
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-guenet-green/20 focus:border-guenet-green outline-none transition-all"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-guenet-green/20 focus:border-guenet-green outline-none transition-all dark:text-gray-200"
                         placeholder="Your full name"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
                         Role
                       </label>
                       <input
                         type="text"
                         value={profile.role.replace("_", " ")}
                         disabled
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 capitalize cursor-not-allowed"
+                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400 capitalize cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -592,7 +624,7 @@ export default function Settings() {
                 className="space-y-6"
               >
                 {/* Password Change Card */}
-                <div className="relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
                   {/* Decorative gradient top bar */}
                   <div className="h-1.5 bg-gradient-to-r from-[#4B9BDC] via-[#7EC8F2] to-[#4B9BDC]"></div>
                   <div className="p-6 sm:p-8">
@@ -601,28 +633,28 @@ export default function Settings() {
                         <Lock size={22} className="text-[#4B9BDC]" />
                       </div>
                       <div>
-                        <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
-                        <p className="text-sm text-gray-500">Update your password to keep your account secure</p>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Change Password</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Update your password to keep your account secure</p>
                       </div>
                     </div>
 
                     <form onSubmit={handleChangePassword} className="space-y-5">
                       {/* Current Password */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Current Password</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Current Password</label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Lock size={16} className="text-gray-400" />
+                            <Lock size={16} className="text-gray-500 dark:text-gray-400" />
                           </div>
                           <input
                             type={showCurrentPassword ? "text" : "password"}
                             required
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
-                            className="block w-full pl-10 pr-10 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC] outline-none transition-all text-sm"
+                            className="block w-full pl-10 pr-10 py-3 bg-gray-50/50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC] outline-none transition-all text-sm dark:text-gray-200"
                             placeholder="Enter current password"
                           />
-                          <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                          <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-600 transition-colors">
                             {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         </div>
@@ -630,20 +662,20 @@ export default function Settings() {
 
                       {/* New Password */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">New Password</label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Shield size={16} className="text-gray-400" />
+                            <Shield size={16} className="text-gray-500 dark:text-gray-400" />
                           </div>
                           <input
                             type={showNewPassword ? "text" : "password"}
                             required
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
-                            className="block w-full pl-10 pr-10 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC] outline-none transition-all text-sm"
+                            className="block w-full pl-10 pr-10 py-3 bg-gray-50/50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC] outline-none transition-all text-sm dark:text-gray-200"
                             placeholder="Enter new password"
                           />
-                          <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                          <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-600 transition-colors">
                             {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         </div>
@@ -654,25 +686,25 @@ export default function Settings() {
 
                       {/* Confirm New Password */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm New Password</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Confirm New Password</label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Check size={16} className="text-gray-400" />
+                            <Check size={16} className="text-gray-500 dark:text-gray-400" />
                           </div>
                           <input
                             type={showConfirmPassword ? "text" : "password"}
                             required
                             value={confirmNewPassword}
                             onChange={(e) => setConfirmNewPassword(e.target.value)}
-                            className={`block w-full pl-10 pr-10 py-3 bg-gray-50/50 border rounded-xl focus:ring-2 outline-none transition-all text-sm ${confirmNewPassword.length > 0 && confirmNewPassword !== newPassword
+                            className={`block w-full pl-10 pr-10 py-3 bg-gray-50/50 dark:bg-gray-800 border rounded-xl focus:ring-2 outline-none transition-all text-sm dark:text-gray-200 ${confirmNewPassword.length > 0 && confirmNewPassword !== newPassword
                               ? "border-red-300 focus:ring-red-200 focus:border-red-400"
                               : confirmNewPassword.length > 0 && confirmNewPassword === newPassword
                                 ? "border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400"
-                                : "border-gray-200 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC]"
+                                : "border-gray-200 dark:border-gray-700 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC]"
                               }`}
                             placeholder="Confirm new password"
                           />
-                          <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                          <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-600 transition-colors">
                             {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         </div>
@@ -703,12 +735,12 @@ export default function Settings() {
                 </div>
 
                 {/* Security Tips Card */}
-                <div className="bg-gradient-to-br from-[#4B9BDC]/5 to-[#7EC8F2]/5 rounded-2xl border border-[#4B9BDC]/10 p-6">
+                <div className="bg-gradient-to-br from-[#4B9BDC]/5 to-[#7EC8F2]/5 dark:from-[#4B9BDC]/10 dark:to-[#7EC8F2]/10 rounded-2xl border border-[#4B9BDC]/10 dark:border-gray-800 p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <Info size={18} className="text-[#4B9BDC]" />
-                    <h3 className="text-sm font-semibold text-gray-800">Security Tips</h3>
+                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Security Tips</h3>
                   </div>
-                  <ul className="space-y-2 text-xs text-gray-600">
+                  <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
                     <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>Never share your password with anyone</li>
                     <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>Use a unique password that you don't use for other accounts</li>
                     <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>Consider using a password manager to generate and store passwords</li>
@@ -726,13 +758,13 @@ export default function Settings() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="bg-white p-12 rounded-2xl border border-gray-100 shadow-sm text-center"
+                className="bg-white dark:bg-gray-900 p-12 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm text-center"
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-                  <Bell className="text-gray-400" size={32} />
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
+                  <Bell className="text-gray-500 dark:text-gray-400" size={32} />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900">Coming Soon</h3>
-                <p className="text-gray-500 mt-2">Notification preferences are under development.</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Coming Soon</h3>
+                <p className="text-gray-500 dark:text-gray-400 mt-2">Notification preferences are under development.</p>
               </motion.div>
             )}
           </AnimatePresence>

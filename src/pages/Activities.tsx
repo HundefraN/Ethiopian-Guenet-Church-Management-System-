@@ -35,6 +35,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getActionLabel, getActionColor, getEntityLabel } from "../utils/activityLogger";
 import { useAuth } from "../context/AuthContext";
 import { timeAgo } from "../utils/timeAgo";
+import { useTheme } from "../context/ThemeContext";
+import { ds } from "../utils/darkStyles";
 
 
 
@@ -73,6 +75,8 @@ const ENTITY_FILTERS = ["All", "SERVANT", "PASTOR", "MEMBER", "CHURCH", "DEPARTM
 const PAGE_SIZE = 20;
 
 export default function Activities() {
+  const { isDark } = useTheme();
+  const d = ds(isDark);
   const { profile } = useAuth();
   const [logs, setLogs] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -295,18 +299,18 @@ export default function Activities() {
       return (
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100 shrink-0 mt-0.5">Before</span>
-            <div className="text-xs text-gray-500 font-mono bg-rose-50/30 p-2 rounded-lg flex-1 break-all">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-100 dark:border-rose-500/20 shrink-0 mt-0.5">Before</span>
+            <div className="text-xs text-gray-500 font-mono bg-rose-50/30 dark:bg-rose-500/5 p-2 rounded-lg flex-1 break-all">
               {Object.entries(changes.old).map(([key, value]) => (
-                <div key={key}><span className="font-semibold text-gray-600">{key.replace(/_/g, " ")}:</span> {String(value ?? "—")}</div>
+                <div key={key}><span className="font-semibold text-gray-600 dark:text-gray-400">{key.replace(/_/g, " ")}:</span> {String(value ?? "—")}</div>
               ))}
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 shrink-0 mt-0.5">After</span>
-            <div className="text-xs text-gray-500 font-mono bg-emerald-50/30 p-2 rounded-lg flex-1 break-all">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-100 dark:border-emerald-500/20 shrink-0 mt-0.5">After</span>
+            <div className="text-xs text-gray-500 font-mono bg-emerald-50/30 dark:bg-emerald-500/5 p-2 rounded-lg flex-1 break-all">
               {Object.entries(changes.new).map(([key, value]) => (
-                <div key={key}><span className="font-semibold text-gray-600">{key.replace(/_/g, " ")}:</span> {String(value ?? "—")}</div>
+                <div key={key}><span className="font-semibold text-gray-600 dark:text-gray-400">{key.replace(/_/g, " ")}:</span> {String(value ?? "—")}</div>
               ))}
             </div>
           </div>
@@ -323,22 +327,22 @@ export default function Activities() {
           const isDiff = value && typeof value === "object" && ("old" in value || "new" in value);
 
           return (
-            <div key={key} className="bg-gray-50/50 rounded-xl p-3 border border-gray-100/50">
-              <div className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1.5">{key.replace(/_/g, " ")}</div>
+            <div key={key} className="rounded-xl p-3 border" style={d.emptyInner}>
+              <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{key.replace(/_/g, " ")}</div>
               {isDiff ? (
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[9px] font-bold text-rose-500 uppercase">Old:</span>
                     <span className="text-xs text-gray-600 font-medium line-through decoration-rose-300/50">{String(value.old ?? "—")}</span>
                   </div>
-                  <ChevronRight size={12} className="text-gray-300 hidden sm:block" />
+                  <ChevronRight size={12} className="text-gray-500 dark:text-gray-400 hidden sm:block" />
                   <div className="flex items-center gap-1.5">
                     <span className="text-[9px] font-bold text-emerald-500 uppercase">New:</span>
-                    <span className="text-xs text-gray-900 font-bold">{String(value.new ?? "—")}</span>
+                    <span className="text-xs text-gray-900 dark:text-gray-100 font-bold">{String(value.new ?? "—")}</span>
                   </div>
                 </div>
               ) : (
-                <div className="text-xs text-gray-700 font-medium">{String(value ?? "—")}</div>
+                <div className="text-xs text-gray-700 dark:text-gray-400 font-medium">{String(value ?? "—")}</div>
               )}
             </div>
           );
@@ -412,8 +416,8 @@ export default function Activities() {
       {/* Filters */}
       <motion.div variants={itemVariants} className="flex flex-col lg:flex-row gap-4">
         {/* Search */}
-        <div className="bg-white p-2 rounded-2xl border border-gray-100 shadow-sm flex items-center focus-within:ring-2 focus-within:ring-[#4B9BDC]/20 focus-within:border-[#4B9BDC] transition-all flex-1">
-          <div className="pl-3 pr-2 text-gray-400">
+        <div className="p-2 rounded-2xl border shadow-sm flex items-center focus-within:ring-2 focus-within:ring-[#4B9BDC]/20 focus-within:border-[#4B9BDC] transition-all flex-1" style={d.modalContent}>
+          <div className="pl-3 pr-2 text-gray-500 dark:text-gray-400">
             <Search size={20} className="text-[#4B9BDC]" />
           </div>
           <input
@@ -421,7 +425,7 @@ export default function Activities() {
             placeholder="Search activities by detail..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full py-2 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400 text-sm"
+            className="w-full py-2 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400 text-sm"
           />
         </div>
 
@@ -430,6 +434,7 @@ export default function Activities() {
           <select
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
+            style={d.searchBar(false)}
             className="appearance-none bg-white px-4 py-3 pr-10 rounded-2xl border border-gray-100 shadow-sm text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC] transition-all cursor-pointer"
           >
             {ACTION_FILTERS.map((f) => (
@@ -438,7 +443,7 @@ export default function Activities() {
               </option>
             ))}
           </select>
-          <Filter size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <Filter size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none" />
         </div>
 
         {/* Entity Filter */}
@@ -446,6 +451,7 @@ export default function Activities() {
           <select
             value={entityFilter}
             onChange={(e) => setEntityFilter(e.target.value)}
+            style={d.searchBar(false)}
             className="appearance-none bg-white px-4 py-3 pr-10 rounded-2xl border border-gray-100 shadow-sm text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC] transition-all cursor-pointer"
           >
             {ENTITY_FILTERS.map((f) => (
@@ -454,7 +460,7 @@ export default function Activities() {
               </option>
             ))}
           </select>
-          <Shield size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <Shield size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none" />
         </div>
       </motion.div>
 
@@ -468,11 +474,11 @@ export default function Activities() {
             </div>
           </div>
         ) : logs.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
-            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Activity className="h-10 w-10 text-gray-300" />
+          <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm" style={d.card}>
+            <div className="w-20 h-20 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4" style={d.emptyIcon}>
+              <Activity className="h-10 w-10 text-gray-500 dark:text-gray-400" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
               No activity recorded
             </h3>
             <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
@@ -489,12 +495,12 @@ export default function Activities() {
               <div key={date}>
                 {/* Date Header */}
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-2 bg-white dark:bg-gray-900 px-4 py-2 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm" style={d.card}>
                     <Calendar size={14} className="text-[#4B9BDC]" />
-                    <span className="text-sm font-bold text-gray-700">{date}</span>
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-400">{date}</span>
                   </div>
-                  <div className="flex-1 h-px bg-gray-100"></div>
-                  <span className="text-xs font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full">
+                  <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800"></div>
+                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-800/50">
                     {dateLogs.length} {dateLogs.length === 1 ? "event" : "events"}
                   </span>
                 </div>
@@ -512,12 +518,24 @@ export default function Activities() {
                           layout
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.2 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          transition={{
+                            duration: 0.2,
+                            layout: {
+                              type: "spring",
+                              stiffness: 400,
+                              damping: 40,
+                              mass: 1,
+                              delay: 0
+                            }
+                          }}
                           key={log.id}
-                          className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden cursor-pointer group ${isExpanded
+                          className={`bg-white dark:bg-gray-900 rounded-2xl border overflow-hidden cursor-pointer group ${isExpanded
                             ? "border-[#4B9BDC]/30 shadow-[0_4px_20px_rgba(75,155,220,0.1)]"
-                            : "border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200"
+                            : "border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700"
                             }`}
+                          style={isExpanded ? d.detailPanel : d.card}
+
                           onClick={() => setExpandedLog(isExpanded ? null : log.id)}
                         >
                           <div className="p-4 sm:p-5">
@@ -541,7 +559,7 @@ export default function Activities() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-bold text-gray-900">
+                                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
                                       {log.profiles?.full_name || "System"}
                                     </span>
                                     <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${colors.bg} ${colors.text} ${colors.border}`}>
@@ -554,20 +572,20 @@ export default function Activities() {
                                   </div>
 
                                   <div className="flex items-center gap-1.5 shrink-0">
-                                    <Clock size={12} className="text-gray-400" />
-                                    <span className="text-xs text-gray-400 font-medium" title={formatFullDate(log.created_at)}>
+                                    <Clock size={12} className="text-gray-500 dark:text-gray-400" />
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium" title={formatFullDate(log.created_at)}>
                                       {timeAgo(log.created_at)}
                                     </span>
                                   </div>
                                 </div>
 
-                                <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1.5 leading-relaxed">
                                   {log.details}
                                 </p>
 
                                 {log.profiles?.role && (
                                   <div className="mt-2">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
                                       {log.profiles.role.replace("_", " ")}
                                     </span>
                                   </div>
@@ -578,7 +596,7 @@ export default function Activities() {
                                 <div className="flex-shrink-0">
                                   <ChevronDown
                                     size={18}
-                                    className={`text-gray-400 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`}
+                                    className={`text-gray-500 dark:text-gray-400 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`}
                                   />
                                 </div>
                               )}
@@ -596,8 +614,8 @@ export default function Activities() {
                                 className="overflow-hidden"
                               >
                                 <div className="px-5 pb-5 pt-0">
-                                  <div className="border-t border-gray-100 pt-4">
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5">
+                                  <div className="border-t pt-4" style={d.innerBorder}>
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1.5">
                                       <Settings size={10} />
                                       Change Details
                                     </p>
@@ -623,18 +641,19 @@ export default function Activities() {
         <motion.div
           variants={itemVariants}
           className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-4"
+          style={d.card}
         >
-          <p className="text-sm text-gray-500 font-medium">
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
             Showing{" "}
-            <span className="font-bold text-gray-900">
+            <span className="font-bold text-gray-900 dark:text-gray-100">
               {(currentPage - 1) * PAGE_SIZE + 1}
             </span>
             {" – "}
-            <span className="font-bold text-gray-900">
+            <span className="font-bold text-gray-900 dark:text-gray-100">
               {Math.min(currentPage * PAGE_SIZE, totalCount)}
             </span>
             {" of "}
-            <span className="font-bold text-gray-900">{totalCount}</span> events
+            <span className="font-bold text-gray-900 dark:text-gray-100">{totalCount}</span> events
           </p>
 
           <div className="flex items-center gap-1.5">
@@ -642,7 +661,7 @@ export default function Activities() {
             <button
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               title="First page"
             >
               <ChevronsLeft size={18} />
@@ -652,7 +671,7 @@ export default function Activities() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               title="Previous page"
             >
               <ChevronLeft size={18} />
@@ -662,7 +681,7 @@ export default function Activities() {
             <div className="flex items-center gap-1">
               {getPageNumbers().map((page, idx) =>
                 page === "..." ? (
-                  <span key={`dots-${idx}`} className="px-2 text-gray-400 text-sm font-bold select-none">
+                  <span key={`dots-${idx}`} className="px-2 text-gray-500 dark:text-gray-400 text-sm font-bold select-none">
                     ···
                   </span>
                 ) : (
@@ -684,7 +703,7 @@ export default function Activities() {
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               title="Next page"
             >
               <ChevronRight size={18} />
@@ -694,7 +713,7 @@ export default function Activities() {
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               title="Last page"
             >
               <ChevronsRight size={18} />

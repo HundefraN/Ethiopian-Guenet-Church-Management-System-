@@ -30,7 +30,7 @@ const Signatures: React.FC<SignaturesProps> = ({ register }) => {
             className="form-input font-handwriting text-xl"
             placeholder="Type full name to sign"
           />
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             This acts as your digital signature
           </p>
         </div>

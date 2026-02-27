@@ -139,7 +139,7 @@ export default function ActivityLogList({
     return (
       <div className="animate-pulse space-y-4">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-16 bg-gray-100 rounded-xl"></div>
+          <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
         ))}
       </div>
     );
@@ -147,10 +147,10 @@ export default function ActivityLogList({
 
   if (logs.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <Activity className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+        <Activity className="mx-auto h-8 w-8 text-gray-500 dark:text-gray-400 mb-2" />
         <p className="font-medium">No recent activity</p>
-        <p className="text-xs text-gray-400 mt-1">Actions will appear here as they occur</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Actions will appear here as they occur</p>
       </div>
     );
   }
@@ -164,7 +164,7 @@ export default function ActivityLogList({
         return (
           <div
             key={log.id}
-            className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors border border-transparent hover:border-gray-100 group"
+            className="flex items-start gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors border border-transparent hover:border-gray-100 dark:hover:border-gray-800 group"
           >
             {/* Action Icon */}
             <div className={`mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${colors.bg} ${colors.text}`}>
@@ -174,27 +174,27 @@ export default function ActivityLogList({
             <div className="flex-1 min-w-0">
               {/* Who did what */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-sm font-bold text-gray-900">
+                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
                   {log.profiles?.full_name || "System"}
                 </span>
                 <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${colors.bg} ${colors.text} ${colors.border}`}>
                   {getActionLabel(log.action_type)}
                 </span>
-                <span className="text-xs text-gray-500 font-medium">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                   {getEntityLabel(log.entity_type)}
                 </span>
               </div>
 
               {/* Detail */}
-              <p className="text-sm text-gray-600 mt-0.5 break-words line-clamp-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5 break-words line-clamp-2">
                 {log.details}
               </p>
 
               {/* When */}
               <div className="flex items-center gap-2 mt-1.5">
-                <Clock size={11} className="text-gray-400" />
+                <Clock size={11} className="text-gray-500 dark:text-gray-400" />
                 <span
-                  className="text-[11px] text-gray-400 font-medium"
+                  className="text-[11px] text-gray-500 dark:text-gray-400 font-medium"
                   title={new Date(log.created_at).toLocaleString('en-US', {
                     year: 'numeric',
                     month: 'short',
@@ -207,8 +207,8 @@ export default function ActivityLogList({
                 </span>
                 {log.profiles?.role && (
                   <>
-                    <span className="text-gray-300">•</span>
-                    <span className="text-[10px] text-gray-400 capitalize font-medium">
+                    <span className="text-gray-300 dark:text-gray-700">•</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 capitalize font-medium">
                       {log.profiles.role.replace("_", " ")}
                     </span>
                   </>
@@ -221,7 +221,7 @@ export default function ActivityLogList({
 
       <button
         onClick={() => navigate("/activities")}
-        className="w-full py-2.5 text-sm text-[#4B9BDC] font-bold hover:bg-[#4B9BDC]/5 rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-transparent hover:border-[#4B9BDC]/10"
+        className="w-full py-2.5 text-sm text-[#4B9BDC] font-bold hover:bg-[#4B9BDC]/5 dark:hover:bg-[#4B9BDC]/10 rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-transparent hover:border-[#4B9BDC]/10 dark:hover:border-[#4B9BDC]/20"
       >
         <span>View All Activity</span>
         <ChevronRight size={16} />

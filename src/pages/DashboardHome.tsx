@@ -25,14 +25,14 @@ export default function DashboardHome() {
     default:
       return (
         <div className="flex items-center justify-center h-full">
-          <div className="text-center bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-md">
-            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 p-4 shadow-inner">
+          <div className="text-center bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 max-w-md">
+            <div className="w-20 h-20 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 p-4 shadow-inner">
               <img src={logo} alt="Logo" className="w-full h-full object-contain grayscale" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               Unauthorized Access
             </h2>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               Your account does not have an assigned role. Please contact an
               administrator.
             </p>

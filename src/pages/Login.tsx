@@ -112,7 +112,7 @@ export default function Login() {
         initial={{ opacity: 0, x: -60 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ type: "spring", stiffness: 150, damping: 20, duration: 0.15 }}
-        className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:flex-none lg:w-[480px] xl:w-[600px] bg-white z-10 relative"
+        className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:flex-none lg:w-[480px] xl:w-[600px] bg-white dark:bg-gray-950 z-10 relative"
       >
         <div className="mx-auto w-full max-w-sm lg:w-[400px]">
           <motion.div
@@ -125,7 +125,7 @@ export default function Login() {
               <img src={logo} alt="Ethiopian Guenet Church Logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#1e293b] to-[#4B9BDC] tracking-tight">
+              <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#1e293b] dark:from-white to-[#4B9BDC] tracking-tight">
                 Ethiopian Guenet Church
               </h1>
               <p className="text-sm font-semibold text-[#4B9BDC] uppercase tracking-wider">
@@ -144,48 +144,48 @@ export default function Login() {
                 exit="exit"
               >
                 <div className="mb-8">
-                  <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
+                  <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-2">
                     Welcome back
                   </h2>
-                  <p className="text-gray-500">
+                  <p className="text-gray-500 dark:text-gray-400">
                     Please sign in to your account to continue.
                   </p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-5">
                   <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
                       Email address
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Mail size={18} className="text-gray-400" />
+                        <Mail size={18} className="text-gray-500 dark:text-gray-400" />
                       </div>
                       <input
                         type="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all sm:text-sm"
+                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all dark:text-gray-200 sm:text-sm"
                         placeholder="email@gmail.com"
                       />
                     </div>
                   </motion.div>
 
                   <motion.div variants={inputVariants} whileHover={interactivePresets.hover} whileTap={interactivePresets.tap}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
                       Password
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Lock size={18} className="text-gray-400" />
+                        <Lock size={18} className="text-gray-500 dark:text-gray-400" />
                       </div>
                       <input
                         type="password"
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all sm:text-sm"
+                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all dark:text-gray-200 sm:text-sm"
                         placeholder="••••••••"
                       />
                     </div>
@@ -201,7 +201,7 @@ export default function Login() {
                       />
                       <label
                         htmlFor="remember-me"
-                        className="ml-2 block text-sm text-gray-700"
+                        className="ml-2 block text-sm text-gray-700 dark:text-gray-400"
                       >
                         Remember me
                       </label>
@@ -255,10 +255,10 @@ export default function Login() {
                   <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mb-6 ring-8 ring-green-100/50">
                     <CheckCircle size={40} className="text-green-500" />
                   </div>
-                  <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
+                  <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-2">
                     Check your email
                   </h2>
-                  <p className="text-gray-500 max-w-xs mx-auto">
+                  <p className="text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
                     We've sent a password reset link to your email address. Please check your inbox and follow the instructions.
                   </p>
                 </div>
@@ -276,7 +276,7 @@ export default function Login() {
                     Back to Sign In
                   </motion.button>
 
-                  <p className="text-sm text-gray-400 pt-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 pt-4">
                     Didn't receive an email?{" "}
                     <button
                       onClick={() => setResetSent(false)}
@@ -301,33 +301,33 @@ export default function Login() {
                       setIsForgotPassword(false);
                       setResetSent(false);
                     }}
-                    className="flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors mb-6"
+                    className="flex items-center text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors mb-6"
                   >
                     <ArrowLeft size={16} className="mr-1" /> Back to login
                   </button>
-                  <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
+                  <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-2">
                     Reset Password
                   </h2>
-                  <p className="text-gray-500">
+                  <p className="text-gray-500 dark:text-gray-400">
                     Enter your email address and we'll send you a link to reset your password.
                   </p>
                 </div>
 
                 <form onSubmit={handleResetPassword} className="space-y-5">
                   <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
                       Email address
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Mail size={18} className="text-gray-400" />
+                        <Mail size={18} className="text-gray-500 dark:text-gray-400" />
                       </div>
                       <input
                         type="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all sm:text-sm"
+                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all dark:text-gray-200 sm:text-sm"
                         placeholder="email@gmail.com"
                       />
                     </div>

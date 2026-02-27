@@ -10,6 +10,8 @@ import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import ActivityLogList from "../components/ActivityLogList";
 import { springPresets, containerVariants as sharedContainerVariants, itemVariants as sharedItemVariants, interactivePresets } from "../utils/animations";
+import { useTheme } from "../context/ThemeContext";
+import { ds } from "../utils/darkStyles";
 
 // Animated number
 // Animated number using high-performance springs
@@ -25,18 +27,18 @@ function AnimatedNumber({ value }: { value: number }) {
 }
 
 // Horizontal bar chart
-function HorizontalBar({ label, value, maxValue, color, icon: Icon }: { label: string; value: number; maxValue: number; color: string; icon: any }) {
+function HorizontalBar({ label, value, maxValue, color, icon: Icon, d }: { label: string; value: number; maxValue: number; color: string; icon: any; d: any }) {
   const pct = maxValue > 0 ? Math.round((value / maxValue) * 100) : 0;
   return (
     <div className="group">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Icon size={14} className="text-gray-400" />
-          <span className="text-sm font-semibold text-gray-700">{label}</span>
+          <Icon size={14} className="text-gray-500 dark:text-gray-400" />
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-400">{label}</span>
         </div>
-        <span className="text-sm font-black text-gray-900 tabular-nums">{value}</span>
+        <span className="text-sm font-black text-gray-900 dark:text-gray-100 tabular-nums">{value}</span>
       </div>
-      <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-2.5 rounded-full overflow-hidden" style={d.iconBox}>
         <motion.div
           className={`h-full rounded-full ${color}`}
           initial={{ width: '0%' }}
@@ -50,6 +52,8 @@ function HorizontalBar({ label, value, maxValue, color, icon: Icon }: { label: s
 }
 
 export default function PastorDashboard() {
+  const { isDark } = useTheme();
+  const d = ds(isDark);
   const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -153,7 +157,9 @@ export default function PastorDashboard() {
           { label: "Total Members", value: stats.members, icon: Users, gradient: "from-emerald-500 to-teal-500", accent: "emerald", recent: stats.recentMembers },
         ].map((card, i) => (
           <motion.div key={i} variants={itemVariants}
-            className="group bg-white rounded-[1.5rem] p-6 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-150 relative overflow-hidden">
+            className="group bg-white rounded-[1.5rem] p-6 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-150 relative overflow-hidden"
+            style={d.card}
+          >
             <div className="absolute -top-8 -right-8 opacity-[0.03] group-hover:opacity-[0.07] transition-all duration-200">
               <card.icon size={120} />
             </div>
@@ -161,14 +167,14 @@ export default function PastorDashboard() {
               <card.icon size={22} />
             </div>
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-4xl font-black text-gray-900 tabular-nums"><AnimatedNumber value={card.value} /></h3>
+              <h3 className="text-4xl font-black text-gray-900 dark:text-gray-100 tabular-nums"><AnimatedNumber value={card.value} /></h3>
               {card.recent && card.recent > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-800/50">
                   <ArrowUpRight size={12} />+{card.recent}
                 </span>
               )}
             </div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{card.label}</p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{card.label}</p>
           </motion.div>
         ))}
       </motion.div>
@@ -182,15 +188,17 @@ export default function PastorDashboard() {
         ].map((action, i) => (
           <motion.div key={i} variants={itemVariants}>
             <Link to={action.to}
-              className={`flex items-center gap-4 p-5 bg-white rounded-2xl border border-gray-100 hover:shadow-lg ${action.hoverBorder} transition-all group`}>
-              <div className={`w-11 h-11 rounded-xl bg-gray-50 ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+              className={`flex items-center gap-4 p-5 bg-white rounded-2xl border border-gray-100 hover:shadow-lg ${action.hoverBorder} transition-all group`}
+              style={d.card}
+            >
+              <div className={`w-11 h-11 rounded-xl ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`} style={d.iconBox}>
                 <action.icon size={20} />
               </div>
               <div className="flex-1">
-                <span className="font-bold text-gray-900 text-sm block">{action.label}</span>
-                <span className="text-xs text-gray-400">{action.desc}</span>
+                <span className="font-bold text-gray-900 dark:text-gray-100 text-sm block">{action.label}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{action.desc}</span>
               </div>
-              <ChevronRight size={20} className="text-gray-300 group-hover:translate-x-1 transition-transform" />
+              <ChevronRight size={20} className="text-gray-500 dark:text-gray-400 group-hover:translate-x-1 transition-transform" />
             </Link>
           </motion.div>
         ))}
@@ -199,18 +207,18 @@ export default function PastorDashboard() {
       {/* ═══════════ Analytics Section ═══════════ */}
       <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Activity Log */}
-        <motion.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-[1.5rem] border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="p-6 md:p-8 border-b border-gray-100/60 flex justify-between items-center">
+        <motion.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-[1.5rem] border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
+          <div className="p-6 md:p-8 flex justify-between items-center" style={d.innerBorder}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center text-white shadow-md">
                 <Activity size={18} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Recent Activities</h2>
-                <p className="text-xs text-gray-400 font-medium">Latest updates in your church</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Recent Activities</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Latest updates in your church</p>
               </div>
             </div>
-            <Link to="/activities" className="text-sm text-[#4B9BDC] font-bold hover:text-[#1A365D] bg-blue-50 px-4 py-2 rounded-xl transition-colors">
+            <Link to="/activities" className="text-sm text-[#4B9BDC] font-bold hover:text-[#1A365D] bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-xl transition-colors">
               View All
             </Link>
           </div>
@@ -220,15 +228,15 @@ export default function PastorDashboard() {
         </motion.div>
 
         {/* Insights Panel */}
-        <motion.div variants={itemVariants} className="bg-white rounded-[1.5rem] border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col">
-          <div className="p-6 md:p-8 border-b border-gray-100/60">
+        <motion.div variants={itemVariants} className="bg-white rounded-[1.5rem] border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col" style={d.card}>
+          <div className="p-6 md:p-8" style={d.innerBorder}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white shadow-md">
                 <TrendingUp size={18} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Insights</h2>
-                <p className="text-xs text-gray-400 font-medium">Key analytics</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Insights</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Key analytics</p>
               </div>
             </div>
           </div>
@@ -236,40 +244,40 @@ export default function PastorDashboard() {
             {/* Growth */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-gray-700">Member Growth</span>
-                <span className={`text-xs font-black px-2.5 py-1 rounded-lg border ${growthRate >= 0 ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-red-600 bg-red-50 border-red-100'}`}>
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-400">Member Growth</span>
+                <span className={`text-xs font-black px-2.5 py-1 rounded-lg border ${growthRate >= 0 ? 'text-emerald-600 bg-emerald-50 border-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/20 dark:border-emerald-800/50' : 'text-red-600 bg-red-50 border-red-100 dark:text-red-400 dark:bg-red-900/20 dark:border-red-800/50'}`}>
                   {growthRate >= 0 ? '+' : ''}{growthRate}%
                 </span>
               </div>
-              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-2.5 rounded-full overflow-hidden" style={d.iconBox}>
                 <motion.div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
                   initial={{ width: '0%' }} whileInView={{ width: `${Math.min(growthRate + 10, 100)}%` }}
                   viewport={{ once: true }} transition={{ duration: 0.2 }}
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1.5 font-medium">{stats.recentMembers} new in 30 days</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-medium">{stats.recentMembers} new in 30 days</p>
             </div>
 
             {/* Leadership Ratio */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-gray-700">Leadership Ratio</span>
-                <span className="text-xs font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-400">Leadership Ratio</span>
+                <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-800/50">
                   1:{leadershipRatio || 'N/A'}
                 </span>
               </div>
-              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-2.5 rounded-full overflow-hidden" style={d.iconBox}>
                 <motion.div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full"
                   initial={{ width: '0%' }} whileInView={{ width: `${Math.min((stats.servants / (stats.members || 1)) * 500, 100)}%` }}
                   viewport={{ once: true }} transition={{ duration: 0.2 }}
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1.5 font-medium">1 servant per {leadershipRatio || 0} members</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-medium">1 servant per {leadershipRatio || 0} members</p>
             </div>
 
             {/* Member Status */}
             <div>
-              <span className="text-sm font-bold text-gray-700 block mb-3">Member Status</span>
+              <span className="text-sm font-bold text-gray-700 dark:text-gray-400 block mb-3">Member Status</span>
               <div className="space-y-2">
                 {[
                   { label: "Active", val: stats.activeMembers, color: "bg-emerald-400" },
@@ -278,8 +286,8 @@ export default function PastorDashboard() {
                 ].map((s, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className={`w-2 h-2 rounded-full ${s.color}`} />
-                    <span className="text-sm text-gray-500 flex-1">{s.label}</span>
-                    <span className="text-sm font-bold text-gray-900 tabular-nums">{s.val}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 flex-1">{s.label}</span>
+                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100 tabular-nums">{s.val}</span>
                   </div>
                 ))}
               </div>
@@ -299,14 +307,14 @@ export default function PastorDashboard() {
 
       {/* ═══════════ Department Breakdown ═══════════ */}
       {topDepartments.length > 0 && (
-        <motion.div variants={itemVariants} className="bg-white rounded-[1.5rem] p-6 md:p-8 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+        <motion.div variants={itemVariants} className="bg-white rounded-[1.5rem] p-6 md:p-8 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)]" style={d.card}>
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white shadow-md">
               <Layers size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Ministry Breakdown</h2>
-              <p className="text-xs text-gray-400 font-medium">Member distribution across departments</p>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Ministry Breakdown</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Member distribution across departments</p>
             </div>
           </div>
           <div className="space-y-5">
@@ -322,7 +330,7 @@ export default function PastorDashboard() {
               return (
                 <div key={dept.id}>
                   <HorizontalBar label={dept.name} value={dept.memberCount}
-                    maxValue={maxCount} color={colors[i % colors.length]} icon={Shield} />
+                    maxValue={maxCount} color={colors[i % colors.length]} icon={Shield} d={d} />
                 </div>
               );
             })}

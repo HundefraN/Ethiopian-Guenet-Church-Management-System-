@@ -45,7 +45,7 @@ const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ password 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="mt-4 p-5 rounded-2xl bg-gray-50/50 border border-gray-100 backdrop-blur-sm shadow-sm overflow-hidden relative"
+            className="mt-4 p-5 rounded-2xl bg-gray-50/50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 backdrop-blur-sm shadow-sm overflow-hidden relative"
         >
             {/* Background Glow */}
             <div
@@ -58,11 +58,11 @@ const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ password 
                     <div className={`p-1.5 rounded-lg ${config.bg.replace('bg-', 'bg-opacity-10 bg-')} ${config.text}`}>
                         <config.icon size={18} />
                     </div>
-                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-400 uppercase tracking-wider">
                         Strength: <span className={config.text}>{config.label}</span>
                     </span>
                 </div>
-                <div className="text-[10px] font-bold text-gray-400 bg-white px-2 py-0.5 rounded-full border border-gray-100 uppercase tracking-tighter">
+                <div className="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-full border border-gray-100 dark:border-gray-700 uppercase tracking-tighter">
                     {strengthScore}/5 Passed
                 </div>
             </div>
@@ -70,7 +70,7 @@ const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ password 
             {/* Segmented Progress Bar */}
             <div className="flex gap-1.5 h-1.5 mb-5">
                 {[1, 2, 3, 4, 5].map((idx) => (
-                    <div key={idx} className="flex-1 h-full rounded-full bg-gray-200/80 overflow-hidden">
+                    <div key={idx} className="flex-1 h-full rounded-full bg-gray-200/80 dark:bg-gray-800/80 overflow-hidden">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: strengthScore >= idx ? "100%" : "0%" }}
@@ -103,14 +103,14 @@ const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ password 
                                         rotate: isMet ? [0, 10, -10, 0] : 0
                                     }}
                                     className={`w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${isMet
-                                            ? "bg-emerald-500 shadow-lg shadow-emerald-500/30"
-                                            : "bg-gray-200 border border-gray-300/50"
+                                        ? "bg-emerald-500 shadow-lg shadow-emerald-500/30"
+                                        : "bg-gray-200 dark:bg-gray-800 border border-gray-300/50 dark:border-gray-700/50"
                                         }`}
                                 >
                                     {isMet ? (
                                         <Check size={12} className="text-white" strokeWidth={4} />
                                     ) : (
-                                        <X size={10} className="text-gray-400" strokeWidth={3} />
+                                        <X size={10} className="text-gray-500 dark:text-gray-400" strokeWidth={3} />
                                     )}
                                 </motion.div>
                                 {isMet && (
@@ -123,7 +123,7 @@ const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ password 
                                     />
                                 )}
                             </div>
-                            <span className={`text-[13px] transition-all duration-300 ${isMet ? "text-emerald-700 font-medium" : "text-gray-500 font-normal"
+                            <span className={`text-[13px] transition-all duration-300 ${isMet ? "text-emerald-700 dark:text-emerald-400 font-medium" : "text-gray-500 dark:text-gray-400 font-normal"
                                 }`}>
                                 {req.label}
                             </span>
@@ -137,10 +137,10 @@ const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ password 
                 <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
-                    className="mt-4 pt-4 border-t border-emerald-100 flex items-center gap-2 mt-2"
+                    className="mt-4 pt-4 border-t border-emerald-100 dark:border-emerald-900/30 flex items-center gap-2 mt-2"
                 >
                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <p className="text-[11px] text-emerald-600 font-medium italic">
+                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium italic">
                         This password is exceptionally strong and ready to defend your account!
                     </p>
                 </motion.div>
