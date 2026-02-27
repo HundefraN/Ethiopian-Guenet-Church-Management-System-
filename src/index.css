@@ -14,16 +14,32 @@
   --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
 }
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ─────────────── Base ─────────────── */
+html {
+  background-color: #f7fbff;
+  min-height: 100%;
+}
+
+html.dark {
+  background-color: #020617;
+}
+
 body {
   font-family: var(--font-sans);
-  background: linear-gradient(145deg, #f2f8fd 0%, #e8f1fa 40%, #f8fbff 100%);
-  color: #0f172a;
+  background: linear-gradient(145deg, #f7fbff 0%, #edf5ff 40%, #ffffff 100%);
+  color: #0c1929;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+}
+
+.dark body {
+  background: linear-gradient(145deg, #020617 0%, #0f172a 40%, #1e293b 100%);
+  color: #f8fafc;
 }
 
 /* ─────────────── Ambient Blobs ─────────────── */
@@ -33,41 +49,63 @@ body::after {
   position: fixed;
   z-index: -1;
   border-radius: 50%;
-  filter: blur(130px);
-  opacity: 0.18;
+  filter: blur(140px);
+  opacity: 0.12;
   pointer-events: none;
 }
 
 body::before {
-  top: -12%;
-  left: -8%;
-  width: 42vw;
-  height: 42vw;
+  top: -15%;
+  left: -10%;
+  width: 50vw;
+  height: 50vw;
   background: radial-gradient(circle, #4B9BDC 0%, #3178B5 100%);
 }
 
 body::after {
-  bottom: -18%;
-  right: -8%;
-  width: 48vw;
-  height: 48vw;
+  bottom: -20%;
+  right: -10%;
+  width: 55vw;
+  height: 55vw;
   background: radial-gradient(circle, #7EC8F2 0%, #4B9BDC 100%);
+}
+
+.dark body::before,
+.dark body::after {
+  opacity: 0.18;
 }
 
 /* ─────────────── Glassmorphic Surfaces ─────────────── */
 .bg-white {
-  background: rgba(255, 255, 255, 0.72) !important;
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
 }
 
-.shadow-sm,
-.shadow-md,
+.dark .bg-white {
+  background: rgba(15, 23, 42, 0.72) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.shadow-sm {
+  box-shadow: 0 4px 20px rgba(75, 155, 220, 0.05), 0 1px 4px rgba(0, 0, 0, 0.02) !important;
+}
+
+.shadow-md {
+  box-shadow: 0 8px 30px rgba(75, 155, 220, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
 .shadow-lg {
-  box-shadow:
-    0 4px 24px rgba(75, 155, 220, 0.08),
-    0 1px 4px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 12px 50px rgba(75, 155, 220, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+}
+
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
 }
 
 .rounded-lg,
@@ -80,21 +118,25 @@ body::after {
 .bg-guenet-green,
 .bg-blue-600 {
   background: linear-gradient(135deg, #4B9BDC 0%, #3178B5 100%) !important;
-  box-shadow: 0 4px 16px rgba(75, 155, 220, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px rgba(75, 155, 220, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   border: none !important;
   color: white !important;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .bg-guenet-green:hover,
 .bg-blue-600:hover {
   background: linear-gradient(135deg, #3a85c2 0%, #26608f 100%) !important;
-  box-shadow: 0 6px 24px rgba(75, 155, 220, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(75, 155, 220, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-1.5px);
 }
 
 .text-guenet-green {
-  color: #4B9BDC !important;
+  color: #3178B5 !important;
+}
+
+.dark .text-guenet-green {
+  color: #7EC8F2 !important;
 }
 
 .border-guenet-green {
@@ -105,81 +147,50 @@ body::after {
   --tw-ring-color: #4B9BDC !important;
 }
 
-/* ─────────────── Card Hover ─────────────── */
-tr,
-.p-6,
-.p-4 {
-  transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.1s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* ─────────────── Custom Scrollbar ─────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(75, 155, 220, 0.3);
-  border-radius: 100px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(75, 155, 220, 0.55);
-}
-
-/* ─────────────── Page Transitions ─────────────── */
-main {
-  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.99);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 /* ─────────────── Form Elements ─────────────── */
 .form-label {
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1e293b;
+  color: #0c1929;
   margin-bottom: 0.5rem;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.015em;
   transition: color 0.15s ease;
+}
+
+.dark .form-label {
+  color: #e2e8f0;
 }
 
 .form-input,
 .form-select,
 input[type="date"] {
   width: 100%;
-  padding: 0.875rem 1rem;
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1.5px solid rgba(75, 155, 220, 0.15) !important;
-  border-radius: 14px !important;
-  color: #1e293b !important;
-  font-size: 1rem;
+  padding: 0.875rem 1.125rem;
+  background: #ffffff !important;
+  border: 1.5px solid rgba(75, 155, 220, 0.18) !important;
+  border-radius: 16px !important;
+  color: #0c1929 !important;
+  font-size: 0.95rem;
   font-weight: 500;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
-  backdrop-filter: blur(8px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.dark .form-input,
+.dark .form-select,
+.dark input[type="date"] {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1.5px solid rgba(75, 155, 220, 0.15) !important;
+  color: #f8fafc !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .form-input:hover,
 .form-select:hover,
 input[type="date"]:hover {
   border-color: rgba(75, 155, 220, 0.4) !important;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02), 0 2px 8px rgba(75, 155, 220, 0.08);
+  transform: translateY(-0.5px);
 }
 
 .form-input:focus,
@@ -187,14 +198,18 @@ input[type="date"]:hover {
 input[type="date"]:focus {
   outline: none !important;
   border-color: #4B9BDC !important;
-  box-shadow: 0 0 0 3px rgba(75, 155, 220, 0.15), inset 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  box-shadow: 0 0 0 4px rgba(75, 155, 220, 0.1), 0 2px 8px rgba(0, 0, 0, 0.02) !important;
   background: #ffffff !important;
   transform: translateY(-1px);
 }
 
 .form-input::placeholder {
-  color: #94a3b8;
-  font-weight: 400;
+  color: #64748b;
+  font-weight: 450;
+}
+
+.dark .form-input::placeholder {
+  color: #475569;
 }
 
 .form-error {
@@ -345,12 +360,18 @@ textarea.form-input:focus {
     padding: 2.5rem;
     padding-top: 2.5rem;
     border-radius: 28px 0 0 28px;
-    background: linear-gradient(145deg, rgba(242, 248, 253, 0.95) 0%, rgba(232, 241, 250, 0.92) 40%, rgba(248, 251, 255, 0.95) 100%);
+    background: var(--main-content-bg, linear-gradient(145deg, rgba(242, 248, 253, 0.95) 0%, rgba(232, 241, 250, 0.92) 40%, rgba(248, 251, 255, 0.95) 100%));
     backdrop-filter: blur(12px);
     box-shadow:
-      -8px 0 40px rgba(12, 25, 41, 0.06),
-      inset 1px 0 0 rgba(255, 255, 255, 0.7);
+      -8px 0 40px var(--main-shadow, rgba(12, 25, 41, 0.06)),
+      inset 1px 0 0 var(--main-border, rgba(255, 255, 255, 0.7));
     margin: 12px 12px 12px 0;
+  }
+
+  .dark .layout-main-content {
+    --main-content-bg: linear-gradient(145deg, rgba(2, 6, 23, 0.95) 0%, rgba(15, 23, 42, 0.92) 40%, rgba(30, 41, 59, 0.95) 100%);
+    --main-shadow: rgba(0, 0, 0, 0.4);
+    --main-border: rgba(255, 255, 255, 0.05);
   }
 }
 
@@ -595,13 +616,23 @@ textarea.form-input:focus {
 
 /* ─── Nav Item ACTIVE — the liquid melt panel ─── */
 .sidebar-nav-item--active {
-  background: #eff4fa;
+  background: var(--active-nav-bg, #eff4fa);
   box-shadow: -15px 0 50px -10px rgba(75, 155, 220, 0.2), inset 2px 0 10px rgba(255, 255, 255, 0.5);
   border-radius: 40px 0 0 40px;
   margin-right: -1px;
   /* Ensure it overlaps with main content slightly */
   pointer-events: none;
   z-index: 0;
+}
+
+.dark .sidebar-nav-item--active {
+  --active-nav-bg: #020617;
+  box-shadow: -15px 0 50px -10px rgba(0, 0, 0, 0.5);
+  background: var(--active-nav-bg);
+}
+
+.dark .active-text {
+  color: #f8fafc !important;
 }
 
 /* ─── Concave corners (the magic!) ─── */
@@ -620,13 +651,13 @@ textarea.form-input:focus {
 .sidebar-nav-item--active::before {
   bottom: 100%;
   border-bottom-right-radius: 40px;
-  box-shadow: 20px 20px 0 20px #eff4fa;
+  box-shadow: 20px 20px 0 20px var(--active-nav-bg, #eff4fa);
 }
 
 .sidebar-nav-item--active::after {
   top: 100%;
   border-top-right-radius: 40px;
-  box-shadow: 20px -20px 0 20px #eff4fa;
+  box-shadow: 20px -20px 0 20px var(--active-nav-bg, #eff4fa);
 }
 
 /* ─── Nav Icon ─── */
@@ -923,4 +954,1112 @@ textarea.form-input:focus {
   .lucide {
     transform: scale(0.85);
   }
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   ████  ULTRA-MODERN DARK MODE  ████
+   Deep, immersive dark theme with glowing brand accents,
+   glassmorphic surfaces, and premium micro-animations.
+   ═════════════════════════════════════════════════════════════════ */
+
+/* ─── Smooth global transition for theme switch ─── */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    fill 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─────────────── Dark Body ─────────────── */
+html.dark body {
+  background: linear-gradient(160deg, #080e18 0%, #0b1422 40%, #0d1726 70%, #060c14 100%);
+  color: #e2e8f0;
+  --main-content-bg: linear-gradient(145deg, rgba(8, 14, 24, 0.95) 0%, rgba(11, 20, 34, 0.92) 40%, rgba(6, 12, 20, 0.95) 100%);
+  --main-shadow: rgba(0, 0, 0, 0.4);
+  --main-border: rgba(75, 155, 220, 0.08);
+  --active-nav-bg: #0b1422;
+  --toast-bg: #1e293b;
+  --toast-color: #f1f5f9;
+}
+
+/* Dark ambient blobs — deeper, more mysterious */
+html.dark body::before {
+  background: radial-gradient(circle, rgba(75, 155, 220, 0.12) 0%, rgba(49, 120, 181, 0.05) 100%);
+  opacity: 0.25;
+}
+
+html.dark body::after {
+  background: radial-gradient(circle, rgba(126, 200, 242, 0.08) 0%, rgba(75, 155, 220, 0.03) 100%);
+  opacity: 0.2;
+}
+
+/* ─────────────── Dark Selection ─────────────── */
+html.dark ::selection {
+  background: rgba(75, 155, 220, 0.35);
+  color: #f1f5f9;
+}
+
+/* ─────────────── Glassmorphic Dark Surfaces ─────────────── */
+html.dark .bg-white {
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(75, 155, 220, 0.08) !important;
+}
+
+html.dark .shadow-sm,
+html.dark .shadow-md,
+html.dark .shadow-lg {
+  box-shadow:
+    0 4px 32px rgba(0, 0, 0, 0.35),
+    0 1px 4px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+}
+
+/* ─────────────── Dark Cards & Containers ─────────────── */
+html.dark .bg-gray-50,
+html.dark .bg-gray-100 {
+  background: rgba(15, 23, 42, 0.5) !important;
+}
+
+html.dark .bg-blue-50 {
+  background: rgba(75, 155, 220, 0.1) !important;
+}
+
+html.dark .bg-purple-50 {
+  background: rgba(139, 92, 246, 0.1) !important;
+}
+
+html.dark .bg-red-50 {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+html.dark .bg-yellow-50 {
+  background: rgba(245, 158, 11, 0.1) !important;
+}
+
+html.dark .bg-green-50 {
+  background: rgba(34, 197, 94, 0.1) !important;
+}
+
+/* ─────────────── Dark Borders ─────────────── */
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-gray-300 {
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+html.dark .divide-gray-100>*+*,
+html.dark .divide-gray-200>*+* {
+  border-color: rgba(75, 155, 220, 0.08) !important;
+}
+
+html.dark .h-px.bg-gray-50 {
+  background: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* ─────────────── Dark Text Colors ─────────────── */
+html.dark .text-gray-900,
+html.dark .text-gray-800 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .text-gray-700 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-gray-600 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-gray-500 {
+  color: #64748b !important;
+}
+
+html.dark .text-gray-400 {
+  color: #475569 !important;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4 {
+  color: #f1f5f9;
+}
+
+/* ─────────────── Dark Form Elements ─────────────── */
+html.dark .form-label {
+  color: #cbd5e1;
+}
+
+html.dark .form-input,
+html.dark .form-select,
+html.dark input[type="date"] {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1.5px solid rgba(75, 155, 220, 0.12) !important;
+  color: #e2e8f0 !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+html.dark .form-input:hover,
+html.dark .form-select:hover,
+html.dark input[type="date"]:hover {
+  border-color: rgba(75, 155, 220, 0.3) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15), 0 0 12px rgba(75, 155, 220, 0.06);
+}
+
+html.dark .form-input:focus,
+html.dark .form-select:focus,
+html.dark input[type="date"]:focus {
+  border-color: #4B9BDC !important;
+  box-shadow: 0 0 0 3px rgba(75, 155, 220, 0.15), 0 0 20px rgba(75, 155, 220, 0.08), inset 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+  background: rgba(15, 23, 42, 0.8) !important;
+}
+
+html.dark .form-input::placeholder {
+  color: #475569;
+}
+
+html.dark .form-textarea,
+html.dark textarea.form-input {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1.5px solid rgba(75, 155, 220, 0.12) !important;
+  color: #e2e8f0 !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+html.dark .form-textarea:hover,
+html.dark textarea.form-input:hover {
+  border-color: rgba(75, 155, 220, 0.3) !important;
+}
+
+html.dark .form-textarea:focus,
+html.dark textarea.form-input:focus {
+  border-color: #4B9BDC !important;
+  box-shadow: 0 0 0 3px rgba(75, 155, 220, 0.15), 0 0 20px rgba(75, 155, 220, 0.08), inset 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+  background: rgba(15, 23, 42, 0.8) !important;
+}
+
+/* Generic input styling for settings/profile inputs */
+html.dark input[type="text"],
+html.dark input[type="email"],
+html.dark input[type="password"],
+html.dark input[type="number"],
+html.dark input[type="tel"],
+html.dark input[type="url"],
+html.dark select,
+html.dark textarea {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(75, 155, 220, 0.12) !important;
+  color: #e2e8f0 !important;
+}
+
+html.dark input[type="text"]:focus,
+html.dark input[type="email"]:focus,
+html.dark input[type="password"]:focus,
+html.dark input[type="number"]:focus,
+html.dark input[type="tel"]:focus,
+html.dark input[type="url"]:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: #4B9BDC !important;
+  box-shadow: 0 0 0 3px rgba(75, 155, 220, 0.15), 0 0 20px rgba(75, 155, 220, 0.08) !important;
+}
+
+html.dark input:disabled,
+html.dark select:disabled,
+html.dark textarea:disabled {
+  background-color: rgba(15, 23, 42, 0.3) !important;
+  color: #475569 !important;
+}
+
+/* ─────────────── Dark Date Picker ─────────────── */
+html.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.8);
+  background-color: rgba(75, 155, 220, 0.12);
+}
+
+/* ─────────────── Dark Scrollbar ─────────────── */
+html.dark ::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(75, 155, 220, 0.25);
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 155, 220, 0.45);
+}
+
+/* ─────────────── Dark Layout ─────────────── */
+html.dark .layout-main-content {
+  background: transparent;
+}
+
+@media (min-width: 1024px) {
+  html.dark .layout-main-content {
+    background: linear-gradient(145deg, rgba(11, 20, 34, 0.92) 0%, rgba(8, 14, 24, 0.95) 40%, rgba(13, 23, 38, 0.92) 100%);
+    backdrop-filter: blur(16px);
+    box-shadow:
+      -8px 0 40px rgba(0, 0, 0, 0.3),
+      inset 1px 0 0 rgba(75, 155, 220, 0.06);
+  }
+}
+
+/* ─────────────── Dark Sidebar ─────────────── */
+html.dark .sidebar-container {
+  background: linear-gradient(195deg, #060c16 0%, #040910 35%, #030710 100%);
+}
+
+html.dark .sidebar-nav-item--active {
+  background: #0b1422;
+  box-shadow: -15px 0 50px -10px rgba(75, 155, 220, 0.12), inset 2px 0 10px rgba(75, 155, 220, 0.05);
+}
+
+html.dark .sidebar-nav-item--active::before {
+  box-shadow: 20px 20px 0 20px #0b1422;
+}
+
+html.dark .sidebar-nav-item--active::after {
+  box-shadow: 20px -20px 0 20px #0b1422;
+}
+
+html.dark .active-text {
+  color: #e2e8f0 !important;
+}
+
+html.dark .sidebar-divider {
+  background: linear-gradient(90deg, rgba(75, 155, 220, 0.2) 0%, rgba(255, 255, 255, 0.03) 100%);
+}
+
+/* ─────────────── Dark Brand Buttons ─────────────── */
+html.dark .bg-guenet-green,
+html.dark .bg-blue-600 {
+  background: linear-gradient(135deg, #3a85c2 0%, #2563a0 100%) !important;
+  box-shadow: 0 4px 20px rgba(75, 155, 220, 0.25), 0 0 40px rgba(75, 155, 220, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+html.dark .bg-guenet-green:hover,
+html.dark .bg-blue-600:hover {
+  box-shadow: 0 6px 28px rgba(75, 155, 220, 0.35), 0 0 60px rgba(75, 155, 220, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* ─────────────── Dark Tables ─────────────── */
+html.dark table {
+  color: #e2e8f0;
+}
+
+html.dark thead {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+html.dark th {
+  color: #94a3b8 !important;
+  border-bottom-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+html.dark td {
+  border-bottom-color: rgba(75, 155, 220, 0.06) !important;
+  color: #cbd5e1;
+}
+
+html.dark tbody tr:hover {
+  background: rgba(75, 155, 220, 0.04) !important;
+}
+
+/* ─────────────── Dark Modals / Overlays ─────────────── */
+html.dark .fixed.inset-0.bg-white\/10,
+html.dark .fixed.inset-0.bg-white\/5 {
+  background: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(24px) saturate(140%);
+}
+
+html.dark .bg-white.rounded-xl,
+html.dark .bg-white.rounded-2xl,
+html.dark .bg-white.rounded-3xl {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border: 1px solid rgba(75, 155, 220, 0.1) !important;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 0 1px rgba(75, 155, 220, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+/* ─────────────── Dark Badges & Pills ─────────────── */
+html.dark .bg-guenet-green\/10 {
+  background: rgba(75, 155, 220, 0.12) !important;
+}
+
+html.dark .bg-blue-50,
+html.dark .bg-blue-100 {
+  background: rgba(75, 155, 220, 0.1) !important;
+}
+
+html.dark .bg-emerald-50,
+html.dark .bg-green-50,
+html.dark .bg-green-100 {
+  background: rgba(34, 197, 94, 0.1) !important;
+}
+
+html.dark .bg-red-100 {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+html.dark .bg-amber-50,
+html.dark .bg-amber-100,
+html.dark .bg-orange-50 {
+  background: rgba(245, 158, 11, 0.1) !important;
+}
+
+/* ─────────────── Dark Hover States ─────────────── */
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-100:hover {
+  background: rgba(75, 155, 220, 0.06) !important;
+}
+
+/* ─────────────── Dark Toast ─────────────── */
+html.dark .go2072408551 {
+  /* react-hot-toast */
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(75, 155, 220, 0.12) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ─────────────── Dark Settings Tab Buttons ─────────────── */
+html.dark button.text-gray-600:not(.bg-guenet-green\/10) {
+  color: #94a3b8;
+}
+
+html.dark button.text-gray-600:hover:not(.bg-guenet-green\/10) {
+  background: rgba(75, 155, 220, 0.06) !important;
+  color: #cbd5e1;
+}
+
+/* ─────────────── Dark Toggle Switches ─────────────── */
+html.dark .bg-gray-200 {
+  background: rgba(75, 155, 220, 0.15) !important;
+}
+
+html.dark .bg-gray-200>span {
+  background: #94a3b8;
+}
+
+/* ─────────────── MobileHeader Dark ─────────────── */
+html.dark .lg\:hidden.fixed.top-0 button {
+  background: rgba(15, 23, 42, 0.7) !important;
+  border-color: rgba(75, 155, 220, 0.12) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ─────────────── Dark Activity Log Items ─────────────── */
+html.dark .bg-white\/80 {
+  background: rgba(15, 23, 42, 0.5) !important;
+}
+
+/* ─────────────── Decorative gradient orb in dark mode ─────────────── */
+html.dark .bg-gradient-to-bl.from-\[\#7EC8F2\]\/15 {
+  opacity: 0.08;
+}
+
+/* ─────────────── Dark Password Strength Meter ─────────────── */
+html.dark .bg-gray-100.rounded-full {
+  background: rgba(15, 23, 42, 0.5) !important;
+}
+
+/* ─────────────── Dark Security Tips Card ─────────────── */
+html.dark .bg-gradient-to-br.from-\[\#4B9BDC\]\/5 {
+  background: linear-gradient(to bottom right, rgba(75, 155, 220, 0.06), rgba(126, 200, 242, 0.03)) !important;
+  border-color: rgba(75, 155, 220, 0.08) !important;
+}
+
+/* ─────────────── Dark Gradient Top Bar ─────────────── */
+html.dark .h-1\.5.bg-gradient-to-r {
+  opacity: 0.7;
+}
+
+/* ─────────────── Dark Drag & Drop Zone ─────────────── */
+html.dark .border-dashed {
+  border-color: rgba(75, 155, 220, 0.15) !important;
+}
+
+html.dark .border-dashed:hover {
+  border-color: rgba(75, 155, 220, 0.3) !important;
+  background: rgba(75, 155, 220, 0.04) !important;
+}
+
+/* ─────────────── Dark Cancel / Secondary Buttons ─────────────── */
+html.dark .text-gray-700.font-medium.hover\:bg-gray-100 {
+  color: #94a3b8;
+}
+
+html.dark .text-gray-700.font-medium.hover\:bg-gray-100:hover {
+  background: rgba(75, 155, 220, 0.08) !important;
+  color: #cbd5e1;
+}
+
+/* ─────────────── Dark Stat Cards ─────────────── */
+html.dark [class*="from-blue-"][class*="to-blue-"],
+html.dark [class*="from-green-"][class*="to-green-"],
+html.dark [class*="from-purple-"][class*="to-purple-"],
+html.dark [class*="from-amber-"][class*="to-amber-"],
+html.dark [class*="from-rose-"][class*="to-rose-"] {
+  opacity: 0.95;
+}
+
+/* ─────────────── Dark Loading Spinner ─────────────── */
+html.dark .border-b-2.border-guenet-gold {
+  border-color: #4B9BDC;
+}
+
+/* ─────────────── Dark Empty States ─────────────── */
+html.dark .inline-flex.items-center.justify-center.rounded-full.bg-gray-100 {
+  background: rgba(75, 155, 220, 0.08) !important;
+}
+
+html.dark .inline-flex.items-center.justify-center.rounded-full.bg-gray-100 svg {
+  color: #475569;
+}
+
+/* ─────────────── Dark Select Dropdown ─────────────── */
+html.dark select.bg-gray-50 {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(75, 155, 220, 0.12) !important;
+  color: #e2e8f0 !important;
+}
+
+/* ─────────────── Dark Confirm Dialog Footer ─────────────── */
+html.dark .bg-gray-50.px-6.py-4.rounded-b-xl {
+  background: rgba(10, 16, 28, 0.6) !important;
+  border-top: 1px solid rgba(75, 155, 220, 0.08);
+}
+
+/* ─────────────── Dark Radio / Checkbox ─────────────── */
+html.dark input[type="checkbox"],
+html.dark input[type="radio"] {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(75, 155, 220, 0.2) !important;
+}
+
+html.dark input[type="checkbox"]:checked,
+html.dark input[type="radio"]:checked {
+  background-color: #4B9BDC !important;
+  border-color: #4B9BDC !important;
+}
+
+/* ─────────────── Dark Subtle Accents ─────────────── */
+html.dark .text-blue-600 {
+  color: #7EC8F2 !important;
+}
+
+html.dark .text-purple-600 {
+  color: #a78bfa !important;
+}
+
+html.dark .text-red-600 {
+  color: #fca5a5 !important;
+}
+
+html.dark .text-red-500 {
+  color: #f87171 !important;
+}
+
+html.dark .text-yellow-600 {
+  color: #fbbf24 !important;
+}
+
+html.dark .text-green-600 {
+  color: #4ade80 !important;
+}
+
+html.dark .text-emerald-600 {
+  color: #34d399 !important;
+}
+
+html.dark .text-gray-800 {
+  color: #e2e8f0 !important;
+}
+
+/* ─────────────── Dark Gradient Text Tweaks ─────────────── */
+html.dark .bg-gradient-to-r.from-gray-900 {
+  --tw-gradient-from: #e2e8f0;
+}
+
+/* ─────────────── Dark Search Inputs ─────────────── */
+html.dark input[type="search"] {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(75, 155, 220, 0.12) !important;
+  color: #e2e8f0 !important;
+}
+
+/* ─────────────── Elegant glow effect on focusable elements ─────────────── */
+html.dark *:focus-visible {
+  outline: 2px solid rgba(75, 155, 220, 0.4);
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ████  PAGE-LEVEL DARK MODE OVERRIDES  ████
+   These rules target inline-styled elements across all pages
+   (Churches, Pastors, Servants, Departments, Members, Modals, Layout, etc.)
+   using high-specificity selectors with !important to override inline styles.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────── Dark Card Containers (used across all pages) ─────────────── */
+html.dark .group.cursor-pointer.relative.overflow-hidden.rounded-\[1\.5rem\],
+html.dark .group.relative.overflow-hidden.rounded-\[1\.5rem\] {
+  background: rgba(15, 23, 42, 0.55) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+}
+
+html.dark .group.cursor-pointer.relative.overflow-hidden.rounded-\[1\.5rem\]:hover,
+html.dark .group.relative.overflow-hidden.rounded-\[1\.5rem\]:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(75, 155, 220, 0.06) !important;
+}
+
+/* ─────────────── Dark Search Bar (all pages) ─────────────── */
+html.dark .p-1\.5.rounded-2xl.flex.items-center {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(75, 155, 220, 0.12) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+html.dark .p-1\.5.rounded-2xl.flex.items-center input {
+  color: #e2e8f0 !important;
+}
+
+html.dark .p-1\.5.rounded-2xl.flex.items-center input::placeholder {
+  color: #64748b !important;
+}
+
+/* ─────────────── Dark Empty States (all pages) ─────────────── */
+html.dark .text-center.py-20.rounded-\[2rem\] {
+  background: rgba(15, 23, 42, 0.45) !important;
+  border-color: rgba(75, 155, 220, 0.08) !important;
+}
+
+/* ─────────────── Dark Modals (all pages) ─────────────── */
+html.dark .fixed.inset-0.flex.items-center.justify-center.z-\[100\] {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+html.dark .fixed.inset-0.flex.items-center.justify-center.z-\[100\]>div {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border-color: rgba(75, 155, 220, 0.12) !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), 0 0 1px rgba(75, 155, 220, 0.15) !important;
+}
+
+/* ─────────────── Dark Modal Form Inputs (inline bg: #f8fafc) ─────────────── */
+html.dark input[style*="background"],
+html.dark select[style*="background"] {
+  background: rgba(15, 23, 42, 0.6) !important;
+  color: #e2e8f0 !important;
+  box-shadow: inset 0 0 0 1.5px rgba(75, 155, 220, 0.15) !important;
+}
+
+html.dark input[style*="background"]::placeholder {
+  color: #64748b !important;
+}
+
+/* ─────────────── Dark Modal Footer Borders ─────────────── */
+html.dark .flex.justify-end.gap-3.mt-8.pt-6 {
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* ─────────────── Dark Department Checkbox Area ─────────────── */
+html.dark .rounded-2xl.p-4.max-h-48.overflow-y-auto {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+html.dark .rounded-2xl.p-4.max-h-48.overflow-y-auto .flex.items-center.gap-3:hover {
+  background: rgba(75, 155, 220, 0.06) !important;
+}
+
+html.dark .rounded-2xl.p-4.max-h-48.overflow-y-auto label {
+  color: #cbd5e1 !important;
+}
+
+/* ─────────────── Dark Info Cards within Cards (church/branch info box) ─────────────── */
+html.dark .rounded-xl.p-3[style*="linear-gradient(135deg, #f8fafc, #f1f5f9)"],
+html.dark .rounded-xl.p-3 {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border-color: rgba(75, 155, 220, 0.08) !important;
+}
+
+/* ─────────────── Dark Card Bottom Borders ─────────────── */
+html.dark .pt-5.border-t {
+  border-color: rgba(75, 155, 220, 0.08) !important;
+}
+
+/* ─────────────── Dark Detail Panel (Churches page) ─────────────── */
+html.dark .rounded-\[2rem\].p-7,
+html.dark .rounded-\[2rem\].relative.overflow-hidden[style*="rgba(255,255,255"] {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+}
+
+/* ─────────────── Dark Location Badge (Churches detail) ─────────────── */
+html.dark .flex.items-center.gap-2.text-sm.mb-6.font-semibold.rounded-xl.inline-flex {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(75, 155, 220, 0.12) !important;
+  color: #94a3b8 !important;
+}
+
+/* ─────────────── Dark Stats Grid (Churches detail) ─────────────── */
+html.dark .p-5.rounded-2xl.relative.overflow-hidden.group[style*="linear-gradient(135deg, #eff6ff"] {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+html.dark .p-5.rounded-2xl.relative.overflow-hidden.group[style*="linear-gradient(135deg, #f5f3ff"] {
+  background: rgba(139, 92, 246, 0.1) !important;
+  border-color: rgba(139, 92, 246, 0.15) !important;
+}
+
+html.dark .p-5.rounded-2xl.relative.overflow-hidden.group[style*="linear-gradient(135deg, #eef2ff"] {
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.15) !important;
+}
+
+/* stat card text in dark mode */
+html.dark .text-blue-950,
+html.dark .text-purple-950,
+html.dark .text-indigo-950 {
+  color: #f1f5f9 !important;
+}
+
+/* ─────────────── Dark Ministry Breakdown (Department list items) ─────────────── */
+html.dark .p-4.rounded-xl.flex.justify-between.items-center {
+  background: rgba(15, 23, 42, 0.45) !important;
+  border-color: rgba(75, 155, 220, 0.08) !important;
+}
+
+html.dark .p-4.rounded-xl.flex.justify-between.items-center:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ─────────────── Dark Google Maps Button (Churches detail) ─────────────── */
+html.dark a[style*="linear-gradient(135deg, #ecfdf5, #d1fae5)"] {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+}
+
+/* ─────────────── Dark Action Button Backgrounds (edit/delete/close) ─────────────── */
+html.dark button[style*="rgba(59,130,246,0.08)"],
+html.dark button[style*="background: rgba(59,130,246"] {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+html.dark button[style*="rgba(239,68,68,0.08)"],
+html.dark button[style*="background: rgba(239,68,68"] {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+html.dark button[style*="rgba(0,0,0,0.04)"] {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* ─────────────── Dark Action Pill Bar (Pastors/Servants/Members cards) ─────────────── */
+html.dark .flex.items-center.gap-1[style*="rgba(255,255,255,0.8)"] {
+  background: rgba(15, 23, 42, 0.7) !important;
+  border-color: rgba(75, 155, 220, 0.12) !important;
+}
+
+/* ─────────────── Dark Avatar Placeholder Backgrounds ─────────────── */
+html.dark div[style*="linear-gradient(135deg, #f2f8fd, #e8f1fa)"] {
+  background: rgba(75, 155, 220, 0.12) !important;
+}
+
+html.dark div[style*="linear-gradient(135deg, #fef2f2, #fee2e2)"] {
+  background: rgba(239, 68, 68, 0.12) !important;
+}
+
+/* ─────────────── Dark Icon Containers (stat pills, empty states) ─────────────── */
+html.dark div[style*="linear-gradient(135deg, #dbeafe, #e0e7ff)"] {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+html.dark div[style*="linear-gradient(135deg, #eff6ff, #dbeafe)"] {
+  background: rgba(59, 130, 246, 0.12) !important;
+}
+
+html.dark div[style*="linear-gradient(135deg, #f1f5f9, #e2e8f0)"] {
+  background: rgba(75, 155, 220, 0.08) !important;
+}
+
+/* ─────────────── Dark Dept Card Icon Backgrounds ─────────────── */
+html.dark div[style*="linear-gradient(135deg, #f5f3ff, #ede9fe)"] {
+  background: rgba(139, 92, 246, 0.12) !important;
+}
+
+html.dark div[style*="linear-gradient(135deg, #ecfdf5, #d1fae5)"] {
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
+html.dark div[style*="linear-gradient(135deg, #fdf2f8, #fce7f3)"] {
+  background: rgba(236, 72, 153, 0.12) !important;
+}
+
+html.dark div[style*="linear-gradient(135deg, #f0fdfa, #ccfbf1)"] {
+  background: rgba(20, 184, 166, 0.12) !important;
+}
+
+html.dark div[style*="linear-gradient(135deg, #fefce8, #fef9c3)"] {
+  background: rgba(234, 179, 8, 0.12) !important;
+}
+
+html.dark div[style*="linear-gradient(135deg, #fef2f2, #fecaca)"] {
+  background: rgba(239, 68, 68, 0.12) !important;
+}
+
+html.dark div[style*="linear-gradient(135deg, #eef2ff, #e0e7ff)"] {
+  background: rgba(99, 102, 241, 0.12) !important;
+}
+
+/* ─────────────── Dark "No Departments" empty box ─────────────── */
+html.dark .text-center.py-8.rounded-2xl[style*="linear-gradient(135deg, #f8fafc, #f1f5f9)"] {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* ─────────────── Dark Dept Card Borders ─────────────── */
+html.dark div[style*="borderTop: '1px solid rgba(0,0,0"] {
+  border-color: rgba(75, 155, 220, 0.08) !important;
+}
+
+/* ─────────────── Dark Mobile Header  ─────────────── */
+html.dark .lg\:hidden.fixed.top-0 .flex.items-center.gap-3 .text-sm.font-black {
+  color: #e2e8f0 !important;
+}
+
+html.dark .lg\:hidden.fixed.top-0 .w-8.h-8.rounded-lg {
+  background: linear-gradient(135deg, rgba(75, 155, 220, 0.15), rgba(49, 120, 181, 0.2)) !important;
+}
+
+/* ─────────────── Dark Layout Background Orb ─────────────── */
+html.dark .bg-gradient-to-bl.from-\[\#7EC8F2\]\/15 {
+  opacity: 0.06 !important;
+}
+
+/* ─────────────── Dark Mobile Sidebar Overlay ─────────────── */
+html.dark .fixed.inset-0.z-40.bg-white\/5 {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ─────────────── Dark Toast Overrides ─────────────── */
+html.dark [data-sonner-toast],
+html.dark div[role="status"] {
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* ─────────────── Dark Member Email/Phone Icon Boxes ─────────────── */
+html.dark .w-6.h-6.rounded-lg.flex.items-center.justify-center[style*="rgba(0,0,0,0.04)"] {
+  background: rgba(75, 155, 220, 0.08) !important;
+}
+
+/* ─────────────── Dark Member Organization Section ─────────────── */
+html.dark .rounded-xl.p-3.mt-4.space-y-2,
+html.dark .rounded-xl.p-3.mt-2.space-y-2,
+html.dark .rounded-xl.p-3.mt-2 {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border-color: rgba(75, 155, 220, 0.08) !important;
+}
+
+html.dark .rounded-xl.p-3.mt-4.space-y-2 .flex.items-start.gap-2.pt-2,
+html.dark .rounded-xl.p-3.mt-2.space-y-2 .flex.items-start.gap-2.pt-2 {
+  border-color: rgba(75, 155, 220, 0.06) !important;
+}
+
+/* ─────────────── Dark Loading Spinner Override ─────────────── */
+html.dark .border-blue-100 {
+  border-color: rgba(75, 155, 220, 0.15) !important;
+}
+
+/* ─────────────── Dark ProtectedRoute Loading Screen ─────────────── */
+html.dark .min-h-screen.flex.items-center.justify-center.bg-gray-50 {
+  background: linear-gradient(160deg, #080e18 0%, #0b1422 40%, #0d1726 70%, #060c14 100%) !important;
+}
+
+/* ─────────────── Dark Confirm Dialog ─────────────── */
+html.dark .bg-white.p-6.rounded-xl.shadow-xl,
+html.dark .bg-white.p-8.rounded-2xl.shadow-xl {
+  background: rgba(15, 23, 42, 0.92) !important;
+  border: 1px solid rgba(75, 155, 220, 0.1) !important;
+}
+
+/* ─────────────── Dark page label overrides ─────────────── */
+html.dark .block.text-sm.font-bold.text-gray-700 {
+  color: #cbd5e1 !important;
+}
+
+/* ─────────────── Dark Department Details / Member Details Modal ─────────────── */
+html.dark .fixed.inset-0[style*="backdrop-filter"]>div[style*="background: 'rgba(255,255,255"] {
+  background: rgba(15, 23, 42, 0.92) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* ─────────────── Dark Cancel Buttons in Modals ─────────────── */
+html.dark .px-6.py-3.font-bold.text-gray-600 {
+  color: #94a3b8 !important;
+}
+
+html.dark .px-6.py-3.font-bold.text-gray-600:hover {
+  background: rgba(75, 155, 220, 0.06) !important;
+  color: #cbd5e1 !important;
+}
+
+/* ─────────────── Dark Active Church Card Selection ─────────────── */
+html.dark .group.cursor-pointer[style*="rgba(239,246,255,0.95)"] {
+  background: rgba(75, 155, 220, 0.1) !important;
+  border-color: rgba(75, 155, 220, 0.25) !important;
+  box-shadow: 0 12px 40px rgba(75, 155, 220, 0.1) !important;
+}
+
+/* ─────────────── Dark Card Member Count text ─────────────── */
+html.dark .text-2xl.font-black.leading-none.tabular-nums,
+html.dark .text-3xl.font-black.relative.z-10 {
+  color: #f1f5f9 !important;
+}
+
+/* ─────────────── Dark "Active" badge on church cards ─────────────── */
+html.dark span[style*="rgba(16,185,129,0.08)"] {
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
+/* ─────────────── Dark Map icon container ─────────────── */
+html.dark div[style*="rgba(16,185,129,0.08)"] {
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
+/* ─────────────── Dark Role Badge ─────────────── */
+html.dark span[style*="rgba(75,155,220,0.08)"] {
+  background: rgba(75, 155, 220, 0.12) !important;
+}
+
+/* ─────────────── Dark Department Badge (purple) ─────────────── */
+html.dark span[style*="rgba(139,92,246,0.08)"] {
+  background: rgba(139, 92, 246, 0.12) !important;
+}
+
+/* ─────────────── Dark Servant Department Info ─────────────── */
+html.dark .flex.items-start.gap-2.pt-2[style*="borderTop"] {
+  border-color: rgba(75, 155, 220, 0.06) !important;
+}
+
+
+/* ─────────────── Dark ChangeRoleModal ─────────────── */
+html.dark .bg-white.rounded-2xl,
+html.dark .bg-white.rounded-3xl {
+  background: rgba(15, 23, 42, 0.92) !important;
+  border: 1px solid rgba(75, 155, 220, 0.1) !important;
+}
+
+/* ─────────────── Dark Hover States for Action Buttons in Cards ─────────────── */
+html.dark .hover\:bg-blue-50:hover {
+  background: rgba(75, 155, 220, 0.08) !important;
+}
+
+html.dark .hover\:bg-red-50:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+html.dark .hover\:bg-emerald-50:hover {
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+
+/* ─────────────── Dark App Toaster ─────────────── */
+html.dark .Toastify__toast,
+html.dark [class*="go2072408551"],
+html.dark [class*="react-hot-toast"]>div {
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(75, 155, 220, 0.12) !important;
+}
+
+/* ─────────────── Dark ConfirmDialog ─────────────── */
+html.dark .fixed.inset-0.bg-white\/10 {
+  background: rgba(0, 0, 0, 0.45) !important;
+}
+
+html.dark .fixed.inset-0.bg-white\/10>.bg-white {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(75, 155, 220, 0.12) !important;
+  color: #e2e8f0;
+}
+
+html.dark .fixed.inset-0.bg-white\/10>.bg-white h2,
+html.dark .fixed.inset-0.bg-white\/10>.bg-white h3 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .fixed.inset-0.bg-white\/10>.bg-white p {
+  color: #94a3b8 !important;
+}
+
+/* ─────────────── Dark ChangeRoleModal ─────────────── */
+html.dark .fixed.inset-0.bg-white\/5 {
+  background: rgba(0, 0, 0, 0.45) !important;
+}
+
+html.dark .fixed.inset-0.bg-white\/5>.bg-white {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(75, 155, 220, 0.12) !important;
+}
+
+html.dark .fixed.inset-0.bg-white\/5 .bg-gray-50\/50 {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+html.dark .fixed.inset-0.bg-white\/5 .hover\:bg-white:hover {
+  background: rgba(75, 155, 220, 0.08) !important;
+}
+
+html.dark .fixed.inset-0.bg-white\/5 .bg-white.text-gray-400 {
+  background: rgba(15, 23, 42, 0.4) !important;
+}
+
+html.dark .fixed.inset-0.bg-white\/5 h2,
+html.dark .fixed.inset-0.bg-white\/5 h3 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .fixed.inset-0.bg-white\/5 .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+/* ─────────────── Dark MemberDetailsModal ─────────────── */
+html.dark .bg-white\/10.backdrop-blur-2xl {
+  background: rgba(0, 0, 0, 0.45) !important;
+}
+
+html.dark .bg-white\/90.backdrop-blur-2xl,
+html.dark .bg-white\/95.backdrop-blur-3xl {
+  background: rgba(15, 23, 42, 0.92) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* Cards inside detail modals */
+html.dark .bg-white.rounded-3xl.p-6.border.border-gray-100 {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* Close button in detail modals */
+html.dark .p-3.bg-white.hover\:bg-gray-50.rounded-2xl {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(75, 155, 220, 0.12) !important;
+}
+
+/* Footer in detail modals */
+html.dark .p-5.border-t.border-gray-100\/50.bg-white\/80 {
+  background: rgba(15, 23, 42, 0.7) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* Info boxes in detail modals */
+html.dark .bg-white.p-3.rounded-2xl.border.border-gray-100 {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* Department member cards */
+html.dark .flex.items-center.gap-4.p-4.bg-white.rounded-2xl.border.border-gray-100 {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* Department detail close button */
+html.dark .px-8.py-3.bg-white.hover\:bg-gray-100 {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(75, 155, 220, 0.12) !important;
+  color: #e2e8f0 !important;
+}
+
+/* ─────────────── Dark MobileHeader ─────────────── */
+html.dark .p-2\.5.bg-white.shadow-md.border.border-gray-100 {
+  background: rgba(15, 23, 42, 0.7) !important;
+  border-color: rgba(75, 155, 220, 0.12) !important;
+}
+
+/* ─────────────── Dark PasswordStrengthMeter ─────────────── */
+html.dark .bg-white.px-2.py-0\.5.rounded-full.border.border-gray-100 {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(75, 155, 220, 0.1) !important;
+}
+
+/* ─────────────── Dark text color overrides for labels/headings in pages ─────────────── */
+html.dark .text-gray-900 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .text-gray-800 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-gray-700 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-gray-600 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-gray-500 {
+  color: #64748b !important;
+}
+
+html.dark .text-gray-400 {
+  color: #475569 !important;
+}
+
+/* ─────────────── Dark border-gray-* overrides ─────────────── */
+html.dark .border-gray-100 {
+  border-color: rgba(75, 155, 220, 0.08) !important;
+}
+
+html.dark .border-gray-200 {
+  border-color: rgba(75, 155, 220, 0.12) !important;
+}
+
+/* ─────────────── Dark background utility overrides ─────────────── */
+html.dark .bg-gray-50 {
+  background-color: rgba(15, 23, 42, 0.3) !important;
+}
+
+html.dark .bg-gray-100 {
+  background-color: rgba(15, 23, 42, 0.4) !important;
+}
+
+/* ─────────────── Dark hover states for utility bg ─────────────── */
+html.dark .hover\:bg-gray-50:hover {
+  background-color: rgba(75, 155, 220, 0.06) !important;
+}
+
+html.dark .hover\:bg-gray-100:hover {
+  background-color: rgba(75, 155, 220, 0.08) !important;
+}
+
+/* ─────────────── Dark placeholder text ─────────────── */
+html.dark .placeholder-gray-400::placeholder {
+  color: #475569 !important;
+}
+
+html.dark .placeholder-gray-500::placeholder {
+  color: #64748b !important;
 }
