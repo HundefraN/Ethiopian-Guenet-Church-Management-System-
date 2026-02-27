@@ -17,6 +17,7 @@ import {
   Check,
   Info,
 } from "lucide-react";
+import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabaseClient";
 import toast from "react-hot-toast";
@@ -59,15 +60,6 @@ export default function Settings() {
   const strengthScore = useMemo(() => {
     return Object.values(passwordChecks).filter(Boolean).length;
   }, [passwordChecks]);
-
-  const strengthLabel = useMemo(() => {
-    if (newPassword.length === 0) return { text: "", color: "" };
-    if (strengthScore <= 1) return { text: "Very Weak", color: "#ef4444" };
-    if (strengthScore === 2) return { text: "Weak", color: "#f97316" };
-    if (strengthScore === 3) return { text: "Fair", color: "#eab308" };
-    if (strengthScore === 4) return { text: "Strong", color: "#22c55e" };
-    return { text: "Very Strong", color: "#059669" };
-  }, [strengthScore, newPassword]);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -657,44 +649,7 @@ export default function Settings() {
                         </div>
 
                         {/* Password Strength Meter */}
-                        {newPassword.length > 0 && (
-                          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mt-3 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-gray-500">Password Strength</span>
-                              <motion.span key={strengthLabel.text} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="text-xs font-bold" style={{ color: strengthLabel.color }}>{strengthLabel.text}</motion.span>
-                            </div>
-                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                              <motion.div
-                                className="h-full rounded-full"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${(strengthScore / 5) * 100}%` }}
-                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                                style={{ backgroundColor: strengthLabel.color }}
-                              />
-                            </div>
-
-                            {/* Requirement Checklist */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
-                              {[
-                                { key: "minLength", label: "At least 8 characters" },
-                                { key: "hasUppercase", label: "Uppercase letter (A-Z)" },
-                                { key: "hasLowercase", label: "Lowercase letter (a-z)" },
-                                { key: "hasNumber", label: "Number (0-9)" },
-                                { key: "hasSpecial", label: "Special character (!@#...)" },
-                              ].map((rule) => {
-                                const passed = passwordChecks[rule.key as keyof typeof passwordChecks];
-                                return (
-                                  <motion.div key={rule.key} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2">
-                                    <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors ${passed ? "bg-emerald-500" : "bg-gray-200"}`}>
-                                      {passed && <Check size={10} className="text-white" strokeWidth={3} />}
-                                    </div>
-                                    <span className={`text-xs transition-colors ${passed ? "text-emerald-600 font-medium" : "text-gray-400"}`}>{rule.label}</span>
-                                  </motion.div>
-                                );
-                              })}
-                            </div>
-                          </motion.div>
-                        )}
+                        <PasswordStrengthMeter password={newPassword} />
                       </div>
 
                       {/* Confirm New Password */}

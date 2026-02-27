@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Building, MapPin, Search, Plus, Loader2, X, ChevronRight, Users, Shield, BookOpen, Edit2, Trash2, ExternalLink, Map } from "lucide-react";
+import { Building, MapPin, Search, Plus, Loader2, X, ChevronRight, Users, Shield, BookOpen, Edit2, Trash2, ExternalLink, Map, Sparkles, TrendingUp, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { Church } from "../types";
@@ -37,6 +37,7 @@ export default function Churches() {
     departments: { name: string; servantCount: number }[];
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -78,30 +79,18 @@ export default function Churches() {
     setLoadingStats(true);
     setChurchStats(null);
     try {
-      // 1. Total Departments
       const { count: deptCount } = await supabase
         .from("departments")
         .select("*", { count: "exact", head: true })
         .eq("church_id", church.id);
 
-      // 2. Departments with Servant Counts
       let depts: any[] = [];
       const { data: newDepts, error: newDeptsError } = await supabase
         .from("departments")
-        .select(
-          `
-              id,
-              name,
-              profile_departments (count)
-          `
-        )
+        .select(`id, name, profile_departments (count)`)
         .eq("church_id", church.id);
 
       if (newDeptsError) {
-        console.warn(
-          "Failed to fetch department stats (new schema), trying legacy"
-        );
-        // Fallback: just get departments without servant count
         const { data: legacyDepts } = await supabase
           .from("departments")
           .select("id, name")
@@ -152,7 +141,6 @@ export default function Churches() {
         { name: newChurch.name, location: newChurch.location, map_link: newChurch.map_link }
       );
 
-      // Add empty members array to match type
       const newChurchWithCount: ChurchWithCount = { ...data, members: [] };
       setChurches([...churches, newChurchWithCount]);
       setNewChurch({ name: "", location: "", map_link: "" });
@@ -263,6 +251,8 @@ export default function Churches() {
       newChurch.map_link !== (editingChurch.map_link || "");
   }, [newChurch, editingChurch]);
 
+  const totalMembers = useMemo(() => churches.reduce((acc, c) => acc + (c.members?.[0]?.count || 0), 0), [churches]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -271,282 +261,423 @@ export default function Churches() {
       transition={{ duration: 0.15 }}
       className="space-y-8 pb-10"
     >
-      {/* Header Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#1A365D] to-[#4B9BDC] p-8 shadow-lg">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+      {/* ═══════════════ ULTRA HERO HEADER ═══════════════ */}
+      <div className="relative overflow-hidden rounded-[2rem] p-8 md:p-10 shadow-lg" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #132d50 40%, #1a4a7a 70%, #2563eb 100%)' }}>
+        {/* Animated mesh orbs */}
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-30 blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #60a5fa, transparent)' }}></div>
+        <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full opacity-20 blur-[60px]" style={{ background: 'radial-gradient(circle, #a78bfa, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full opacity-10 blur-[100px]" style={{ background: 'radial-gradient(circle, #34d399, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
+
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
           <div className="text-white">
-            <h1 className="text-3xl font-extrabold tracking-tight mb-2">
-              Churches Directory
-            </h1>
-            <p className="text-blue-100 max-w-xl text-sm md:text-base">
-              Manage all church branches, locations, and view detailed statistics designed beautifully.
-            </p>
-          </div>
-          {profile?.role === "super_admin" && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center justify-center gap-2 bg-white text-[#4B9BDC] px-6 py-3 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] font-bold shrink-0"
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="flex items-center gap-3 mb-4"
             >
-              <Plus size={20} />
-              <span>Add New Church</span>
-            </motion.button>
-          )}
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(96,165,250,0.3), rgba(167,139,250,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <Building size={24} className="text-blue-200" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#93c5fd' }}>
+                <Sparkles size={10} className="inline mr-1" /> Church Management
+              </div>
+            </motion.div>
+            <motion.h1
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="text-4xl md:text-5xl font-black tracking-tight mb-3"
+              style={{ background: 'linear-gradient(135deg, #ffffff 0%, #93c5fd 50%, #c4b5fd 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+            >
+              Churches Directory
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-blue-200/70 max-w-lg text-sm md:text-base font-medium"
+            >
+              Manage all church branches, locations, and detailed statistics in one place.
+            </motion.p>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="flex flex-wrap items-center gap-4"
+          >
+            {/* Quick stat pills */}
+            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}>
+                <Globe size={18} className="text-white" />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-white leading-none">{churches.length}</p>
+                <p className="text-[10px] font-bold text-blue-300/60 uppercase tracking-wider">Branches</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                <Users size={18} className="text-white" />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-white leading-none">{totalMembers}</p>
+                <p className="text-[10px] font-bold text-blue-300/60 uppercase tracking-wider">Total Members</p>
+              </div>
+            </div>
+
+            {profile?.role === "super_admin" && (
+              <motion.button
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shrink-0"
+                style={{ background: 'linear-gradient(135deg, #ffffff, #e0e7ff)', color: '#3b82f6', boxShadow: '0 8px 32px rgba(59,130,246,0.3), inset 0 1px 0 rgba(255,255,255,0.8)' }}
+              >
+                <Plus size={18} />
+                <span>Add Church</span>
+              </motion.button>
+            )}
+          </motion.div>
         </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
-        {/* Details Section (Left on Desktop) */}
-        {selectedChurch && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ type: "spring", stiffness: 100 }}
-            className="w-full lg:w-[400px] order-1 lg:sticky lg:top-6 z-10"
-          >
-            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_20px_50px_rgba(8,_112,_184,_0.07)] border border-blue-50/50 backdrop-blur-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 flex items-center gap-2">
-                {profile?.role === "super_admin" && (
-                  <>
-                    <button
-                      onClick={() => {
-                        setEditingChurch(selectedChurch);
-                        setNewChurch({
-                          name: selectedChurch.name,
-                          location: selectedChurch.location || "",
-                          map_link: selectedChurch.map_link || ""
-                        });
-                        setIsEditModalOpen(true);
-                      }}
-                      className="p-2 hover:bg-blue-50 rounded-full transition-colors text-blue-400 hover:text-blue-600 bg-white shadow-sm"
-                      title="Edit Church"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteChurchClick(selectedChurch)}
-                      className="p-2 hover:bg-red-50 rounded-full transition-colors text-red-400 hover:text-red-600 bg-white shadow-sm"
-                      title="Delete Church"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </>
+        {/* ═══════════════ DETAILS PANEL ═══════════════ */}
+        <AnimatePresence>
+          {selectedChurch && (
+            <motion.div
+              initial={{ opacity: 0, x: -30, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -30, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              className="w-full lg:w-[420px] order-1 lg:sticky lg:top-6 z-10"
+            >
+              <div className="rounded-[2rem] p-7 md:p-8 relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(40px) saturate(200%)', border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 20px 60px rgba(8,112,184,0.08), 0 1px 3px rgba(0,0,0,0.04)' }}>
+                {/* Holographic top border */}
+                <div className="absolute top-0 left-0 w-full h-1 rounded-t-[2rem]" style={{ background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #3b82f6)', backgroundSize: '200% 100%', animation: 'shimmer 3s linear infinite' }}></div>
+
+                <div className="absolute top-0 right-0 p-4 flex items-center gap-2 z-20">
+                  {profile?.role === "super_admin" && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditingChurch(selectedChurch);
+                          setNewChurch({
+                            name: selectedChurch.name,
+                            location: selectedChurch.location || "",
+                            map_link: selectedChurch.map_link || ""
+                          });
+                          setIsEditModalOpen(true);
+                        }}
+                        className="p-2.5 rounded-xl transition-all duration-200 text-blue-400 hover:text-blue-600" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)' }}
+                        title="Edit Church"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteChurchClick(selectedChurch)}
+                        className="p-2.5 rounded-xl transition-all duration-200 text-red-400 hover:text-red-600" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}
+                        title="Delete Church"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => setSelectedChurch(null)}
+                    className="p-2.5 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600" style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.06)' }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: 'linear-gradient(135deg, #dbeafe, #e0e7ff)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.04)' }}>
+                  <Building className="text-blue-600" size={30} />
+                </div>
+
+                <h2 className="text-2xl font-black text-gray-900 leading-tight mb-2 pr-28">
+                  {selectedChurch.name}
+                </h2>
+                <div className="flex items-center gap-2 text-gray-500 text-sm mb-6 font-semibold rounded-xl inline-flex px-3.5 py-2" style={{ background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px solid #e2e8f0' }}>
+                  <MapPin size={15} className="text-blue-500" />
+                  <span>{selectedChurch.location || "No location specified"}</span>
+                </div>
+
+                {selectedChurch.map_link && (
+                  <motion.a
+                    whileHover={{ scale: 1.02, y: -1 }}
+                    whileTap={{ scale: 0.98 }}
+                    href={selectedChurch.map_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mb-7 flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl font-bold transition-all group text-sm"
+                    style={{ background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', color: '#059669', border: '1px solid rgba(16,185,129,0.2)', boxShadow: '0 4px 16px rgba(16,185,129,0.08)' }}
+                  >
+                    <Map size={18} className="group-hover:rotate-12 transition-transform" />
+                    <span>View on Google Maps</span>
+                    <ExternalLink size={14} className="opacity-40" />
+                  </motion.a>
                 )}
+
+                {loadingStats ? (
+                  <div className="flex justify-center py-12">
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full border-2 border-blue-100 border-t-blue-500 animate-spin"></div>
+                    </div>
+                  </div>
+                ) : churchStats ? (
+                  <div className="space-y-6">
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.1 }}
+                        className="p-5 rounded-2xl relative overflow-hidden group"
+                        style={{ background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', border: '1px solid rgba(59,130,246,0.12)' }}
+                      >
+                        <div className="absolute -right-3 -top-3 text-blue-200/40 transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
+                          <Users size={56} />
+                        </div>
+                        <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.15em] mb-1">Members</h3>
+                        <p className="text-3xl font-black text-blue-950 relative z-10">
+                          {selectedChurch.members && selectedChurch.members[0] ? selectedChurch.members[0].count : 0}
+                        </p>
+                      </motion.div>
+
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.15 }}
+                        className="p-5 rounded-2xl relative overflow-hidden group"
+                        style={{ background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)', border: '1px solid rgba(139,92,246,0.12)' }}
+                      >
+                        <div className="absolute -right-3 -top-3 text-purple-200/40 transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
+                          <Shield size={56} />
+                        </div>
+                        <h3 className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] mb-1">Departments</h3>
+                        <p className="text-3xl font-black text-purple-950 relative z-10">
+                          {churchStats.deptCount}
+                        </p>
+                      </motion.div>
+
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="p-5 rounded-2xl relative overflow-hidden group col-span-2"
+                        style={{ background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)', border: '1px solid rgba(99,102,241,0.12)' }}
+                      >
+                        <div className="absolute -right-2 -bottom-4 text-indigo-200/30 transform group-hover:scale-110 transition-transform duration-300">
+                          <BookOpen size={72} />
+                        </div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <TrendingUp size={14} className="text-indigo-500" />
+                          <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-[0.15em]">Total Servants</h3>
+                        </div>
+                        <p className="text-3xl font-black text-indigo-950 relative z-10">
+                          {churchStats.departments.reduce((acc, curr) => acc + curr.servantCount, 0)}
+                        </p>
+                      </motion.div>
+                    </div>
+
+                    {/* Department List */}
+                    <div>
+                      <h3 className="text-[11px] font-bold text-gray-900 mb-4 px-1 uppercase tracking-[0.15em] flex items-center gap-2">
+                        <Shield size={14} className="text-blue-500" />
+                        Ministry Breakdown
+                      </h3>
+                      {churchStats.departments.length === 0 ? (
+                        <div className="text-center py-8 rounded-2xl text-gray-400 text-sm font-medium" style={{ background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px dashed #e2e8f0' }}>
+                          No departments found.
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {churchStats.departments.map((dept, idx) => (
+                            <motion.div
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.1 + idx * 0.05 }}
+                              key={idx}
+                              className="p-4 rounded-xl flex justify-between items-center hover:shadow-md transition-all group cursor-default"
+                              style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)' }}
+                            >
+                              <span className="font-bold text-gray-700 group-hover:text-blue-700 transition-colors text-sm">
+                                {dept.name}
+                              </span>
+                              <span className="text-blue-600 px-3 py-1 rounded-lg text-xs font-bold" style={{ background: 'rgba(59,130,246,0.08)' }}>
+                                {dept.servantCount} Servants
+                              </span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    Failed to load data.
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ═══════════════ MAIN LIST ═══════════════ */}
+        <div className={`flex-1 transition-all duration-200 order-2`}>
+          {/* Search Bar */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mb-8 relative"
+          >
+            <div
+              className="p-1.5 rounded-2xl flex items-center transition-all duration-300"
+              style={{
+                background: searchFocused ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.8)',
+                backdropFilter: 'blur(20px)',
+                border: searchFocused ? '1.5px solid rgba(59,130,246,0.3)' : '1.5px solid rgba(0,0,0,0.06)',
+                boxShadow: searchFocused ? '0 8px 32px rgba(59,130,246,0.12), 0 0 0 4px rgba(59,130,246,0.06)' : '0 4px 20px rgba(0,0,0,0.03)',
+              }}
+            >
+              <div className="pl-4 pr-2">
+                <Search size={20} className={`transition-colors duration-200 ${searchFocused ? 'text-blue-500' : 'text-gray-400'}`} />
+              </div>
+              <input
+                type="text"
+                placeholder="Search branches by name or location..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400"
+              />
+              {searchQuery && (
                 <button
-                  onClick={() => setSelectedChurch(null)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600 bg-white shadow-sm ml-2"
+                  onClick={() => setSearchQuery("")}
+                  className="p-2 mr-2 text-gray-400 hover:text-blue-500 rounded-xl hover:bg-blue-50 transition-colors"
+                  title="Clear search"
                 >
-                  <X size={20} />
+                  <X size={16} />
                 </button>
-              </div>
-
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center shadow-inner mb-6 border border-white">
-                <Building className="text-[#4B9BDC]" size={32} />
-              </div>
-
-              <h2 className="text-2xl font-bold text-gray-900 leading-tight mb-2">
-                {selectedChurch.name}
-              </h2>
-              <div className="flex items-center gap-2 text-gray-500 text-sm mb-8 font-medium bg-gray-50 inline-flex px-3 py-1.5 rounded-lg border border-gray-100">
-                <MapPin size={16} className="text-[#4B9BDC]" />
-                <span>{selectedChurch.location || "No location specified"}</span>
-              </div>
-
-              {selectedChurch.map_link && (
-                <motion.a
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  href={selectedChurch.map_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mb-8 flex items-center justify-center gap-2 w-full py-4 bg-gradient-to-br from-emerald-50 to-teal-50 text-emerald-700 rounded-2xl border border-emerald-100/50 font-bold hover:shadow-md transition-all group"
-                >
-                  <Map size={20} className="group-hover:rotate-12 transition-transform" />
-                  <span>View on Google Maps</span>
-                  <ExternalLink size={16} className="ml-1 opacity-50" />
-                </motion.a>
-              )}
-
-              {loadingStats ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="animate-spin text-[#4B9BDC]" size={32} />
-                </div>
-              ) : churchStats ? (
-                <div className="space-y-6">
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-5 rounded-2xl border border-blue-100/50 shadow-sm relative overflow-hidden group">
-                      <div className="absolute -right-4 -top-4 text-blue-200/50 transform group-hover:scale-110 transition-transform duration-200">
-                        <Users size={64} />
-                      </div>
-                      <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Members</h3>
-                      <p className="text-3xl font-black text-blue-950 relative z-10">
-                        {selectedChurch.members && selectedChurch.members[0] ? selectedChurch.members[0].count : 0}
-                      </p>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 rounded-2xl border border-purple-100/50 shadow-sm relative overflow-hidden group">
-                      <div className="absolute -right-4 -top-4 text-purple-200/50 transform group-hover:scale-110 transition-transform duration-200">
-                        <Shield size={64} />
-                      </div>
-                      <h3 className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-1">Departments</h3>
-                      <p className="text-3xl font-black text-purple-950 relative z-10">
-                        {churchStats.deptCount}
-                      </p>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-5 rounded-2xl border border-indigo-100/50 shadow-sm relative overflow-hidden group col-span-2">
-                      <div className="absolute -right-2 -bottom-4 text-indigo-200/30 transform group-hover:scale-110 transition-transform duration-200">
-                        <BookOpen size={80} />
-                      </div>
-                      <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">Total Servants</h3>
-                      <p className="text-3xl font-black text-indigo-950 relative z-10">
-                        {churchStats.departments.reduce((acc, curr) => acc + curr.servantCount, 0)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Department List */}
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 mb-4 px-1 uppercase tracking-wider flex items-center gap-2">
-                      <Shield size={16} className="text-[#4B9BDC]" />
-                      Ministry Breakdown
-                    </h3>
-                    {churchStats.departments.length === 0 ? (
-                      <div className="text-center py-6 bg-gray-50 rounded-2xl border border-gray-100 border-dashed text-gray-400 text-sm font-medium">
-                        No departments found.
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {churchStats.departments.map((dept, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center hover:shadow-md hover:border-blue-100 transition-all group"
-                          >
-                            <span className="font-semibold text-gray-700 group-hover:text-blue-900 transition-colors">
-                              {dept.name}
-                            </span>
-                            <span className="bg-blue-50 text-[#4B9BDC] px-3 py-1 rounded-lg text-xs font-bold">
-                              {dept.servantCount} Servants
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  Failed to load data.
-                </div>
               )}
             </div>
           </motion.div>
-        )}
-
-        {/* List Section (Right on Desktop if selected, otherwise full) */}
-        <div className={`flex-1 transition-all duration-200 order-2`}>
-          {/* Search Bar */}
-          <div className="bg-white p-2 rounded-2xl border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] mb-8 flex items-center focus-within:ring-2 focus-within:ring-[#4B9BDC]/20 focus-within:border-[#4B9BDC] transition-all">
-            <div className="pl-4 pr-2 text-gray-400">
-              <Search size={22} className="text-[#4B9BDC]" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search branches by name or location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="p-2 mr-2 text-gray-400 hover:text-[#4B9BDC] rounded-full hover:bg-gray-100 transition-colors"
-                title="Clear search"
-              >
-                <X size={18} />
-              </button>
-            )}
-          </div>
 
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="animate-spin text-[#4B9BDC]" size={40} />
+              <div className="relative">
+                <div className="w-14 h-14 rounded-full border-[3px] border-blue-100 border-t-blue-500 animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Building size={18} className="text-blue-400" />
+                </div>
+              </div>
             </div>
           ) : filteredChurches.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
-              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-20 rounded-[2rem]"
+              style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(20px)', border: '1px solid rgba(0,0,0,0.06)' }}
+            >
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)' }}>
                 <Building className="h-10 w-10 text-gray-300" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">
-                No churches found
-              </h3>
+              <h3 className="text-lg font-bold text-gray-900">No churches found</h3>
               <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-                We couldn't find any churches matching your search. Try adjusting your query or add a new branch.
+                We couldn't find any churches matching your search. Try adjusting your query.
               </p>
-            </div>
+            </motion.div>
           ) : (
             <motion.div
               layout
-              className={`grid grid-cols-1 ${selectedChurch ? 'xl:grid-cols-2' : 'md:grid-cols-2 xl:grid-cols-3'} gap-6`}
+              className={`grid grid-cols-1 ${selectedChurch ? 'xl:grid-cols-2' : 'md:grid-cols-2 xl:grid-cols-3'} gap-5`}
             >
               <AnimatePresence>
                 {filteredChurches.map((church, index) => (
                   <motion.div
                     layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.15, delay: index * 0.05 }}
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3, delay: index * 0.04, type: "spring", stiffness: 150 }}
                     key={church.id}
                     onClick={() => handleChurchClick(church)}
-                    className={`bg-white p-6 rounded-3xl border ${selectedChurch?.id === church.id ? 'border-[#4B9BDC] shadow-[0_8px_30px_rgba(75,155,220,0.2)] ring-2 ring-[#4B9BDC]/10' : 'border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-gray-200'} transition-all duration-150 group cursor-pointer relative overflow-hidden`}
+                    className={`group cursor-pointer relative overflow-hidden rounded-[1.5rem] transition-all duration-300`}
+                    whileHover={{ y: -4, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      background: selectedChurch?.id === church.id ? 'rgba(239,246,255,0.95)' : 'rgba(255,255,255,0.8)',
+                      backdropFilter: 'blur(20px)',
+                      border: selectedChurch?.id === church.id ? '1.5px solid rgba(59,130,246,0.3)' : '1.5px solid rgba(0,0,0,0.06)',
+                      boxShadow: selectedChurch?.id === church.id ? '0 12px 40px rgba(59,130,246,0.15)' : '0 4px 20px rgba(0,0,0,0.03)',
+                    }}
                   >
-                    <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-200 ${selectedChurch?.id === church.id ? 'bg-[#4B9BDC]/20' : 'bg-transparent group-hover:bg-blue-50'}`}></div>
+                    {/* Active indicator bar */}
+                    {selectedChurch?.id === church.id && (
+                      <motion.div
+                        layoutId="activeChurchBar"
+                        className="absolute top-0 left-0 w-full h-1"
+                        style={{ background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)' }}
+                      />
+                    )}
 
-                    <div className="flex items-start justify-between mb-5 relative z-10">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-150 ${selectedChurch?.id === church.id ? 'bg-[#4B9BDC] text-white' : 'bg-blue-50/80 text-[#4B9BDC] group-hover:bg-[#4B9BDC] group-hover:text-white'}`}>
-                        <Building size={28} />
-                      </div>
-                      <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border border-emerald-100/50">
-                        Active
-                      </span>
-                    </div>
+                    <div className="p-6">
+                      {/* Hover glow */}
+                      <div className={`absolute top-0 right-0 w-40 h-40 rounded-full blur-[60px] -mr-10 -mt-10 transition-all duration-500 ${selectedChurch?.id === church.id ? 'bg-blue-200/40' : 'bg-transparent group-hover:bg-blue-100/30'}`}></div>
 
-                    <div className="relative z-10">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#4B9BDC] transition-colors leading-tight">
-                        {church.name}
-                      </h3>
-                      <div className="flex items-center justify-between gap-2 text-gray-500 text-sm mb-6 font-medium">
-                        <div className="flex items-center gap-2 truncate">
-                          <MapPin size={16} className="shrink-0 text-gray-400 group-hover:text-[#4B9BDC] transition-colors" />
-                          <span className="truncate">{church.location || "No location specified"}</span>
+                      <div className="flex items-start justify-between mb-5 relative z-10">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${selectedChurch?.id === church.id ? 'text-white' : 'text-blue-600 group-hover:text-white'}`}
+                          style={{
+                            background: selectedChurch?.id === church.id
+                              ? 'linear-gradient(135deg, #3b82f6, #6366f1)'
+                              : 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+                            boxShadow: selectedChurch?.id === church.id ? '0 8px 24px rgba(59,130,246,0.3)' : 'none',
+                          }}
+                        >
+                          <Building size={26} />
                         </div>
-                        {church.map_link && (
-                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-50 text-emerald-500 shrink-0" title="Map link available">
-                            <Map size={12} />
-                          </div>
-                        )}
+                        <span className="text-[9px] font-bold uppercase tracking-[0.15em] px-3 py-1.5 rounded-full" style={{ background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1px solid rgba(16,185,129,0.15)' }}>
+                          Active
+                        </span>
                       </div>
 
-                      <div className="pt-5 border-t border-gray-100 flex items-center justify-between">
-                        <div className="flex -space-x-2">
-                          <div className="w-8 h-8 rounded-full bg-[#4B9BDC] flex items-center justify-center text-white text-xs font-bold ring-2 ring-white">
-                            <Users size={12} />
+                      <div className="relative z-10">
+                        <h3 className="text-xl font-black text-gray-900 mb-2 group-hover:text-blue-700 transition-colors leading-tight">
+                          {church.name}
+                        </h3>
+                        <div className="flex items-center justify-between gap-2 text-gray-500 text-sm mb-6 font-medium">
+                          <div className="flex items-center gap-2 truncate">
+                            <MapPin size={14} className="shrink-0 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                            <span className="truncate">{church.location || "No location specified"}</span>
                           </div>
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-[#4B9BDC] text-xs font-bold ring-2 ring-white">
-                            +
-                          </div>
+                          {church.map_link && (
+                            <div className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0" style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981' }} title="Map link available">
+                              <Map size={13} />
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <span className="block text-xl font-black text-gray-900 leading-none">
-                            {church.members && church.members[0] ? church.members[0].count : 0}
-                          </span>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Members</span>
+
+                        <div className="pt-5 border-t flex items-center justify-between" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold" style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}>
+                              <Users size={14} />
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="block text-2xl font-black text-gray-900 leading-none tabular-nums">
+                              {church.members && church.members[0] ? church.members[0].count : 0}
+                            </span>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.15em]">Members</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -558,22 +689,25 @@ export default function Churches() {
         </div>
       </div>
 
-      {/* Add Church Modal */}
+      {/* ═══════════════ ADD CHURCH MODAL ═══════════════ */}
       <AnimatePresence>
         {isModalOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white/10 backdrop-blur-2xl flex items-center justify-center z-[100] p-4"
+            className="fixed inset-0 flex items-center justify-center z-[100] p-4"
+            style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(24px) saturate(180%)' }}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl relative overflow-hidden"
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem]"
+              style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(40px)', boxShadow: '0 25px 80px rgba(0,0,0,0.12)', border: '1px solid rgba(255,255,255,0.9)' }}
             >
-              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#1A365D] to-[#4B9BDC]"></div>
+              <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)' }}></div>
 
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -582,68 +716,59 @@ export default function Churches() {
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-900 transition-colors" style={{ background: 'rgba(0,0,0,0.04)' }}
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
 
               <form onSubmit={handleAddChurch} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                    Church Name
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Church Name</label>
                   <input
                     type="text"
                     required
                     value={newChurch.name}
-                    onChange={(e) =>
-                      setNewChurch({ ...newChurch, name: e.target.value })
-                    }
-                    className="w-full px-5 py-3.5 bg-gray-50 border-0 ring-1 ring-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#4B9BDC] transition-all font-medium text-gray-900 placeholder-gray-400"
+                    onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
+                    className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
+                    style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
                     placeholder="e.g. Guenet Addis Ababa"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                    Location
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Location</label>
                   <input
                     type="text"
                     value={newChurch.location}
-                    onChange={(e) =>
-                      setNewChurch({ ...newChurch, location: e.target.value })
-                    }
-                    className="w-full px-5 py-3.5 bg-gray-50 border-0 ring-1 ring-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#4B9BDC] transition-all font-medium text-gray-900 placeholder-gray-400"
+                    onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
+                    className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
+                    style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
                     placeholder="e.g. Bole, Addis Ababa"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                    Map Link (Google Maps URL)
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Map Link (Google Maps URL)</label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-[#4B9BDC] transition-colors">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
                       <Map size={18} />
                     </div>
                     <input
                       type="url"
                       value={newChurch.map_link}
-                      onChange={(e) =>
-                        setNewChurch({ ...newChurch, map_link: e.target.value })
-                      }
-                      className="w-full pl-12 pr-5 py-3.5 bg-gray-50 border-0 ring-1 ring-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#4B9BDC] transition-all font-medium text-gray-900 placeholder-gray-400"
+                      onChange={(e) => setNewChurch({ ...newChurch, map_link: e.target.value })}
+                      className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
+                      style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
                       placeholder="https://maps.google.com/..."
                     />
                   </div>
                   <p className="mt-2 ml-1 text-[11px] text-gray-500 font-medium">
-                    Paste a Google Maps or other map service link to help people find this church.
+                    Paste a map link to help people find this church.
                   </p>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
+                <div className="flex justify-end gap-3 mt-8 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
@@ -652,15 +777,16 @@ export default function Churches() {
                     Cancel
                   </button>
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
                     type="submit"
                     disabled={submitting || !hasAddChanges}
-                    className="px-6 py-3 bg-gradient-to-r from-[#1A365D] to-[#4B9BDC] text-white font-bold rounded-xl hover:shadow-[0_8px_20px_rgba(75,155,220,0.3)] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transform"
+                    className="px-6 py-3 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                    style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 8px 24px rgba(59,130,246,0.25)' }}
                   >
                     {submitting ? (
                       <>
-                        <Loader2 size={20} className="animate-spin" />
+                        <Loader2 size={18} className="animate-spin" />
                         <span>Saving...</span>
                       </>
                     ) : (
@@ -674,22 +800,25 @@ export default function Churches() {
         )}
       </AnimatePresence>
 
-      {/* Edit Church Modal */}
+      {/* ═══════════════ EDIT CHURCH MODAL ═══════════════ */}
       <AnimatePresence>
         {isEditModalOpen && editingChurch && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white/10 backdrop-blur-2xl flex items-center justify-center z-[100] p-4"
+            className="fixed inset-0 flex items-center justify-center z-[100] p-4"
+            style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(24px) saturate(180%)' }}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl relative overflow-hidden"
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem]"
+              style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(40px)', boxShadow: '0 25px 80px rgba(0,0,0,0.12)', border: '1px solid rgba(255,255,255,0.9)' }}
             >
-              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-400 to-[#1A365D]"></div>
+              <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)' }}></div>
 
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -698,68 +827,56 @@ export default function Churches() {
                 </div>
                 <button
                   onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "", map_link: "" }); }}
-                  className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-900 transition-colors" style={{ background: 'rgba(0,0,0,0.04)' }}
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
 
               <form onSubmit={handleEditChurch} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                    Church Name
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Church Name</label>
                   <input
                     type="text"
                     required
                     value={newChurch.name}
-                    onChange={(e) =>
-                      setNewChurch({ ...newChurch, name: e.target.value })
-                    }
-                    className="w-full px-5 py-3.5 bg-gray-50 border-0 ring-1 ring-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all font-medium text-gray-900 placeholder-gray-400"
+                    onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
+                    className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
+                    style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
                     placeholder="e.g. Guenet Addis Ababa"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                    Location
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Location</label>
                   <input
                     type="text"
                     value={newChurch.location}
-                    onChange={(e) =>
-                      setNewChurch({ ...newChurch, location: e.target.value })
-                    }
-                    className="w-full px-5 py-3.5 bg-gray-50 border-0 ring-1 ring-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all font-medium text-gray-900 placeholder-gray-400"
+                    onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
+                    className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
+                    style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
                     placeholder="e.g. Bole, Addis Ababa"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                    Map Link (Google Maps URL)
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Map Link (Google Maps URL)</label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-400 transition-colors">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
                       <Map size={18} />
                     </div>
                     <input
                       type="url"
                       value={newChurch.map_link}
-                      onChange={(e) =>
-                        setNewChurch({ ...newChurch, map_link: e.target.value })
-                      }
-                      className="w-full pl-12 pr-5 py-3.5 bg-gray-50 border-0 ring-1 ring-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all font-medium text-gray-900 placeholder-gray-400"
+                      onChange={(e) => setNewChurch({ ...newChurch, map_link: e.target.value })}
+                      className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
+                      style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
                       placeholder="https://maps.google.com/..."
                     />
                   </div>
-                  <p className="mt-2 ml-1 text-[11px] text-gray-500 font-medium">
-                    Paste a Google Maps or other map service link to help people find this church.
-                  </p>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
+                <div className="flex justify-end gap-3 mt-8 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                   <button
                     type="button"
                     onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "", map_link: "" }); }}
@@ -768,15 +885,16 @@ export default function Churches() {
                     Cancel
                   </button>
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
                     type="submit"
                     disabled={submitting || !hasEditChanges}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-[#1A365D] text-white font-bold rounded-xl hover:shadow-[0_8px_20px_rgba(59,130,246,0.3)] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transform"
+                    className="px-6 py-3 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                    style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', boxShadow: '0 8px 24px rgba(99,102,241,0.25)' }}
                   >
                     {submitting ? (
                       <>
-                        <Loader2 size={20} className="animate-spin" />
+                        <Loader2 size={18} className="animate-spin" />
                         <span>Updating...</span>
                       </>
                     ) : (
@@ -798,7 +916,14 @@ export default function Churches() {
         onCancel={() => setConfirmOpen(false)}
         type={confirmType}
       />
+
+      {/* Shimmer animation keyframes */}
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+      `}</style>
     </motion.div>
   );
 }
-

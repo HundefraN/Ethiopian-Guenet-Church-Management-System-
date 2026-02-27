@@ -5,6 +5,7 @@ import { Lock, CheckCircle, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { logActivity } from "../utils/activityLogger";
+import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 
 import logo from "../assets/logo.png";
 
@@ -39,15 +40,6 @@ export default function UpdatePassword() {
     const strengthScore = React.useMemo(() => {
         return Object.values(passwordChecks).filter(Boolean).length;
     }, [passwordChecks]);
-
-    const strengthLabel = React.useMemo(() => {
-        if (password.length === 0) return { text: "", color: "" };
-        if (strengthScore <= 1) return { text: "Very Weak", color: "#ef4444" };
-        if (strengthScore === 2) return { text: "Weak", color: "#f97316" };
-        if (strengthScore === 3) return { text: "Fair", color: "#eab308" };
-        if (strengthScore === 4) return { text: "Strong", color: "#22c55e" };
-        return { text: "Very Strong", color: "#059669" };
-    }, [strengthScore, password]);
 
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -151,41 +143,7 @@ export default function UpdatePassword() {
                                 </div>
 
                                 {/* Password Strength Meter */}
-                                {password.length > 0 && (
-                                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mt-3 space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Strength</span>
-                                            <span className="text-[10px] font-bold" style={{ color: strengthLabel.color }}>{strengthLabel.text}</span>
-                                        </div>
-                                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                            <motion.div
-                                                className="h-full rounded-full"
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${(strengthScore / 5) * 100}%` }}
-                                                style={{ backgroundColor: strengthLabel.color }}
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-1">
-                                            {[
-                                                { key: "minLength", label: "8+ chars" },
-                                                { key: "hasUppercase", label: "Uppercase" },
-                                                { key: "hasLowercase", label: "Lowercase" },
-                                                { key: "hasNumber", label: "Number" },
-                                                { key: "hasSpecial", label: "Special" },
-                                            ].map((rule) => {
-                                                const passed = passwordChecks[rule.key as keyof typeof passwordChecks];
-                                                return (
-                                                    <div key={rule.key} className="flex items-center gap-1.5">
-                                                        <div className={`w-3 h-3 rounded-full flex items-center justify-center ${passed ? "bg-emerald-500" : "bg-gray-200"}`}>
-                                                            {passed && <CheckCircle size={8} className="text-white" />}
-                                                        </div>
-                                                        <span className={`text-[10px] ${passed ? "text-emerald-600 font-medium" : "text-gray-400"}`}>{rule.label}</span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </motion.div>
-                                )}
+                                <PasswordStrengthMeter password={password} />
                             </motion.div>
 
                             <motion.div whileHover={{ scale: 1.01 }}>

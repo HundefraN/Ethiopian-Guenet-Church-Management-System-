@@ -303,9 +303,9 @@ export default function AddMember() {
       transition={{ duration: 0.15 }}
       className="min-h-screen pb-20"
     >
-      {/* Sticky Header - Flush to top edge */}
-      <div className="sticky top-0 z-50 w-full mb-8 -mt-4 md:-mt-10">
-        <div className="w-full bg-white/95 backdrop-blur-2xl border-b border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+      {/* Floating Sticky Header */}
+      <div className="sticky top-4 md:top-6 z-20 w-full mb-8">
+        <div className="w-full bg-white/85 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(75,155,220,0.12)] rounded-2xl md:rounded-[2rem] transition-all duration-300">
           <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
