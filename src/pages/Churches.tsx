@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { Building, MapPin, Search, Plus, Loader2, X, ChevronRight, Users, Shield, BookOpen } from "lucide-react";
+import React, { useEffect, useState, useMemo } from "react";
+import { Building, MapPin, Search, Plus, Loader2, X, ChevronRight, Users, Shield, BookOpen, Edit2, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { Church } from "../types";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { logActivity } from "../utils/activityLogger";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 interface ChurchWithCount extends Church {
   members: { count: number }[];
@@ -20,9 +21,17 @@ export default function Churches() {
   const [newChurch, setNewChurch] = useState({ name: "", location: "" });
   const [submitting, setSubmitting] = useState(false);
 
-  const [selectedChurch, setSelectedChurch] = useState<ChurchWithCount | null>(
-    null
-  );
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingChurch, setEditingChurch] = useState<ChurchWithCount | null>(null);
+
+  const [selectedChurch, setSelectedChurch] = useState<ChurchWithCount | null>(null);
+
+  // Confirm Dialog State
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<() => void>(() => { });
+  const [confirmTitle, setConfirmTitle] = useState("");
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmType, setConfirmType] = useState<"danger" | "warning" | "info">("danger");
   const [churchStats, setChurchStats] = useState<{
     deptCount: number;
     departments: { name: string; servantCount: number }[];
@@ -156,20 +165,109 @@ export default function Churches() {
       setSubmitting(false);
     }
   };
+  const handleEditChurch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newChurch.name || !editingChurch) {
+      toast.error("Church name is required");
+      return;
+    }
 
-  const filteredChurches = churches.filter(
-    (church) =>
-      church.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (church.location &&
-        church.location.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+    try {
+      setSubmitting(true);
+      const updates = { name: newChurch.name, location: newChurch.location };
+
+      const { error } = await supabase
+        .from("churches")
+        .update(updates)
+        .eq("id", editingChurch.id);
+
+      if (error) throw error;
+
+      await logActivity(
+        "UPDATE",
+        "CHURCH",
+        `Updated church "${editingChurch.name}" to "${newChurch.name}"`,
+        editingChurch.id,
+        {
+          old: { name: editingChurch.name, location: editingChurch.location },
+          new: updates
+        }
+      );
+
+      setChurches(churches.map(c => c.id === editingChurch.id ? { ...c, ...updates } : c));
+      if (selectedChurch?.id === editingChurch.id) {
+        setSelectedChurch({ ...selectedChurch, ...updates });
+      }
+
+      setNewChurch({ name: "", location: "" });
+      setEditingChurch(null);
+      setIsEditModalOpen(false);
+      toast.success("Church updated successfully");
+    } catch (error: any) {
+      console.error("Error updating church:", error);
+      toast.error(error.message || "Failed to update church");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteChurchClick = (church: ChurchWithCount) => {
+    setConfirmTitle("Delete Church");
+    setConfirmMessage(`Are you sure you want to delete "${church.name}"? This action cannot be undone and may affect associated users. `);
+    setConfirmType("danger");
+    setConfirmAction(() => () => deleteChurch(church));
+    setConfirmOpen(true);
+  };
+
+  const deleteChurch = async (church: ChurchWithCount) => {
+    const loadingToast = toast.loading("Deleting church...");
+    try {
+      const { error } = await supabase.from("churches").delete().eq("id", church.id);
+      if (error) throw error;
+
+      await logActivity(
+        "DELETE",
+        "CHURCH",
+        `Deleted church "${church.name}"`,
+        church.id,
+        { name: church.name, location: church.location }
+      );
+
+      setChurches(churches.filter(c => c.id !== church.id));
+      if (selectedChurch?.id === church.id) setSelectedChurch(null);
+      toast.success("Church deleted successfully", { id: loadingToast });
+    } catch (error: any) {
+      console.error("Error deleting church:", error);
+      toast.error(error.message || "Failed to delete church", { id: loadingToast });
+    } finally {
+      setConfirmOpen(false);
+    }
+  };
+
+  const filteredChurches = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return churches;
+    return churches.filter(
+      (church) =>
+        church.name.toLowerCase().includes(query) ||
+        (church.location &&
+          church.location.toLowerCase().includes(query))
+    );
+  }, [churches, searchQuery]);
+
+  const hasAddChanges = newChurch.name.trim() !== "";
+  const hasEditChanges = useMemo(() => {
+    if (!editingChurch) return false;
+    return newChurch.name !== (editingChurch.name || "") ||
+      newChurch.location !== (editingChurch.location || "");
+  }, [newChurch, editingChurch]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.15 }}
       className="space-y-8 pb-10"
     >
       {/* Header Section */}
@@ -210,10 +308,32 @@ export default function Churches() {
             className="w-full lg:w-[400px] order-1 lg:sticky lg:top-6 z-10"
           >
             <div className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_20px_50px_rgba(8,_112,_184,_0.07)] border border-blue-50/50 backdrop-blur-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4">
+              <div className="absolute top-0 right-0 p-4 flex items-center gap-2">
+                {profile?.role === "super_admin" && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setEditingChurch(selectedChurch);
+                        setNewChurch({ name: selectedChurch.name, location: selectedChurch.location || "" });
+                        setIsEditModalOpen(true);
+                      }}
+                      className="p-2 hover:bg-blue-50 rounded-full transition-colors text-blue-400 hover:text-blue-600 bg-white shadow-sm"
+                      title="Edit Church"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteChurchClick(selectedChurch)}
+                      className="p-2 hover:bg-red-50 rounded-full transition-colors text-red-400 hover:text-red-600 bg-white shadow-sm"
+                      title="Delete Church"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={() => setSelectedChurch(null)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600 bg-white shadow-sm"
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600 bg-white shadow-sm ml-2"
                 >
                   <X size={20} />
                 </button>
@@ -240,7 +360,7 @@ export default function Churches() {
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-5 rounded-2xl border border-blue-100/50 shadow-sm relative overflow-hidden group">
-                      <div className="absolute -right-4 -top-4 text-blue-200/50 transform group-hover:scale-110 transition-transform duration-500">
+                      <div className="absolute -right-4 -top-4 text-blue-200/50 transform group-hover:scale-110 transition-transform duration-200">
                         <Users size={64} />
                       </div>
                       <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Members</h3>
@@ -250,7 +370,7 @@ export default function Churches() {
                     </div>
 
                     <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 rounded-2xl border border-purple-100/50 shadow-sm relative overflow-hidden group">
-                      <div className="absolute -right-4 -top-4 text-purple-200/50 transform group-hover:scale-110 transition-transform duration-500">
+                      <div className="absolute -right-4 -top-4 text-purple-200/50 transform group-hover:scale-110 transition-transform duration-200">
                         <Shield size={64} />
                       </div>
                       <h3 className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-1">Departments</h3>
@@ -260,7 +380,7 @@ export default function Churches() {
                     </div>
 
                     <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-5 rounded-2xl border border-indigo-100/50 shadow-sm relative overflow-hidden group col-span-2">
-                      <div className="absolute -right-2 -bottom-4 text-indigo-200/30 transform group-hover:scale-110 transition-transform duration-500">
+                      <div className="absolute -right-2 -bottom-4 text-indigo-200/30 transform group-hover:scale-110 transition-transform duration-200">
                         <BookOpen size={80} />
                       </div>
                       <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">Total Servants</h3>
@@ -309,7 +429,7 @@ export default function Churches() {
         )}
 
         {/* List Section (Right on Desktop if selected, otherwise full) */}
-        <div className={`flex-1 transition-all duration-500 order-2`}>
+        <div className={`flex-1 transition-all duration-200 order-2`}>
           {/* Search Bar */}
           <div className="bg-white p-2 rounded-2xl border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] mb-8 flex items-center focus-within:ring-2 focus-within:ring-[#4B9BDC]/20 focus-within:border-[#4B9BDC] transition-all">
             <div className="pl-4 pr-2 text-gray-400">
@@ -322,6 +442,15 @@ export default function Churches() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="p-2 mr-2 text-gray-400 hover:text-[#4B9BDC] rounded-full hover:bg-gray-100 transition-colors"
+                title="Clear search"
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
 
           {loading ? (
@@ -352,15 +481,15 @@ export default function Churches() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    transition={{ duration: 0.15, delay: index * 0.05 }}
                     key={church.id}
                     onClick={() => handleChurchClick(church)}
-                    className={`bg-white p-6 rounded-3xl border ${selectedChurch?.id === church.id ? 'border-[#4B9BDC] shadow-[0_8px_30px_rgba(75,155,220,0.2)] ring-2 ring-[#4B9BDC]/10' : 'border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-gray-200'} transition-all duration-300 group cursor-pointer relative overflow-hidden`}
+                    className={`bg-white p-6 rounded-3xl border ${selectedChurch?.id === church.id ? 'border-[#4B9BDC] shadow-[0_8px_30px_rgba(75,155,220,0.2)] ring-2 ring-[#4B9BDC]/10' : 'border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-gray-200'} transition-all duration-150 group cursor-pointer relative overflow-hidden`}
                   >
-                    <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 ${selectedChurch?.id === church.id ? 'bg-[#4B9BDC]/20' : 'bg-transparent group-hover:bg-blue-50'}`}></div>
+                    <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-200 ${selectedChurch?.id === church.id ? 'bg-[#4B9BDC]/20' : 'bg-transparent group-hover:bg-blue-50'}`}></div>
 
                     <div className="flex items-start justify-between mb-5 relative z-10">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${selectedChurch?.id === church.id ? 'bg-[#4B9BDC] text-white' : 'bg-blue-50/80 text-[#4B9BDC] group-hover:bg-[#4B9BDC] group-hover:text-white'}`}>
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-150 ${selectedChurch?.id === church.id ? 'bg-[#4B9BDC] text-white' : 'bg-blue-50/80 text-[#4B9BDC] group-hover:bg-[#4B9BDC] group-hover:text-white'}`}>
                         <Building size={28} />
                       </div>
                       <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border border-emerald-100/50">
@@ -476,8 +605,8 @@ export default function Churches() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     type="submit"
-                    disabled={submitting}
-                    className="px-6 py-3 bg-gradient-to-r from-[#1A365D] to-[#4B9BDC] text-white font-bold rounded-xl hover:shadow-[0_8px_20px_rgba(75,155,220,0.3)] transition-all disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-2 transform"
+                    disabled={submitting || !hasAddChanges}
+                    className="px-6 py-3 bg-gradient-to-r from-[#1A365D] to-[#4B9BDC] text-white font-bold rounded-xl hover:shadow-[0_8px_20px_rgba(75,155,220,0.3)] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transform"
                   >
                     {submitting ? (
                       <>
@@ -494,6 +623,108 @@ export default function Churches() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Edit Church Modal */}
+      <AnimatePresence>
+        {isEditModalOpen && editingChurch && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-400 to-[#1A365D]"></div>
+
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Edit Church</h2>
+                  <p className="text-sm text-gray-500 mt-1 font-medium">Update details for this branch</p>
+                </div>
+                <button
+                  onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "" }); }}
+                  className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditChurch} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
+                    Church Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newChurch.name}
+                    onChange={(e) =>
+                      setNewChurch({ ...newChurch, name: e.target.value })
+                    }
+                    className="w-full px-5 py-3.5 bg-gray-50 border-0 ring-1 ring-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all font-medium text-gray-900 placeholder-gray-400"
+                    placeholder="e.g. Guenet Addis Ababa"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={newChurch.location}
+                    onChange={(e) =>
+                      setNewChurch({ ...newChurch, location: e.target.value })
+                    }
+                    className="w-full px-5 py-3.5 bg-gray-50 border-0 ring-1 ring-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all font-medium text-gray-900 placeholder-gray-400"
+                    placeholder="e.g. Bole, Addis Ababa"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "" }); }}
+                    className="px-6 py-3 font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    type="submit"
+                    disabled={submitting || !hasEditChanges}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-[#1A365D] text-white font-bold rounded-xl hover:shadow-[0_8px_20px_rgba(59,130,246,0.3)] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transform"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 size={20} className="animate-spin" />
+                        <span>Updating...</span>
+                      </>
+                    ) : (
+                      <span>Update Church</span>
+                    )}
+                  </motion.button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        title={confirmTitle}
+        message={confirmMessage}
+        onConfirm={confirmAction}
+        onCancel={() => setConfirmOpen(false)}
+        type={confirmType}
+      />
     </motion.div>
   );
 }

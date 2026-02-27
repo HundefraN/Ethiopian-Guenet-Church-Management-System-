@@ -58,11 +58,11 @@ export default function MobileHeader({ onMenuClick, containerRef }: MobileHeader
                 boxShadow: isAtTop ? "none" : "0 8px 32px rgba(0, 0, 0, 0.08)",
                 borderBottom: isAtTop ? "1px solid rgba(255, 255, 255, 0)" : "1px solid rgba(255, 255, 255, 0.3)"
             }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
             className="lg:hidden fixed top-0 left-0 right-0 z-30 h-20 flex items-center px-6 transition-all"
         >
             <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center p-1 shadow-sm border border-gray-100">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f0f7fd] to-[#e2effc] flex items-center justify-center p-0.5 shadow-sm border border-[#4B9BDC]/10">
                     <img src={logo} alt="Logo" className="w-full h-full object-contain" />
                 </div>
                 <div className="flex flex-col min-w-0">

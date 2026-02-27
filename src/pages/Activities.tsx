@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Activity,
   Clock,
   ChevronRight,
+  ChevronLeft,
   User,
   ArrowLeft,
   Loader2,
@@ -23,31 +24,19 @@ import {
   ChevronDown,
   Calendar,
   Upload,
+  Key,
+  ChevronsLeft,
+  ChevronsRight,
+  Eye,
 } from "lucide-react";
 import { supabase } from "../supabaseClient";
-import { ActivityLog } from "../types";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getActionLabel, getActionColor, getEntityLabel } from "../utils/activityLogger";
+import { useAuth } from "../context/AuthContext";
+import { timeAgo } from "../utils/timeAgo";
 
-// Human-readable time formatter
-const timeAgo = (date: string) => {
-  const seconds = Math.floor(
-    (new Date().getTime() - new Date(date).getTime()) / 1000
-  );
-  if (seconds < 10) return "just now";
-  if (seconds < 60) return `${seconds}s ago`;
-  let interval = seconds / 60;
-  if (interval < 60) return `${Math.floor(interval)}m ago`;
-  interval = seconds / 3600;
-  if (interval < 24) return `${Math.floor(interval)}h ago`;
-  interval = seconds / 86400;
-  if (interval < 7) return `${Math.floor(interval)}d ago`;
-  interval = seconds / 2592000;
-  if (interval < 12) return `${Math.floor(interval)}mo ago`;
-  interval = seconds / 31536000;
-  return `${Math.floor(interval)}y ago`;
-};
+
 
 const formatFullDate = (date: string) => {
   return new Date(date).toLocaleString("en-US", {
@@ -73,60 +62,155 @@ const getActionIcon = (action: string) => {
     case "LOGOUT": return LogOut;
     case "UPLOAD": return Upload;
     case "TOGGLE": return Settings;
+    case "PASSWORD_CHANGE": return Key;
     default: return Activity;
   }
 };
 
-// Icon mapper for entity types
-const getEntityIcon = (entity: string) => {
-  switch (entity) {
-    case "SERVANT": return Users;
-    case "PASTOR": return User;
-    case "MEMBER": return Users;
-    case "CHURCH": return Building;
-    case "DEPARTMENT": return Shield;
-    case "PROFILE": return User;
-    case "SETTINGS": return Settings;
-    case "USER": return User;
-    case "SYSTEM": return Activity;
-    default: return Activity;
-  }
-};
-
-const ACTION_FILTERS = ["All", "CREATE", "UPDATE", "DELETE", "BLOCK", "UNBLOCK", "ROLE_CHANGE", "LOGIN", "LOGOUT"];
+const ACTION_FILTERS = ["All", "CREATE", "UPDATE", "DELETE", "BLOCK", "UNBLOCK", "ROLE_CHANGE", "PASSWORD_CHANGE", "LOGIN", "LOGOUT"];
 const ENTITY_FILTERS = ["All", "SERVANT", "PASTOR", "MEMBER", "CHURCH", "DEPARTMENT", "PROFILE", "SETTINGS", "SYSTEM"];
 
+const PAGE_SIZE = 20;
+
 export default function Activities() {
+  const { profile } = useAuth();
   const [logs, setLogs] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [actionFilter, setActionFilter] = useState("All");
   const [entityFilter, setEntityFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchLogs();
-  }, []);
+  // Role-based scope description
+  const scopeLabel = profile?.role === "super_admin"
+    ? "All system-wide activities"
+    : profile?.role === "pastor"
+      ? "Activities within your church"
+      : "Your personal activities";
 
-  const fetchLogs = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("activity_logs")
-        .select(
-          `
+  const scopeIcon = profile?.role === "super_admin"
+    ? Eye
+    : profile?.role === "pastor"
+      ? Building
+      : User;
+
+  const ScopeIcon = scopeIcon;
+
+  // Build the query based on role
+  const buildQuery = useCallback((forCount = false) => {
+    const role = profile?.role;
+
+    // Servant: own activities only
+    if (role === "servant") {
+      let query = forCount
+        ? supabase.from("activity_logs").select("*", { count: "exact", head: true })
+        : supabase.from("activity_logs").select(`
+            *,
+            profiles:user_id (
+              full_name,
+              avatar_url,
+              role,
+              church_id
+            )
+          `);
+      query = query.eq("user_id", profile?.id);
+      return query;
+    }
+
+    // Pastor: activities from users in the same church
+    if (role === "pastor" && profile?.church_id) {
+      if (forCount) {
+        // For count, we use !inner join to filter by church
+        let query = supabase
+          .from("activity_logs")
+          .select(`
+            *,
+            profiles:user_id!inner (
+              full_name,
+              avatar_url,
+              role,
+              church_id
+            )
+          `, { count: "exact", head: true })
+          .eq("profiles.church_id", profile.church_id);
+        return query;
+      } else {
+        let query = supabase
+          .from("activity_logs")
+          .select(`
+            *,
+            profiles:user_id!inner (
+              full_name,
+              avatar_url,
+              role,
+              church_id
+            )
+          `)
+          .eq("profiles.church_id", profile.church_id);
+        return query;
+      }
+    }
+
+    // Super Admin: all activities
+    let query = forCount
+      ? supabase.from("activity_logs").select("*", { count: "exact", head: true })
+      : supabase.from("activity_logs").select(`
           *,
           profiles:user_id (
             full_name,
             avatar_url,
-            role
+            role,
+            church_id
           )
-        `
-        )
-        .order("created_at", { ascending: false })
-        .limit(500);
+        `);
+    return query;
+  }, [profile]);
 
+  // Apply filters to query
+  const applyFilters = useCallback((query: any) => {
+    if (actionFilter !== "All") {
+      query = query.eq("action_type", actionFilter);
+    }
+    if (entityFilter !== "All") {
+      query = query.eq("entity_type", entityFilter);
+    }
+    if (searchQuery.trim()) {
+      query = query.ilike("details", `%${searchQuery.trim()}%`);
+    }
+    return query;
+  }, [actionFilter, entityFilter, searchQuery]);
+
+  // Fetch total count for pagination
+  const fetchCount = useCallback(async () => {
+    try {
+      let query = buildQuery(true);
+      query = applyFilters(query);
+      const { count, error } = await query;
+      if (error) throw error;
+      setTotalCount(count || 0);
+    } catch (error) {
+      console.error("Error fetching activity count:", error);
+    }
+  }, [buildQuery, applyFilters]);
+
+  // Fetch paginated logs
+  const fetchLogs = useCallback(async () => {
+    try {
+      setLoading(true);
+      let query = buildQuery(false);
+      query = applyFilters(query);
+
+      const from = (currentPage - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      query = query
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      const { data, error } = await query;
       if (error) throw error;
       setLogs(data || []);
     } catch (error) {
@@ -134,23 +218,52 @@ export default function Activities() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [buildQuery, applyFilters, currentPage]);
 
-  // Filter logs
-  const filteredLogs = logs.filter((log) => {
-    const matchesAction = actionFilter === "All" || log.action_type === actionFilter;
-    const matchesEntity = entityFilter === "All" || log.entity_type === entityFilter;
-    const matchesSearch = searchQuery === "" ||
-      log.details?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.action_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.entity_type?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesAction && matchesEntity && matchesSearch;
-  });
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [actionFilter, entityFilter, searchQuery]);
+
+  // Fetch data when page or filters change
+  useEffect(() => {
+    if (profile) {
+      fetchLogs();
+      fetchCount();
+    }
+  }, [profile, currentPage, actionFilter, entityFilter, searchQuery, fetchLogs, fetchCount]);
+
+  // Real-time subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel("activity_logs_realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "activity_logs",
+        },
+        () => {
+          // If on first page, refresh to show new entries
+          if (currentPage === 1) {
+            fetchLogs();
+          }
+          fetchCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentPage, fetchLogs, fetchCount]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   // Group logs by date
   const groupedLogs: Record<string, any[]> = {};
-  filteredLogs.forEach((log) => {
+  logs.forEach((log) => {
     const date = new Date(log.created_at).toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
@@ -165,7 +278,7 @@ export default function Activities() {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.06 },
+      transition: { staggerChildren: 0.04 },
     },
   };
 
@@ -177,13 +290,13 @@ export default function Activities() {
   const renderChanges = (changes: any) => {
     if (!changes) return null;
 
-    // If changes has old/new structure
-    if (changes.old && changes.new) {
+    // Handle legacy format { old: {}, new: {} }
+    if (changes.old && changes.new && !changes.old.old) {
       return (
-        <div className="space-y-2">
+        <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-red-500 bg-red-50 px-2 py-0.5 rounded-md border border-red-100 shrink-0 mt-0.5">Before</span>
-            <div className="text-xs text-gray-500 font-mono bg-red-50/30 p-2 rounded-lg flex-1 break-all">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100 shrink-0 mt-0.5">Before</span>
+            <div className="text-xs text-gray-500 font-mono bg-rose-50/30 p-2 rounded-lg flex-1 break-all">
               {Object.entries(changes.old).map(([key, value]) => (
                 <div key={key}><span className="font-semibold text-gray-600">{key.replace(/_/g, " ")}:</span> {String(value ?? "—")}</div>
               ))}
@@ -201,22 +314,54 @@ export default function Activities() {
       );
     }
 
-    // Simple key-value changes
+    // Handle granular format { field: { old, new } } or simple kv
     return (
-      <div className="text-xs text-gray-500 font-mono bg-gray-50 p-3 rounded-lg break-all space-y-0.5">
-        {Object.entries(changes).map(([key, value]) => {
+      <div className="space-y-2">
+        {Object.entries(changes).map(([key, value]: [string, any]) => {
           if (key === "password") return null;
+
+          const isDiff = value && typeof value === "object" && ("old" in value || "new" in value);
+
           return (
-            <div key={key}>
-              <span className="font-semibold text-gray-600">{key.replace(/_/g, " ")}:</span>{" "}
-              {typeof value === "object" && value !== null
-                ? JSON.stringify(value)
-                : String(value ?? "—")}
+            <div key={key} className="bg-gray-50/50 rounded-xl p-3 border border-gray-100/50">
+              <div className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1.5">{key.replace(/_/g, " ")}</div>
+              {isDiff ? (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold text-rose-500 uppercase">Old:</span>
+                    <span className="text-xs text-gray-600 font-medium line-through decoration-rose-300/50">{String(value.old ?? "—")}</span>
+                  </div>
+                  <ChevronRight size={12} className="text-gray-300 hidden sm:block" />
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold text-emerald-500 uppercase">New:</span>
+                    <span className="text-xs text-gray-900 font-bold">{String(value.new ?? "—")}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-gray-700 font-medium">{String(value ?? "—")}</div>
+              )}
             </div>
           );
         })}
       </div>
     );
+  };
+
+  // Pagination helpers
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
   };
 
   return (
@@ -243,15 +388,21 @@ export default function Activities() {
                 <h1 className="text-3xl font-extrabold tracking-tight mb-1">
                   Activity Log
                 </h1>
-                <p className="text-blue-100 text-sm">
-                  Complete audit trail of all system actions — who did what, when, and details
+                <p className="text-blue-100 text-sm flex items-center gap-2">
+                  <ScopeIcon size={14} />
+                  {scopeLabel}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {/* Scope Badge */}
               <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/20">
-                <span className="text-white/70 text-xs font-medium">Total Events</span>
-                <p className="text-white text-xl font-black">{filteredLogs.length}</p>
+                <span className="text-white/70 text-xs font-medium block">Viewing as</span>
+                <p className="text-white text-sm font-bold capitalize">{profile?.role?.replace("_", " ") || "User"}</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/20">
+                <span className="text-white/70 text-xs font-medium block">Total Events</span>
+                <p className="text-white text-xl font-black">{totalCount}</p>
               </div>
             </div>
           </div>
@@ -267,7 +418,7 @@ export default function Activities() {
           </div>
           <input
             type="text"
-            placeholder="Search activities by user, action, or detail..."
+            placeholder="Search activities by detail..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full py-2 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400 text-sm"
@@ -316,7 +467,7 @@ export default function Activities() {
               <p className="text-gray-500 font-medium">Loading activity log...</p>
             </div>
           </div>
-        ) : filteredLogs.length === 0 ? (
+        ) : logs.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Activity className="h-10 w-10 text-gray-300" />
@@ -327,7 +478,9 @@ export default function Activities() {
             <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
               {searchQuery || actionFilter !== "All" || entityFilter !== "All"
                 ? "No activities match your current filters. Try adjusting your search criteria."
-                : "System actions will appear here as they occur."}
+                : profile?.role === "servant"
+                  ? "Your personal actions will appear here as they occur."
+                  : "System actions will appear here as they occur."}
             </p>
           </div>
         ) : (
@@ -362,8 +515,8 @@ export default function Activities() {
                           transition={{ duration: 0.2 }}
                           key={log.id}
                           className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden cursor-pointer group ${isExpanded
-                              ? "border-[#4B9BDC]/30 shadow-[0_4px_20px_rgba(75,155,220,0.1)]"
-                              : "border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200"
+                            ? "border-[#4B9BDC]/30 shadow-[0_4px_20px_rgba(75,155,220,0.1)]"
+                            : "border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200"
                             }`}
                           onClick={() => setExpandedLog(isExpanded ? null : log.id)}
                         >
@@ -387,7 +540,6 @@ export default function Activities() {
                               {/* Content */}
                               <div className="flex-1 min-w-0">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                  {/* Main description line */}
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-sm font-bold text-gray-900">
                                       {log.profiles?.full_name || "System"}
@@ -401,7 +553,6 @@ export default function Activities() {
                                     </span>
                                   </div>
 
-                                  {/* Timestamp */}
                                   <div className="flex items-center gap-1.5 shrink-0">
                                     <Clock size={12} className="text-gray-400" />
                                     <span className="text-xs text-gray-400 font-medium" title={formatFullDate(log.created_at)}>
@@ -410,12 +561,10 @@ export default function Activities() {
                                   </div>
                                 </div>
 
-                                {/* Detail text */}
                                 <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
                                   {log.details}
                                 </p>
 
-                                {/* Role badge */}
                                 {log.profiles?.role && (
                                   <div className="mt-2">
                                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
@@ -425,12 +574,11 @@ export default function Activities() {
                                 )}
                               </div>
 
-                              {/* Expand indicator */}
                               {log.changes && (
                                 <div className="flex-shrink-0">
                                   <ChevronDown
                                     size={18}
-                                    className={`text-gray-400 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
+                                    className={`text-gray-400 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`}
                                   />
                                 </div>
                               )}
@@ -444,7 +592,7 @@ export default function Activities() {
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.3 }}
+                                transition={{ duration: 0.15 }}
                                 className="overflow-hidden"
                               >
                                 <div className="px-5 pb-5 pt-0">
@@ -469,6 +617,91 @@ export default function Activities() {
           </div>
         )}
       </motion.div>
+
+      {/* Pagination Controls */}
+      {!loading && totalCount > PAGE_SIZE && (
+        <motion.div
+          variants={itemVariants}
+          className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-4"
+        >
+          <p className="text-sm text-gray-500 font-medium">
+            Showing{" "}
+            <span className="font-bold text-gray-900">
+              {(currentPage - 1) * PAGE_SIZE + 1}
+            </span>
+            {" – "}
+            <span className="font-bold text-gray-900">
+              {Math.min(currentPage * PAGE_SIZE, totalCount)}
+            </span>
+            {" of "}
+            <span className="font-bold text-gray-900">{totalCount}</span> events
+          </p>
+
+          <div className="flex items-center gap-1.5">
+            {/* First Page */}
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              title="First page"
+            >
+              <ChevronsLeft size={18} />
+            </button>
+
+            {/* Previous Page */}
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              title="Previous page"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
+              {getPageNumbers().map((page, idx) =>
+                page === "..." ? (
+                  <span key={`dots-${idx}`} className="px-2 text-gray-400 text-sm font-bold select-none">
+                    ···
+                  </span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page as number)}
+                    className={`min-w-[36px] h-9 rounded-xl text-sm font-bold transition-all ${currentPage === page
+                      ? "bg-gradient-to-r from-[#1A365D] to-[#4B9BDC] text-white shadow-[0_4px_12px_rgba(75,155,220,0.3)]"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+            </div>
+
+            {/* Next Page */}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              title="Next page"
+            >
+              <ChevronRight size={18} />
+            </button>
+
+            {/* Last Page */}
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              title="Last page"
+            >
+              <ChevronsRight size={18} />
+            </button>
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

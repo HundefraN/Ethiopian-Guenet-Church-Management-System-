@@ -12,7 +12,7 @@ import {
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
-import { logActivity } from "../utils/activityLogger";
+import { logActivity, getObjectDiff } from "../utils/activityLogger";
 
 // --- Schema Definition ---
 const memberSchema = z.object({
@@ -216,20 +216,29 @@ export default function AddMember() {
         const { error } = await supabase.from("members").update(payload).eq("id", id);
         if (error) throw error;
 
-        // Log with changes if we have initial data
-        await logActivity(
-          "UPDATE",
-          "MEMBER",
-          `Updated member ${data.full_name}`,
-          id,
-          initialData ? { old: initialData, new: payload } : payload
-        );
+        // Calculate differences to log only changed data
+        const diff = initialData ? getObjectDiff(initialData, payload) : null;
+
+        if (diff) {
+          await logActivity(
+            "UPDATE",
+            "MEMBER",
+            `Updated member ${data.full_name}`,
+            id,
+            diff
+          );
+        }
 
         toast.success("Member updated successfully!", { id: loadingToast });
       } else {
         const { data: newMember, error } = await supabase.from("members").insert([payload]).select().single();
         if (error) throw error;
-        await logActivity("CREATE", "MEMBER", `Added new member ${data.full_name}`, newMember.id, payload);
+
+        // For creation, we log the whole payload but maybe exclude some internal things
+        const logPayload = { ...payload };
+        delete logPayload.photo; // Don't log base64 or large URLs if possible, or keep it if it's just a URL
+
+        await logActivity("CREATE", "MEMBER", `Added new member ${data.full_name}`, newMember.id, logPayload);
         toast.success("Member registered successfully!", { id: loadingToast });
         localStorage.removeItem("member_draft");
       }
@@ -257,7 +266,7 @@ export default function AddMember() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.15 }}
       className="min-h-screen pb-20"
     >
       {/* Floating Header */}
@@ -281,8 +290,8 @@ export default function AddMember() {
               )}
               <button
                 onClick={handleSubmit(onSubmit)}
-                disabled={uploading || (isEditing && !isDirty)}
-                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#4B9BDC] to-[#38bdf8] text-white rounded-xl hover:scale-105 active:scale-95 font-bold shadow-[0_4px_16px_rgba(75,155,220,0.35)] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                disabled={uploading || (isEditing ? !isDirty : !watch("full_name"))}
+                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white rounded-xl hover:scale-105 active:scale-95 font-bold shadow-[0_4px_16px_rgba(75,155,220,0.35)] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {uploading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
                 <span>{isEditing ? "Update" : "Register"}</span>
@@ -304,12 +313,12 @@ export default function AddMember() {
                   <button
                     key={section.id}
                     onClick={() => scrollToSection(section.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all duration-300 group ${isActive
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all duration-150 group ${isActive
                       ? 'bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] border border-gray-100/80 scale-[1.02]'
                       : 'hover:bg-white/50'
                       }`}
                   >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300 ${isActive
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-150 ${isActive
                       ? `bg-gradient-to-br ${section.color} text-white shadow-md`
                       : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
                       }`}>
@@ -326,7 +335,7 @@ export default function AddMember() {
                     {isActive && (
                       <motion.div
                         layoutId="activeIndicator"
-                        className="w-1.5 h-8 bg-gradient-to-b from-[#4B9BDC] to-[#38bdf8] rounded-full"
+                        className="w-1.5 h-8 bg-gradient-to-b from-[#4B9BDC] to-[#7EC8F2] rounded-full"
                       />
                     )}
                   </button>
@@ -344,10 +353,10 @@ export default function AddMember() {
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-[#4B9BDC] to-[#38bdf8] rounded-full"
+                  className="h-full bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] rounded-full"
                   initial={{ width: '0%' }}
                   animate={{ width: `${((SECTIONS.findIndex(s => s.id === activeSection) + 1) / SECTIONS.length) * 100}%` }}
-                  transition={{ duration: 0.5 }}
+                  transition={{ duration: 0.15 }}
                 />
               </div>
             </div>
@@ -379,7 +388,7 @@ export default function AddMember() {
                         <Upload size={28} className="text-gray-300" />
                       )}
                     </div>
-                    <label className="absolute -bottom-2 -right-2 bg-gradient-to-r from-[#4B9BDC] to-[#38bdf8] text-white p-2 rounded-xl cursor-pointer hover:scale-110 shadow-lg transition-transform">
+                    <label className="absolute -bottom-2 -right-2 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white p-2 rounded-xl cursor-pointer hover:scale-110 shadow-lg transition-transform">
                       <Plus size={14} />
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])} />
                     </label>
@@ -644,8 +653,8 @@ export default function AddMember() {
                 <div className="mt-8 pt-6 border-t border-gray-100">
                   <button
                     onClick={handleSubmit(onSubmit)}
-                    disabled={uploading || (isEditing && !isDirty)}
-                    className="w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-[#4B9BDC] to-[#38bdf8] text-white rounded-2xl hover:scale-[1.02] active:scale-[0.98] font-bold text-lg shadow-[0_8px_30px_rgba(75,155,220,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={uploading || (isEditing ? !isDirty : !watch("full_name"))}
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white rounded-2xl hover:scale-[1.02] active:scale-[0.98] font-bold text-lg shadow-[0_8px_30px_rgba(75,155,220,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {uploading ? <Loader2 className="animate-spin" size={22} /> : <CheckCircle size={22} />}
                     {isEditing ? "Update Member Record" : "Complete Registration"}

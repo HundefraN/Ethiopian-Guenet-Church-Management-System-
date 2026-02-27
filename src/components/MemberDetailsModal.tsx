@@ -14,11 +14,13 @@ import {
   Mail,
   Globe,
   DollarSign,
+  Building,
+  Shield,
 } from "lucide-react";
 import { Member } from "../types";
 
 interface MemberDetailsModalProps {
-  member: Member;
+  member: any; // Allow for joined data
   onClose: () => void;
 }
 
@@ -106,8 +108,8 @@ export default function MemberDetailsModal({
 
           <div className="flex items-center gap-5 z-10">
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#4B9BDC] to-[#38bdf8] rounded-2xl blur opacity-30"></div>
-              <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-[#4B9BDC]/10 to-[#38bdf8]/10 text-[#4B9BDC] flex items-center justify-center text-3xl font-black uppercase ring-2 ring-white shadow-xl overflow-hidden border border-[#4B9BDC]/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#4B9BDC] to-[#7EC8F2] rounded-2xl blur opacity-30"></div>
+              <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-[#4B9BDC]/10 to-[#7EC8F2]/10 text-[#4B9BDC] flex items-center justify-center text-3xl font-black uppercase ring-2 ring-white shadow-xl overflow-hidden border border-[#4B9BDC]/20">
                 {member.photo ? (
                   <img
                     src={member.photo}
@@ -127,10 +129,10 @@ export default function MemberDetailsModal({
               <div className="flex items-center gap-3">
                 <span
                   className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border ${member.status === "Active"
-                      ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                      : member.status === "Death"
-                        ? "bg-gray-50 text-gray-600 border-gray-200"
-                        : "bg-amber-50 text-amber-600 border-amber-100"
+                    ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                    : member.status === "Death"
+                      ? "bg-gray-50 text-gray-600 border-gray-200"
+                      : "bg-amber-50 text-amber-600 border-amber-100"
                     }`}
                 >
                   {member.status || "Active"}
@@ -171,10 +173,13 @@ export default function MemberDetailsModal({
               </div>
             </motion.div>
 
-            {/* Spiritual Life */}
+            {/* Spiritual Life & Church Details */}
             <motion.div variants={cardVariants} className="col-span-1 bg-white rounded-3xl p-6 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(75,155,220,0.08)] transition-all">
               <SectionHeader icon={Heart} title="Spiritual Life" />
               <div className="flex flex-col gap-2">
+                <InfoItem label="Branch" value={member.churches?.name} icon={Building} />
+                <InfoItem label="Department" value={member.departments?.name} icon={Shield} />
+                <div className="h-px bg-gray-50 my-2"></div>
                 <InfoItem label="Salvation Date" value={formatDate(member.salvation_date)} icon={Calendar} />
                 <InfoItem label="Salvation Place" value={member.salvation_place} icon={MapPin} />
                 <InfoItem label="Previous Church" value={member.previous_church} />

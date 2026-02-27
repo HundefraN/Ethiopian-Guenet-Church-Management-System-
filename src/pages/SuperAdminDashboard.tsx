@@ -57,7 +57,7 @@ function DonutChart({ segments }: { segments: { value: number; color: string; la
                 animate={{
                   strokeDashoffset,
                   opacity: 1,
-                  transition: { duration: 1, delay: i * 0.1, ease: "circOut" }
+                  transition: { duration: 0.2, delay: i * 0.1, ease: "circOut" }
                 }}
                 strokeLinecap="round"
               />
@@ -214,7 +214,7 @@ export default function SuperAdminDashboard() {
   return (
     <motion.div initial="hidden" animate="visible" variants={containerVariants} className="space-y-8 max-w-7xl mx-auto pb-12">
       {/* ═══════════ Hero Banner ═══════════ */}
-      <motion.div variants={itemVariants} className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#0f172a] via-[#1e3a5f] to-[#4B9BDC] p-10 md:p-12 shadow-2xl group">
+      <motion.div variants={itemVariants} className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#0c1929] via-[#1e3a5f] to-[#4B9BDC] p-10 md:p-12 shadow-2xl group">
         {/* Animated background decorations */}
         <motion.div
           animate={{ scale: [1, 1.1, 1], rotate: [0, 5, 0] }}
@@ -269,8 +269,8 @@ export default function SuperAdminDashboard() {
           { label: "Members", value: stats.members, recent: stats.recentMembers, icon: Users, gradient: "from-emerald-600 to-teal-400", bgLight: "bg-emerald-50", textColor: "text-emerald-600" },
         ].map((card, i) => (
           <motion.div key={i} variants={itemVariants}
-            className="group bg-white rounded-[1.5rem] p-5 md:p-6 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
-            <div className="absolute -top-6 -right-6 opacity-[0.04] group-hover:opacity-[0.08] group-hover:scale-110 transition-all duration-500">
+            className="group bg-white rounded-[1.5rem] p-5 md:p-6 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-150 relative overflow-hidden">
+            <div className="absolute -top-6 -right-6 opacity-[0.04] group-hover:opacity-[0.08] group-hover:scale-110 transition-all duration-200">
               <card.icon size={100} />
             </div>
             <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white mb-4 shadow-md`}>
@@ -357,7 +357,7 @@ export default function SuperAdminDashboard() {
                   className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
                   initial={{ width: '0%' }}
                   animate={{ width: `${Math.min(memberGrowth + 10, 100)}%` }}
-                  transition={{ duration: 1.2, delay: 0.3 }}
+                  transition={{ duration: 0.2, delay: 0.05 }}
                 />
               </div>
               <p className="text-xs text-gray-400 mt-2 font-medium">{stats.recentMembers} new registrations in 30 days</p>
@@ -379,7 +379,7 @@ export default function SuperAdminDashboard() {
                   className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full"
                   initial={{ width: '0%' }}
                   animate={{ width: `${Math.min(churchGrowth + 10, 100)}%` }}
-                  transition={{ duration: 1.2, delay: 0.5 }}
+                  transition={{ duration: 0.2, delay: 0.05 }}
                 />
               </div>
               <p className="text-xs text-gray-400 mt-2 font-medium">{stats.recentChurches} new branches established</p>
@@ -448,7 +448,18 @@ export default function SuperAdminDashboard() {
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs font-medium text-gray-400">{log.profiles?.full_name || "Unknown"}</span>
                         <span className="text-gray-300">·</span>
-                        <span className="text-xs font-medium text-gray-400">{timeAgo(log.created_at)}</span>
+                        <span
+                          className="text-xs font-medium text-gray-400"
+                          title={new Date(log.created_at).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        >
+                          {timeAgo(log.created_at)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -461,7 +472,7 @@ export default function SuperAdminDashboard() {
         </motion.div>
 
         {/* Dark metrics panel */}
-        <motion.div variants={itemVariants} className="bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#1e3a5f] rounded-[1.5rem] border border-gray-800/50 shadow-2xl overflow-hidden relative">
+        <motion.div variants={itemVariants} className="bg-gradient-to-br from-[#0c1929] via-[#1e293b] to-[#1e3a5f] rounded-[1.5rem] border border-gray-800/50 shadow-2xl overflow-hidden relative">
           <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-500/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl" />
 

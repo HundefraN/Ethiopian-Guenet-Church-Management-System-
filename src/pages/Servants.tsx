@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   User,
   Search,
@@ -21,7 +21,7 @@ import { Church, Profile, Department } from "../types";
 import toast from "react-hot-toast";
 import { invokeSupabaseFunction } from "../utils/supabaseFunctions";
 import { useAuth } from "../context/AuthContext";
-import { logActivity } from "../utils/activityLogger";
+import { logActivity, getObjectDiff } from "../utils/activityLogger";
 import ChangeRoleModal from "../components/ChangeRoleModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { motion, AnimatePresence } from "framer-motion";
@@ -249,7 +249,11 @@ export default function Servants() {
         newStatus ? "BLOCK" : "UNBLOCK",
         "SERVANT",
         `${newStatus ? "Blocked" : "Unblocked"} servant ${servant.full_name}`,
-        servant.id
+        servant.id,
+        {
+          old: { is_blocked: servant.is_blocked },
+          new: { is_blocked: newStatus },
+        }
       );
 
       toast.success(
@@ -302,20 +306,36 @@ export default function Servants() {
 
         servantId = editingServant.id;
 
-        await logActivity(
-          "UPDATE",
-          "SERVANT",
-          `Updated servant ${formData.full_name}`,
-          editingServant.id,
-          {
-            old: {
-              full_name: editingServant.full_name,
-              church_id: editingServant.church_id,
-              department_id: editingServant.department_id,
-            },
-            new: updates,
-          }
-        );
+        // Resolve names for logging
+        const oldChurch = churches.find(c => c.id === editingServant.church_id)?.name || "Unknown";
+        const newChurch = churches.find(c => c.id === (profile?.role === "super_admin" ? formData.church_id : editingServant.church_id))?.name || oldChurch;
+
+        const oldDepts = editingServant.profile_departments?.map(pd => pd.departments?.name).filter(Boolean).join(", ") || "None";
+        const newDepts = departments.filter(d => formData.department_ids.includes(d.id)).map(d => d.name).join(", ") || "None";
+
+        const logOld = {
+          full_name: editingServant.full_name,
+          church: oldChurch,
+          departments: oldDepts
+        };
+
+        const logNew = {
+          full_name: formData.full_name,
+          church: newChurch,
+          departments: newDepts
+        };
+
+        const diff = getObjectDiff(logOld, logNew);
+
+        if (diff) {
+          await logActivity(
+            "UPDATE",
+            "SERVANT",
+            `Updated servant ${formData.full_name}`,
+            editingServant.id,
+            diff
+          );
+        }
         toast.success("Servant updated successfully");
       } else {
         // Create new servant
@@ -349,15 +369,19 @@ export default function Servants() {
 
         servantId = responseData.user.id;
 
+        const churchName = churches.find(c => c.id === formData.church_id)?.name || "Unknown";
+        const selectedDepts = departments.filter(d => formData.department_ids.includes(d.id)).map(d => d.name).join(", ") || "None";
+
         await logActivity(
           "CREATE",
           "SERVANT",
           `Registered new servant ${formData.full_name}`,
-          null,
+          servantId,
           {
             email: formData.email,
             full_name: formData.full_name,
-            church_id: formData.church_id,
+            church: churchName,
+            departments: selectedDepts
           }
         );
 
@@ -442,20 +466,46 @@ export default function Servants() {
     setEditingServant(null);
   };
 
-  const filteredServants = servants.filter((servant) => {
-    const query = searchQuery.toLowerCase();
-    const deptNames =
-      servant.profile_departments
-        ?.map((pd) => pd.departments?.name.toLowerCase())
-        .join(" ") || "";
+  const filteredServants = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return servants;
+
+    return servants.filter((servant) => {
+      const deptNames =
+        servant.profile_departments
+          ?.map((pd) => pd.departments?.name?.toLowerCase())
+          .filter(Boolean)
+          .join(" ") || "";
+
+      return (
+        (servant.full_name && servant.full_name.toLowerCase().includes(query)) ||
+        (servant.email && servant.email.toLowerCase().includes(query)) ||
+        (servant.churches?.name &&
+          servant.churches.name.toLowerCase().includes(query)) ||
+        deptNames.includes(query)
+      );
+    });
+  }, [servants, searchQuery]);
+
+  const hasChanges = useMemo(() => {
+    if (!editingServant) {
+      return !!(formData.full_name || formData.email || formData.password || formData.church_id || formData.department_ids.length > 0);
+    }
+
+    const currentDeptIds = (editingServant.profile_departments
+      ?.map((pd) => pd.departments?.id)
+      .filter(Boolean) as string[]) || [];
+
+    const deptsChanged =
+      formData.department_ids.length !== currentDeptIds.length ||
+      !formData.department_ids.every(id => currentDeptIds.includes(id));
 
     return (
-      (servant.full_name && servant.full_name.toLowerCase().includes(query)) ||
-      (servant.churches?.name &&
-        servant.churches.name.toLowerCase().includes(query)) ||
-      deptNames.includes(query)
+      formData.full_name !== (editingServant.full_name || "") ||
+      formData.church_id !== (editingServant.church_id || "") ||
+      deptsChanged
     );
-  });
+  }, [formData, editingServant]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -513,6 +563,15 @@ export default function Servants() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400"
         />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="p-2 mr-2 text-gray-400 hover:text-orange-500 rounded-full hover:bg-gray-100 transition-colors"
+            title="Clear search"
+          >
+            <X size={18} />
+          </button>
+        )}
       </motion.div>
 
       {loading ? (
@@ -542,7 +601,7 @@ export default function Servants() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2 }}
                 key={servant.id}
-                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-orange-200 transition-all duration-300 group relative overflow-hidden flex flex-col"
+                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-orange-200 transition-all duration-150 group relative overflow-hidden flex flex-col"
               >
                 <div className={`absolute top-0 left-0 w-full h-1.5 ${servant.is_blocked ? 'bg-red-500' : 'bg-gradient-to-r from-orange-400 to-amber-500'}`}></div>
 
@@ -552,27 +611,31 @@ export default function Servants() {
                       <img
                         src={servant.avatar_url}
                         alt={servant.full_name || "Servant"}
-                        className={`w-16 h-16 rounded-2xl object-cover border-2 shadow-sm ${servant.is_blocked ? "border-red-200 grayscale opacity-70" : "border-orange-100"}`}
+                        className={`w-16 h-16 rounded-2xl object-cover border-2 shadow-sm transition-all duration-300 ${servant.is_blocked ? "border-red-300 grayscale-[0.8] opacity-60 scale-95" : "border-orange-100"}`}
                       />
                     ) : (
                       <div
-                        className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner ${servant.is_blocked ? "bg-red-50 text-red-400 grayscale" : "bg-gradient-to-br from-orange-50 to-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors duration-300"}`}
+                        className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner transition-all duration-300 ${servant.is_blocked ? "bg-red-50 text-red-300 grayscale scale-95" : "bg-gradient-to-br from-orange-50 to-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white"}`}
                       >
                         <User size={32} />
                       </div>
                     )}
                     {servant.is_blocked ? (
-                      <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white ring-2 ring-white" title="Account Blocked">
-                        <X size={12} strokeWidth={3} />
-                      </div>
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-2 -left-2 bg-red-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg z-20 uppercase tracking-tighter ring-2 ring-white"
+                      >
+                        Blocked
+                      </motion.div>
                     ) : (
-                      <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-2 ring-white" title="Active">
+                      <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-2 ring-white shadow-sm" title="Active Account">
                         <Shield size={12} strokeWidth={3} />
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10 bg-white/80 backdrop-blur-sm p-1.5 rounded-xl border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150 z-10 bg-white/80 backdrop-blur-sm p-1.5 rounded-xl border border-gray-100 shadow-sm">
                     <button
                       onClick={() => handleBlockToggleClick(servant)}
                       className={`nav-button p-2 rounded-lg transition-colors ${servant.is_blocked
@@ -852,8 +915,8 @@ export default function Servants() {
                   </button>
                   <button
                     type="submit"
-                    disabled={submitting}
-                    className="px-6 py-3 bg-gradient-to-r from-orange-500 to-[#1A365D] text-white font-bold rounded-xl hover:shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition-all disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-2 transform active:scale-95"
+                    disabled={submitting || !hasChanges}
+                    className="px-6 py-3 bg-gradient-to-r from-orange-500 to-[#1A365D] text-white font-bold rounded-xl hover:shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transform active:scale-95"
                   >
                     {submitting ? (
                       <Loader2 className="animate-spin" size={20} />

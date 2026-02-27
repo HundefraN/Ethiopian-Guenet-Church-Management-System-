@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   User,
   Search,
@@ -20,7 +20,7 @@ import { supabase } from "../supabaseClient";
 import { Church, Profile } from "../types";
 import toast from "react-hot-toast";
 import { invokeSupabaseFunction } from "../utils/supabaseFunctions";
-import { logActivity } from "../utils/activityLogger";
+import { logActivity, getObjectDiff } from "../utils/activityLogger";
 import ChangeRoleModal from "../components/ChangeRoleModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { motion, AnimatePresence } from "framer-motion";
@@ -171,19 +171,24 @@ export default function Pastors() {
           ? `Renamed pastor "${editingPastor.full_name}" to "${formData.full_name}"`
           : `Updated pastor ${formData.full_name}`;
 
-        await logActivity(
-          "UPDATE",
-          "PASTOR",
-          details,
-          editingPastor.id,
-          {
-            old: {
-              full_name: editingPastor.full_name,
-              church_id: editingPastor.church_id,
-            },
-            new: updates,
-          }
-        );
+        // Resolve church names for logging
+        const oldChurch = churches.find(c => c.id === editingPastor.church_id)?.name || "Unknown";
+        const newChurch = churches.find(c => c.id === formData.church_id)?.name || "No Branch Assigned";
+
+        const logOld = { full_name: editingPastor.full_name, church: oldChurch };
+        const logNew = { full_name: formData.full_name, church: newChurch };
+
+        const diff = getObjectDiff(logOld, logNew);
+
+        if (diff) {
+          await logActivity(
+            "UPDATE",
+            "PASTOR",
+            details,
+            editingPastor.id,
+            diff
+          );
+        }
 
         toast.success("Pastor updated successfully");
         setEditingPastor(null);
@@ -222,6 +227,8 @@ export default function Pastors() {
           throw new Error(responseData.error);
         }
 
+        const churchName = churches.find(c => c.id === formData.church_id)?.name || "No Branch Assigned";
+
         await logActivity(
           "CREATE",
           "PASTOR",
@@ -230,7 +237,7 @@ export default function Pastors() {
           {
             email: formData.email,
             full_name: formData.full_name,
-            church_id: formData.church_id,
+            church: churchName,
           }
         );
 
@@ -274,13 +281,29 @@ export default function Pastors() {
     setIsModalOpen(true);
   };
 
-  const filteredPastors = pastors.filter(
-    (pastor) =>
-      (pastor.full_name &&
-        pastor.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (pastor.churches?.name &&
-        pastor.churches.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredPastors = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return pastors;
+    return pastors.filter(
+      (pastor) =>
+        (pastor.full_name &&
+          pastor.full_name.toLowerCase().includes(query)) ||
+        (pastor.email &&
+          pastor.email.toLowerCase().includes(query)) ||
+        (pastor.churches?.name &&
+          pastor.churches.name.toLowerCase().includes(query))
+    );
+  }, [pastors, searchQuery]);
+
+  const hasChanges = useMemo(() => {
+    if (!editingPastor) {
+      return !!(formData.full_name || formData.email || formData.password || formData.church_id);
+    }
+    return (
+      formData.full_name !== (editingPastor.full_name || "") ||
+      formData.church_id !== (editingPastor.church_id || "")
+    );
+  }, [formData, editingPastor]);
 
   const containerVariants = sharedContainerVariants;
   const itemVariants = sharedItemVariants;
@@ -326,6 +349,15 @@ export default function Pastors() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400"
         />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="p-2 mr-2 text-gray-400 hover:text-[#4B9BDC] rounded-full hover:bg-gray-100 transition-colors"
+            title="Clear search"
+          >
+            <X size={18} />
+          </button>
+        )}
       </motion.div>
 
       {loading ? (
@@ -355,7 +387,7 @@ export default function Pastors() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2 }}
                 key={pastor.id}
-                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-indigo-200 transition-all duration-300 group relative overflow-hidden flex flex-col"
+                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-indigo-200 transition-all duration-150 group relative overflow-hidden flex flex-col"
               >
                 <div className={`absolute top-0 left-0 w-full h-1.5 ${pastor.is_blocked ? 'bg-red-500' : 'bg-gradient-to-r from-indigo-500 to-indigo-400'}`}></div>
 
@@ -365,27 +397,31 @@ export default function Pastors() {
                       <img
                         src={pastor.avatar_url}
                         alt={pastor.full_name || "Pastor"}
-                        className={`w-16 h-16 rounded-2xl object-cover border-2 shadow-sm ${pastor.is_blocked ? "border-red-200 grayscale opacity-70" : "border-indigo-100"}`}
+                        className={`w-16 h-16 rounded-2xl object-cover border-2 shadow-sm transition-all duration-300 ${pastor.is_blocked ? "border-red-300 grayscale-[0.8] opacity-60 scale-95" : "border-indigo-100"}`}
                       />
                     ) : (
                       <div
-                        className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner ${pastor.is_blocked ? "bg-red-50 text-red-400 grayscale" : "bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300"}`}
+                        className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner transition-all duration-300 ${pastor.is_blocked ? "bg-red-50 text-red-300 grayscale scale-95" : "bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white"}`}
                       >
                         <User size={32} />
                       </div>
                     )}
                     {pastor.is_blocked ? (
-                      <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white ring-2 ring-white" title="Account Blocked">
-                        <X size={12} strokeWidth={3} />
-                      </div>
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-2 -left-2 bg-red-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg z-20 uppercase tracking-tighter ring-2 ring-white"
+                      >
+                        Blocked
+                      </motion.div>
                     ) : (
-                      <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-2 ring-white" title="Active">
+                      <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-2 ring-white shadow-sm" title="Active Account">
                         <Shield size={12} strokeWidth={3} />
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10 bg-white/80 backdrop-blur-sm p-1.5 rounded-xl border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150 z-10 bg-white/80 backdrop-blur-sm p-1.5 rounded-xl border border-gray-100 shadow-sm">
                     <button
                       onClick={() => handleBlockToggleClick(pastor)}
                       className={`nav-button p-2 rounded-lg transition-colors ${pastor.is_blocked
@@ -580,8 +616,8 @@ export default function Pastors() {
                   </button>
                   <button
                     type="submit"
-                    disabled={submitting}
-                    className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-[#4B9BDC] text-white font-bold rounded-xl hover:shadow-[0_8px_20px_rgba(99,102,241,0.3)] transition-all disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-2 transform active:scale-95"
+                    disabled={submitting || !hasChanges}
+                    className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-[#4B9BDC] text-white font-bold rounded-xl hover:shadow-[0_8px_20px_rgba(99,102,241,0.3)] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transform active:scale-95"
                   >
                     {submitting ? (
                       <Loader2 size={20} className="animate-spin" />

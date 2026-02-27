@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabaseClient";
 import {
@@ -11,9 +11,11 @@ import {
   Shield,
   X,
   User,
+  ChevronRight,
+  LayoutDashboard,
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { containerVariants as sharedContainerVariants, itemVariants as sharedItemVariants } from "../utils/animations";
+import { motion, AnimatePresence } from "framer-motion";
+import { containerVariants as sharedContainerVariants, itemVariants as sharedItemVariants, springPresets } from "../utils/animations";
 import logo from "../assets/logo.png";
 
 interface SidebarProps {
@@ -23,6 +25,7 @@ interface SidebarProps {
 export default function Sidebar({ onClose }: SidebarProps) {
   const { profile, signOut } = useAuth();
   const [churchName, setChurchName] = useState<string>("");
+  const location = useLocation();
 
   const containerVariants = sharedContainerVariants;
   const itemVariants = sharedItemVariants;
@@ -49,7 +52,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     {
       name: "Dashboard",
       path: "/",
-      icon: Home,
+      icon: LayoutDashboard,
       roles: ["super_admin", "pastor", "servant"],
     },
     {
@@ -94,91 +97,132 @@ export default function Sidebar({ onClose }: SidebarProps) {
     (link) => profile?.role && link.roles.includes(profile.role)
   );
 
-  return (
-    <div className="w-64 bg-[#0f172a]/90 backdrop-blur-2xl border-r border-white/10 text-white h-full flex flex-col shadow-[4px_0_24px_rgba(75,155,220,0.15)] relative overflow-hidden">
-      {/* Decorative background element */}
-      <div className="absolute top-0 right-0 -mt-10 -mr-10 w-60 h-60 bg-[#4B9BDC]/20 rounded-full blur-[80px] pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-40 h-40 bg-[#38bdf8]/10 rounded-full blur-[60px] pointer-events-none"></div>
+  // Helper to check if a path is active
+  const isPathActive = (path: string) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
+  };
 
-      <div className="p-6 flex justify-between items-center relative z-10">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-11 h-11 rounded-xl bg-white flex-shrink-0 flex items-center justify-center shadow-lg p-1.5 ring-2 ring-white/10">
-            <img src={logo} alt="Logo" className="w-full h-full object-contain" />
+  return (
+    <div className="sidebar-container">
+      {/* Subtle Grain Texture Overlay for Realism */}
+      <div className="sidebar-noise"></div>
+
+      {/* Subtle animated gradient orbs */}
+      <div className="sidebar-orb sidebar-orb-1"></div>
+      <div className="sidebar-orb sidebar-orb-2"></div>
+      <div className="sidebar-orb sidebar-orb-3"></div>
+
+      {/* Header / Brand */}
+      <div className="sidebar-header">
+        <div className="sidebar-brand">
+          <div className="sidebar-logo-wrap group">
+            <img src={logo} alt="Logo" className="sidebar-logo-img transition-transform duration-200 group-hover:scale-110" />
+            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
           </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 truncate">
+          <div className="sidebar-brand-text">
+            <h2 className="sidebar-church-name">
               {churchName || (profile?.role === "super_admin" ? "Guenet HQ" : "Guenet")}
             </h2>
-            <p className="text-[10px] font-bold text-guenet-gold uppercase tracking-[0.2em] opacity-80">
-              {profile?.role?.replace("_", " ") || "User"}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+              <p className="sidebar-role-badge">
+                {profile?.role?.replace("_", " ") || "User"}
+              </p>
+            </div>
           </div>
         </div>
         {onClose && (
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
             onClick={onClose}
-            className="lg:hidden p-2 hover:bg-white/10 rounded-xl transition-colors text-white/70"
+            className="sidebar-close-btn"
           >
-            <X size={20} />
-          </button>
+            <X size={18} />
+          </motion.button>
         )}
       </div>
 
-      <div className="px-6 py-2">
-        <div className="h-px w-full bg-gradient-to-r from-white/20 to-transparent"></div>
+      {/* Divider */}
+      <div className="sidebar-divider-wrap">
+        <div className="sidebar-divider"></div>
       </div>
 
+      {/* Navigation */}
       <motion.nav
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto relative z-10"
+        className="sidebar-nav"
       >
-        {filteredLinks.map((link) => (
-          <motion.div variants={itemVariants} key={link.name}>
-            <NavLink
-              to={link.path}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                  ? "bg-white/10 text-white font-medium shadow-sm border border-white/5"
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <link.icon
-                    size={20}
-                    className={`transition-colors ${isActive ? "text-guenet-gold" : "text-white/50 group-hover:text-white/80"}`}
+        {filteredLinks.map((link) => {
+          const isActive = isPathActive(link.path);
+
+          return (
+            <motion.div variants={itemVariants} key={link.name} className="relative">
+              <NavLink
+                to={link.path}
+                end={link.path === "/"}
+                onClick={onClose}
+                className={`sidebar-nav-item ${isActive ? "active-text" : ""}`}
+              >
+                {/* Sliding Background Indicator */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeNavIndicator"
+                    className="sidebar-nav-item--active absolute inset-0 -z-10"
+                    transition={springPresets.liquid}
                   />
-                  <span>{link.name}</span>
-                </>
-              )}
-            </NavLink>
-          </motion.div>
-        ))}
+                )}
+
+                <div className={`sidebar-nav-icon relative z-10 ${isActive ? "sidebar-nav-icon--active" : ""}`}>
+                  <link.icon size={19} strokeWidth={isActive ? 2.2 : 1.8} />
+                </div>
+                <span className="sidebar-nav-label relative z-10">{link.name}</span>
+
+                {isActive && (
+                  <motion.div
+                    className="relative z-10"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <ChevronRight size={14} className="sidebar-nav-chevron" />
+                  </motion.div>
+                )}
+              </NavLink>
+            </motion.div>
+          );
+        })}
       </motion.nav>
 
-      <div className="p-4 relative z-10">
-        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 mb-4 border border-white/10 shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={profile.full_name || "User"}
-                className="w-10 h-10 rounded-xl object-cover ring-2 ring-[#4B9BDC]/50"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4B9BDC]/80 to-[#38bdf8]/80 flex items-center justify-center text-sm font-bold border border-white/20">
-                {profile?.full_name?.charAt(0) || "U"}
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">
+      {/* User Profile Card */}
+      <div className="sidebar-footer">
+        <div className="sidebar-user-card group overflow-hidden relative">
+          {/* Subtle hover sweep effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-300 ease-in-out pointer-events-none"></div>
+
+          <div className="sidebar-user-info">
+            <div className="relative">
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.full_name || "User"}
+                  className="sidebar-avatar"
+                />
+              ) : (
+                <div className="sidebar-avatar-placeholder">
+                  {profile?.full_name?.charAt(0) || "U"}
+                </div>
+              )}
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-[#0c1929] rounded-full"></div>
+            </div>
+            <div className="sidebar-user-text">
+              <p className="sidebar-user-name">
                 {profile?.full_name || "User"}
               </p>
-              <p className="text-xs text-white/50 truncate">{profile?.role}</p>
+              <p className="sidebar-user-role">{profile?.role?.replace("_", " ")}</p>
             </div>
           </div>
           <button
@@ -186,9 +230,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
               signOut();
               if (onClose) onClose();
             }}
-            className="flex items-center justify-center space-x-2 w-full py-2.5 rounded-xl bg-white/10 hover:bg-red-500/20 hover:text-red-200 text-white/90 transition-all text-sm font-medium"
+            className="sidebar-signout-btn group/btn"
           >
-            <LogOut size={16} />
+            <LogOut size={15} className="group-hover/btn:-translate-x-1 transition-transform" />
             <span>Sign Out</span>
           </button>
         </div>

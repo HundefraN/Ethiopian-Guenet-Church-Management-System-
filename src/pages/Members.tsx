@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -13,7 +13,8 @@ import {
   User,
   Users,
   Building,
-  Briefcase
+  Briefcase,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { springPresets, containerVariants as sharedContainerVariants, itemVariants as sharedItemVariants } from "../utils/animations";
@@ -135,14 +136,20 @@ export default function Members() {
     setConfirmOpen(false);
   };
 
-  const filteredMembers = members.filter(
-    (member) =>
-      member.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (member.email &&
-        member.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (member.phone && member.phone.includes(searchQuery)) ||
-      (member.departments?.name && member.departments.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredMembers = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return members;
+    return members.filter(
+      (member) =>
+        member.full_name.toLowerCase().includes(query) ||
+        (member.email && member.email.toLowerCase().includes(query)) ||
+        (member.phone && member.phone.includes(query)) ||
+        (member.departments?.name &&
+          member.departments.name.toLowerCase().includes(query)) ||
+        (member.churches?.name &&
+          member.churches.name.toLowerCase().includes(query))
+    );
+  }, [members, searchQuery]);
 
   const canEdit = profile?.role === "pastor" || profile?.role === "servant";
   // Super Admin cannot edit members. Servants can edit if in their department (RLS handles this), Pastors can edit all in their church.
@@ -195,6 +202,15 @@ export default function Members() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400"
         />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="p-2 mr-2 text-gray-400 hover:text-teal-500 rounded-full hover:bg-gray-100 transition-colors"
+            title="Clear search"
+          >
+            <X size={18} />
+          </button>
+        )}
         <button className="flex items-center justify-center gap-2 px-4 py-2 mr-1 bg-gray-50 border border-gray-100 rounded-xl hover:bg-gray-100 text-gray-600 transition-colors font-medium text-sm hidden md:flex">
           <Filter size={16} className="text-[#4B9BDC]" />
           <span>Filter</span>
@@ -229,9 +245,9 @@ export default function Members() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
+                transition={{ duration: 0.15, delay: index * 0.05 }}
                 key={member.id}
-                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-teal-200 transition-all duration-300 group relative overflow-hidden flex flex-col"
+                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-teal-200 transition-all duration-150 group relative overflow-hidden flex flex-col"
               >
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-teal-400 to-emerald-400"></div>
 
@@ -244,7 +260,7 @@ export default function Members() {
                         className="w-16 h-16 rounded-2xl object-cover border-2 shadow-sm border-teal-100"
                       />
                     ) : (
-                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner bg-gradient-to-br from-teal-50 to-emerald-100 text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors duration-300">
+                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner bg-gradient-to-br from-teal-50 to-emerald-100 text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors duration-150">
                         <span className="text-2xl font-bold uppercase">
                           {member.full_name.charAt(0)}
                         </span>
@@ -252,7 +268,7 @@ export default function Members() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10 bg-white/80 backdrop-blur-sm p-1.5 rounded-xl border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150 z-10 bg-white/80 backdrop-blur-sm p-1.5 rounded-xl border border-gray-100 shadow-sm">
                     <button
                       onClick={() => setViewingMember(member)}
                       className="nav-button p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

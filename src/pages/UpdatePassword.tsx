@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Lock, CheckCircle, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
+import { logActivity } from "../utils/activityLogger";
 
 import logo from "../assets/logo.png";
 
@@ -24,6 +25,30 @@ export default function UpdatePassword() {
         });
     }, []);
 
+    // Password strength calculation
+    const passwordChecks = React.useMemo(() => {
+        return {
+            minLength: password.length >= 8,
+            hasUppercase: /[A-Z]/.test(password),
+            hasLowercase: /[a-z]/.test(password),
+            hasNumber: /[0-9]/.test(password),
+            hasSpecial: /[!@#$%^&*(),.?":{}|<>\[\]\\;'`~_+=-]/.test(password),
+        };
+    }, [password]);
+
+    const strengthScore = React.useMemo(() => {
+        return Object.values(passwordChecks).filter(Boolean).length;
+    }, [passwordChecks]);
+
+    const strengthLabel = React.useMemo(() => {
+        if (password.length === 0) return { text: "", color: "" };
+        if (strengthScore <= 1) return { text: "Very Weak", color: "#ef4444" };
+        if (strengthScore === 2) return { text: "Weak", color: "#f97316" };
+        if (strengthScore === 3) return { text: "Fair", color: "#eab308" };
+        if (strengthScore === 4) return { text: "Strong", color: "#22c55e" };
+        return { text: "Very Strong", color: "#059669" };
+    }, [strengthScore, password]);
+
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         if (password !== confirmPassword) {
@@ -31,8 +56,8 @@ export default function UpdatePassword() {
             return;
         }
 
-        if (password.length < 6) {
-            toast.error("Password must be at least 6 characters long.");
+        if (strengthScore < 4) {
+            toast.error("Please choose a stronger password.");
             return;
         }
 
@@ -46,6 +71,11 @@ export default function UpdatePassword() {
         if (error) {
             toast.error(error.message, { id: loadingToast });
         } else {
+            await logActivity(
+                "PASSWORD_CHANGE",
+                "PROFILE",
+                "Password updated via recovery link"
+            );
             toast.success("Password updated successfully!", { id: loadingToast, duration: 4000 });
             // Redirect to login or home page
             navigate("/");
@@ -55,7 +85,7 @@ export default function UpdatePassword() {
 
     const formVariants = {
         hidden: { opacity: 0, x: -20 },
-        visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: "easeOut" } }
+        visible: { opacity: 1, x: 0, transition: { duration: 0.15, ease: "easeOut" } }
     };
 
     return (
@@ -64,24 +94,24 @@ export default function UpdatePassword() {
             <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
                 className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:flex-none lg:w-[480px] xl:w-[560px] bg-white shadow-2xl z-10 relative"
             >
                 <div className="mx-auto w-full max-w-sm lg:w-[400px]">
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2, duration: 0.5 }}
+                        transition={{ delay: 0.05, duration: 0.15 }}
                         className="flex items-center gap-3 mb-10"
                     >
                         <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-lg shadow-[#4B9BDC]/10 ring-1 ring-gray-100 p-2">
-                            <img src={logo} alt="Guenet Church Logo" className="w-full h-full object-contain" />
+                            <img src={logo} alt="Ethiopian Guenet Church Logo" className="w-full h-full object-contain" />
                         </div>
                         <div>
                             <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#1e293b] to-[#4B9BDC] tracking-tight">
                                 Guenet Church
                             </h1>
-                            <p className="text-sm font-semibold text-[#38bdf8] uppercase tracking-wider">
+                            <p className="text-sm font-semibold text-[#7EC8F2] uppercase tracking-wider">
                                 Management System
                             </p>
                         </div>
@@ -93,16 +123,16 @@ export default function UpdatePassword() {
                         animate="visible"
                     >
                         <div className="mb-8">
-                            <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
+                            <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-2">
                                 Set New Password
                             </h2>
-                            <p className="text-gray-500">
+                            <p className="text-sm text-gray-500">
                                 Please enter your new strong password below.
                             </p>
                         </div>
 
-                        <form onSubmit={handleUpdatePassword} className="space-y-5">
-                            <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                        <form onSubmit={handleUpdatePassword} className="space-y-4">
+                            <motion.div whileHover={{ scale: 1.01 }}>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                                     New Password
                                 </label>
@@ -115,13 +145,50 @@ export default function UpdatePassword() {
                                         required
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all sm:text-sm"
+                                        className="block w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all sm:text-sm"
                                         placeholder="••••••••"
                                     />
                                 </div>
+
+                                {/* Password Strength Meter */}
+                                {password.length > 0 && (
+                                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mt-3 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Strength</span>
+                                            <span className="text-[10px] font-bold" style={{ color: strengthLabel.color }}>{strengthLabel.text}</span>
+                                        </div>
+                                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                            <motion.div
+                                                className="h-full rounded-full"
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${(strengthScore / 5) * 100}%` }}
+                                                style={{ backgroundColor: strengthLabel.color }}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-1">
+                                            {[
+                                                { key: "minLength", label: "8+ chars" },
+                                                { key: "hasUppercase", label: "Uppercase" },
+                                                { key: "hasLowercase", label: "Lowercase" },
+                                                { key: "hasNumber", label: "Number" },
+                                                { key: "hasSpecial", label: "Special" },
+                                            ].map((rule) => {
+                                                const passed = passwordChecks[rule.key as keyof typeof passwordChecks];
+                                                return (
+                                                    <div key={rule.key} className="flex items-center gap-1.5">
+                                                        <div className={`w-3 h-3 rounded-full flex items-center justify-center ${passed ? "bg-emerald-500" : "bg-gray-200"}`}>
+                                                            {passed && <CheckCircle size={8} className="text-white" />}
+                                                        </div>
+                                                        <span className={`text-[10px] ${passed ? "text-emerald-600 font-medium" : "text-gray-400"}`}>{rule.label}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </motion.div>
+                                )}
                             </motion.div>
 
-                            <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                            <motion.div whileHover={{ scale: 1.01 }}>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                                     Confirm Password
                                 </label>
@@ -134,7 +201,10 @@ export default function UpdatePassword() {
                                         required
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all sm:text-sm"
+                                        className={`block w-full pl-11 pr-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 outline-none transition-all sm:text-sm ${confirmPassword.length > 0 && confirmPassword !== password
+                                            ? "border-red-300 focus:ring-red-200"
+                                            : "border-gray-200 focus:ring-[#4B9BDC]/50"
+                                            }`}
                                         placeholder="••••••••"
                                     />
                                 </div>
@@ -144,12 +214,12 @@ export default function UpdatePassword() {
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 type="submit"
-                                disabled={loading}
-                                className="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-2xl shadow-[0_8px_30px_rgb(75,155,220,0.3)] text-sm font-bold text-white bg-gradient-to-r from-[#4B9BDC] to-[#3a85c2] hover:from-[#3a85c2] hover:to-[#295b86] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4B9BDC] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed mt-8 group"
+                                disabled={loading || strengthScore < 4 || password !== confirmPassword}
+                                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-gradient-to-r from-[#4B9BDC] to-[#3a85c2] hover:from-[#3a85c2] hover:to-[#295b86] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4B9BDC] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed mt-4 group"
                             >
                                 {loading ? (
                                     <div className="flex items-center">
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                                         Updating...
                                     </div>
                                 ) : (
@@ -171,16 +241,16 @@ export default function UpdatePassword() {
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 1 }}
+                transition={{ duration: 0.2 }}
                 className="hidden lg:block relative w-0 flex-1 overflow-hidden"
             >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0ea5e9] opacity-95"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-[#0c1929] via-[#132d4a] to-[#4B9BDC] opacity-95"></div>
 
                 {/* Decorative elements */}
                 <motion.div
                     animate={{ scale: [1, 1.05, 1], rotate: [0, 5, 0] }}
                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-[#38bdf8]/20 rounded-full blur-[120px]"
+                    className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-[#7EC8F2]/20 rounded-full blur-[120px]"
                 />
                 <motion.div
                     animate={{ scale: [1, 1.1, 1], rotate: [0, -5, 0] }}
@@ -192,15 +262,15 @@ export default function UpdatePassword() {
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
+                        transition={{ delay: 0.05, type: "spring", stiffness: 100 }}
                         className="w-32 h-32 rounded-[2.5rem] bg-white flex items-center justify-center mb-10 shadow-[0_12px_40px_rgba(255,255,255,0.2)] p-4 ring-4 ring-white/10"
                     >
-                        <img src={logo} alt="Guenet Church Logo" className="w-full h-full object-contain" />
+                        <img src={logo} alt="Ethiopian Guenet Church Logo" className="w-full h-full object-contain" />
                     </motion.div>
                     <motion.h2
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.5, duration: 0.5 }}
+                        transition={{ delay: 0.05, duration: 0.15 }}
                         className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#bae6fd] mb-6 tracking-tight leading-tight"
                     >
                         Secure Your Account
@@ -208,7 +278,7 @@ export default function UpdatePassword() {
                     <motion.p
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.7, duration: 0.5 }}
+                        transition={{ delay: 0.05, duration: 0.15 }}
                         className="text-lg text-blue-100 max-w-md leading-relaxed font-light"
                     >
                         Update your password to ensure safe and secure access to the Ethiopian Guenet Church management system.

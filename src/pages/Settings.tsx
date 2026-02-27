@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   Settings as SettingsIcon,
   Bell,
@@ -11,15 +11,20 @@ import {
   Upload,
   X,
   Edit2,
+  Lock,
+  Eye,
+  EyeOff,
+  Check,
+  Info,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabaseClient";
 import toast from "react-hot-toast";
-import { logActivity } from "../utils/activityLogger";
+import { logActivity, getObjectDiff } from "../utils/activityLogger";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Settings() {
-  const { profile, settings: globalSettings } = useAuth();
+  const { profile, user, settings: globalSettings, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState("General");
   const [updating, setUpdating] = useState(false);
   const [formData, setFormData] = useState({
@@ -30,6 +35,82 @@ export default function Settings() {
   const [preview, setPreview] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Security tab state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  // Password strength calculation
+  const passwordChecks = useMemo(() => {
+    return {
+      minLength: newPassword.length >= 8,
+      hasUppercase: /[A-Z]/.test(newPassword),
+      hasLowercase: /[a-z]/.test(newPassword),
+      hasNumber: /[0-9]/.test(newPassword),
+      hasSpecial: /[!@#$%^&*(),.?":{}|<>\[\]\\;'`~_+=-]/.test(newPassword),
+    };
+  }, [newPassword]);
+
+  const strengthScore = useMemo(() => {
+    return Object.values(passwordChecks).filter(Boolean).length;
+  }, [passwordChecks]);
+
+  const strengthLabel = useMemo(() => {
+    if (newPassword.length === 0) return { text: "", color: "" };
+    if (strengthScore <= 1) return { text: "Very Weak", color: "#ef4444" };
+    if (strengthScore === 2) return { text: "Weak", color: "#f97316" };
+    if (strengthScore === 3) return { text: "Fair", color: "#eab308" };
+    if (strengthScore === 4) return { text: "Strong", color: "#22c55e" };
+    return { text: "Very Strong", color: "#059669" };
+  }, [strengthScore, newPassword]);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile) return;
+
+    if (strengthScore < 4) {
+      toast.error("Please choose a stronger password.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast.error("New passwords do not match.");
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+
+      // Re-authenticate with current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || (await supabase.auth.getUser()).data.user?.email || "",
+        password: currentPassword,
+      });
+      if (signInError) {
+        toast.error("Current password is incorrect.");
+        return;
+      }
+
+      // Update to new password
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+
+      await logActivity("PASSWORD_CHANGE", "PROFILE", "Password changed from settings", profile.id);
+      toast.success("Password updated successfully!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      toast.error(error.message || "Failed to change password.");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
 
   React.useEffect(() => {
     if (profile) {
@@ -138,13 +219,18 @@ export default function Settings() {
 
       if (error) throw error;
 
-      await logActivity("UPDATE", "PROFILE", `Updated profile`, profile.id, {
-        old: { full_name: profile.full_name, avatar_url: profile.avatar_url },
-        new: { ...formData, avatar_url: avatarUrl },
-      });
+      const logOld = { full_name: profile.full_name, avatar_url: profile.avatar_url };
+      const logNew = { full_name: formData.full_name, avatar_url: avatarUrl };
+
+      const diff = getObjectDiff(logOld, logNew);
+
+      if (diff) {
+        await logActivity("UPDATE", "PROFILE", `Updated profile`, profile.id, diff);
+      }
 
       toast.success("Profile updated successfully");
-      // Note: Ideally we should update the context profile here, but for now user will see update on refresh
+      // Refresh the profile in context so sidebar/header updates immediately
+      await refreshProfile();
     } catch (error: any) {
       console.error("Error updating profile:", error);
       toast.error(error.message || "Failed to update profile");
@@ -152,6 +238,11 @@ export default function Settings() {
       setUpdating(false);
     }
   };
+
+  const hasProfileChanges = useMemo(() => {
+    if (!profile) return false;
+    return formData.full_name !== (profile.full_name || "") || file !== null;
+  }, [formData, profile, file]);
 
   const toggleMaintenanceMode = async () => {
     if (!globalSettings) return;
@@ -238,8 +329,8 @@ export default function Settings() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex items-center gap-3 text-sm font-medium ${activeTab === tab.id
-                  ? "bg-guenet-green/10 text-guenet-green"
-                  : "text-gray-600 hover:bg-gray-50"
+                ? "bg-guenet-green/10 text-guenet-green"
+                : "text-gray-600 hover:bg-gray-50"
                 }`}
             >
               <tab.icon size={18} />
@@ -325,8 +416,8 @@ export default function Settings() {
                           onClick={toggleMaintenanceMode}
                           disabled={updating}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${globalSettings.is_maintenance_mode
-                              ? "bg-guenet-green"
-                              : "bg-gray-200"
+                            ? "bg-guenet-green"
+                            : "bg-gray-200"
                             }`}
                         >
                           {updating ? (
@@ -334,8 +425,8 @@ export default function Settings() {
                           ) : (
                             <span
                               className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${globalSettings.is_maintenance_mode
-                                  ? "translate-x-6"
-                                  : "translate-x-1"
+                                ? "translate-x-6"
+                                : "translate-x-1"
                                 }`}
                             />
                           )}
@@ -399,8 +490,8 @@ export default function Settings() {
                       </label>
                       <div
                         className={`relative border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${dragActive
-                            ? "border-guenet-green bg-guenet-green/5"
-                            : "border-gray-200 hover:border-guenet-green/50 hover:bg-gray-50"
+                          ? "border-guenet-green bg-guenet-green/5"
+                          : "border-gray-200 hover:border-guenet-green/50 hover:bg-gray-50"
                           }`}
                         onDragEnter={handleDrag}
                         onDragLeave={handleDrag}
@@ -482,8 +573,8 @@ export default function Settings() {
                   <div className="flex justify-end pt-4">
                     <button
                       type="submit"
-                      disabled={updating}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-guenet-green text-white font-medium rounded-xl hover:bg-guenet-green/90 transition-all shadow-sm shadow-guenet-green/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                      disabled={updating || !hasProfileChanges}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-guenet-green text-white font-medium rounded-xl hover:bg-guenet-green/90 transition-all shadow-sm shadow-guenet-green/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {updating ? (
                         <>
@@ -499,10 +590,183 @@ export default function Settings() {
               </motion.div>
             )}
 
-            {/* Placeholder for other tabs */}
-            {(activeTab === "Security" || activeTab === "Notifications") && (
+            {activeTab === "Security" && (
               <motion.div
-                key="Placeholder"
+                key="Security"
+                variants={tabVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="space-y-6"
+              >
+                {/* Password Change Card */}
+                <div className="relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  {/* Decorative gradient top bar */}
+                  <div className="h-1.5 bg-gradient-to-r from-[#4B9BDC] via-[#7EC8F2] to-[#4B9BDC]"></div>
+                  <div className="p-6 sm:p-8">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2.5 bg-gradient-to-br from-[#4B9BDC]/10 to-[#7EC8F2]/10 rounded-xl">
+                        <Lock size={22} className="text-[#4B9BDC]" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
+                        <p className="text-sm text-gray-500">Update your password to keep your account secure</p>
+                      </div>
+                    </div>
+
+                    <form onSubmit={handleChangePassword} className="space-y-5">
+                      {/* Current Password */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Current Password</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <Lock size={16} className="text-gray-400" />
+                          </div>
+                          <input
+                            type={showCurrentPassword ? "text" : "password"}
+                            required
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            className="block w-full pl-10 pr-10 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC] outline-none transition-all text-sm"
+                            placeholder="Enter current password"
+                          />
+                          <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                            {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* New Password */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <Shield size={16} className="text-gray-400" />
+                          </div>
+                          <input
+                            type={showNewPassword ? "text" : "password"}
+                            required
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="block w-full pl-10 pr-10 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC] outline-none transition-all text-sm"
+                            placeholder="Enter new password"
+                          />
+                          <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                            {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+
+                        {/* Password Strength Meter */}
+                        {newPassword.length > 0 && (
+                          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mt-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-gray-500">Password Strength</span>
+                              <motion.span key={strengthLabel.text} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="text-xs font-bold" style={{ color: strengthLabel.color }}>{strengthLabel.text}</motion.span>
+                            </div>
+                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <motion.div
+                                className="h-full rounded-full"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${(strengthScore / 5) * 100}%` }}
+                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                style={{ backgroundColor: strengthLabel.color }}
+                              />
+                            </div>
+
+                            {/* Requirement Checklist */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                              {[
+                                { key: "minLength", label: "At least 8 characters" },
+                                { key: "hasUppercase", label: "Uppercase letter (A-Z)" },
+                                { key: "hasLowercase", label: "Lowercase letter (a-z)" },
+                                { key: "hasNumber", label: "Number (0-9)" },
+                                { key: "hasSpecial", label: "Special character (!@#...)" },
+                              ].map((rule) => {
+                                const passed = passwordChecks[rule.key as keyof typeof passwordChecks];
+                                return (
+                                  <motion.div key={rule.key} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2">
+                                    <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors ${passed ? "bg-emerald-500" : "bg-gray-200"}`}>
+                                      {passed && <Check size={10} className="text-white" strokeWidth={3} />}
+                                    </div>
+                                    <span className={`text-xs transition-colors ${passed ? "text-emerald-600 font-medium" : "text-gray-400"}`}>{rule.label}</span>
+                                  </motion.div>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+                        )}
+                      </div>
+
+                      {/* Confirm New Password */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm New Password</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <Check size={16} className="text-gray-400" />
+                          </div>
+                          <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            required
+                            value={confirmNewPassword}
+                            onChange={(e) => setConfirmNewPassword(e.target.value)}
+                            className={`block w-full pl-10 pr-10 py-3 bg-gray-50/50 border rounded-xl focus:ring-2 outline-none transition-all text-sm ${confirmNewPassword.length > 0 && confirmNewPassword !== newPassword
+                              ? "border-red-300 focus:ring-red-200 focus:border-red-400"
+                              : confirmNewPassword.length > 0 && confirmNewPassword === newPassword
+                                ? "border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400"
+                                : "border-gray-200 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC]"
+                              }`}
+                            placeholder="Confirm new password"
+                          />
+                          <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                        {confirmNewPassword.length > 0 && confirmNewPassword !== newPassword && (
+                          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                            <Info size={12} /> Passwords do not match
+                          </motion.p>
+                        )}
+                      </div>
+
+                      <div className="flex justify-end pt-2">
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          type="submit"
+                          disabled={changingPassword || strengthScore < 4 || newPassword !== confirmNewPassword || !currentPassword}
+                          className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#4B9BDC] to-[#3a85c2] text-white font-medium rounded-xl hover:from-[#3a85c2] hover:to-[#295b86] transition-all shadow-sm shadow-[#4B9BDC]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                        >
+                          {changingPassword ? (
+                            <><Loader2 size={18} className="animate-spin" /><span>Updating...</span></>
+                          ) : (
+                            <><Shield size={18} /><span>Update Password</span></>
+                          )}
+                        </motion.button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                {/* Security Tips Card */}
+                <div className="bg-gradient-to-br from-[#4B9BDC]/5 to-[#7EC8F2]/5 rounded-2xl border border-[#4B9BDC]/10 p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Info size={18} className="text-[#4B9BDC]" />
+                    <h3 className="text-sm font-semibold text-gray-800">Security Tips</h3>
+                  </div>
+                  <ul className="space-y-2 text-xs text-gray-600">
+                    <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>Never share your password with anyone</li>
+                    <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>Use a unique password that you don't use for other accounts</li>
+                    <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>Consider using a password manager to generate and store passwords</li>
+                    <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>Change your password regularly for better security</li>
+                  </ul>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Notifications tab placeholder */}
+            {activeTab === "Notifications" && (
+              <motion.div
+                key="Notifications"
                 variants={tabVariants}
                 initial="hidden"
                 animate="visible"
@@ -510,12 +774,10 @@ export default function Settings() {
                 className="bg-white p-12 rounded-2xl border border-gray-100 shadow-sm text-center"
               >
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-                  <SettingsIcon className="text-gray-400" size={32} />
+                  <Bell className="text-gray-400" size={32} />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900">Coming Soon</h3>
-                <p className="text-gray-500 mt-2">
-                  This settings panel is under development.
-                </p>
+                <p className="text-gray-500 mt-2">Notification preferences are under development.</p>
               </motion.div>
             )}
           </AnimatePresence>

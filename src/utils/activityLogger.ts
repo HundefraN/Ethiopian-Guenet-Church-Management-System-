@@ -13,7 +13,8 @@ export type ActionType =
   | "LOGIN"
   | "LOGOUT"
   | "UPLOAD"
-  | "TOGGLE";
+  | "TOGGLE"
+  | "PASSWORD_CHANGE";
 
 /**
  * Entity types for activity logging
@@ -44,6 +45,7 @@ export const getActionLabel = (action: string): string => {
     LOGOUT: "logged out",
     UPLOAD: "uploaded",
     TOGGLE: "toggled",
+    PASSWORD_CHANGE: "changed password",
   };
   return labels[action] || action.toLowerCase();
 };
@@ -63,6 +65,7 @@ export const getActionColor = (action: string): { bg: string; text: string; bord
     LOGOUT: { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200" },
     UPLOAD: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
     TOGGLE: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+    PASSWORD_CHANGE: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
   };
   return colors[action] || { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200" };
 };
@@ -86,15 +89,58 @@ export const getEntityLabel = (entity: string): string => {
 };
 
 /**
+ * Utility to find differences between two objects
+ * Returns an object containing only the fields that were changed
+ */
+export const getObjectDiff = (oldData: any, newData: any) => {
+  if (!oldData) return newData;
+
+  const diff: any = {
+    old: {},
+    new: {}
+  };
+
+  let hasChanges = false;
+
+  // Combine all unique keys from both objects
+  const allKeys = Array.from(new Set([...Object.keys(oldData), ...Object.keys(newData)]));
+
+  for (const key of allKeys) {
+    // Skip internal fields if any (like id, created_at)
+    if (['id', 'created_at', 'updated_at', 'user_id', 'church_id', 'department_id'].includes(key)) continue;
+
+    const oldVal = oldData[key];
+    const newVal = newData[key];
+
+    // Deep compare check for arrays (like children)
+    if (Array.isArray(oldVal) || Array.isArray(newVal)) {
+      if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+        diff.old[key] = oldVal;
+        diff.new[key] = newVal;
+        hasChanges = true;
+      }
+      continue;
+    }
+
+    // Standard compare
+    if (oldVal !== newVal) {
+      // Avoid false positives with null vs empty string or undefined
+      if ((oldVal === null || oldVal === undefined || oldVal === "") &&
+        (newVal === null || newVal === undefined || newVal === "")) {
+        continue;
+      }
+
+      diff.old[key] = oldVal ?? null;
+      diff.new[key] = newVal ?? null;
+      hasChanges = true;
+    }
+  }
+
+  return hasChanges ? diff : null;
+};
+
+/**
  * Logs an activity to the activity_logs table in Supabase.
- * This function is designed to be non-blocking — if logging fails,
- * it will not throw or block the main UI flow.
- *
- * @param action_type - The type of action performed (CREATE, UPDATE, DELETE, etc.)
- * @param entity_type - The type of entity affected (SERVANT, PASTOR, MEMBER, etc.)
- * @param details - A human-readable description of the action
- * @param entity_id - Optional ID of the affected entity
- * @param changes - Optional JSON object with details about what changed (old/new values)
  */
 export const logActivity = async (
   action_type: string,

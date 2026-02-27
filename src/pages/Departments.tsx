@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Shield,
   Search,
@@ -16,7 +16,7 @@ import { supabase } from "../supabaseClient";
 import { Department, Church } from "../types";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import { logActivity } from "../utils/activityLogger";
+import { logActivity, getObjectDiff } from "../utils/activityLogger";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -171,19 +171,24 @@ export default function Departments() {
 
         if (error) throw error;
 
-        await logActivity(
-          "UPDATE",
-          "DEPARTMENT",
-          `Updated department ${formData.name}`,
-          editingDept.id,
-          {
-            old: {
-              name: editingDept.name,
-              church_id: editingDept.church_id,
-            },
-            new: formData,
-          }
-        );
+        // Find church names for logging
+        const oldChurch = churches.find(c => c.id === editingDept.church_id)?.name || "Unknown";
+        const newChurch = churches.find(c => c.id === formData.church_id)?.name || "Unknown";
+
+        const logOld = { name: editingDept.name, church: oldChurch };
+        const logNew = { name: formData.name, church: newChurch };
+
+        const diff = getObjectDiff(logOld, logNew);
+
+        if (diff) {
+          await logActivity(
+            "UPDATE",
+            "DEPARTMENT",
+            `Updated department ${formData.name}`,
+            editingDept.id,
+            diff
+          );
+        }
         toast.success("Department updated successfully");
       } else {
         // Create new department
@@ -195,12 +200,14 @@ export default function Departments() {
 
         if (error) throw error;
 
+        const churchName = churches.find(c => c.id === formData.church_id)?.name || "Unknown";
+
         await logActivity(
           "CREATE",
           "DEPARTMENT",
           `Added new department ${formData.name}`,
           data.id,
-          formData
+          { ...formData, church: churchName }
         );
         toast.success("Department added successfully");
       }
@@ -262,12 +269,26 @@ export default function Departments() {
     setEditingDept(null);
   };
 
-  const filteredDepartments = departments.filter(
-    (dept) =>
-      dept.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (dept.churches?.name &&
-        dept.churches.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredDepartments = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return departments;
+    return departments.filter(
+      (dept) =>
+        dept.name.toLowerCase().includes(query) ||
+        (dept.churches?.name &&
+          dept.churches.name.toLowerCase().includes(query))
+    );
+  }, [departments, searchQuery]);
+
+  const hasChanges = useMemo(() => {
+    if (!editingDept) {
+      return !!(formData.name && formData.church_id);
+    }
+    return (
+      formData.name !== (editingDept.name || "") ||
+      formData.church_id !== (editingDept.church_id || "")
+    );
+  }, [formData, editingDept]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -325,6 +346,15 @@ export default function Departments() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 font-medium placeholder-gray-400"
         />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="p-2 mr-2 text-gray-400 hover:text-purple-500 rounded-full hover:bg-gray-100 transition-colors"
+            title="Clear search"
+          >
+            <X size={18} />
+          </button>
+        )}
       </motion.div>
 
       {loading ? (
@@ -354,16 +384,16 @@ export default function Departments() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2 }}
                 key={dept.id}
-                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-purple-200 transition-all duration-300 group relative overflow-hidden"
+                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-purple-200 transition-all duration-150 group relative overflow-hidden"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-purple-50/50 blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-purple-100/60 z-0"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-purple-50/50 blur-3xl -mr-10 -mt-10 transition-all duration-200 group-hover:bg-purple-100/60 z-0"></div>
 
                 <div className="flex items-start justify-between mb-5 relative z-10">
-                  <div className="w-14 h-14 bg-purple-50/80 rounded-2xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-300 shadow-sm">
+                  <div className="w-14 h-14 bg-purple-50/80 rounded-2xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-150 shadow-sm">
                     <Shield size={28} />
                   </div>
                   {profile?.role !== "super_admin" && profile?.role === "pastor" && (
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                       <button
                         onClick={() => handleEdit(dept)}
                         className="p-2.5 text-blue-400 hover:text-white hover:bg-blue-500 rounded-xl transition-colors shadow-sm bg-white border border-gray-100"
@@ -509,8 +539,8 @@ export default function Departments() {
                   </button>
                   <button
                     type="submit"
-                    disabled={submitting}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-[#1A365D] text-white font-bold rounded-xl hover:shadow-[0_8px_20px_rgba(147,51,234,0.3)] transition-all disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-2 transform active:scale-95"
+                    disabled={submitting || !hasChanges}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-[#1A365D] text-white font-bold rounded-xl hover:shadow-[0_8px_20px_rgba(147,51,234,0.3)] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transform active:scale-95"
                   >
                     {submitting ? (
                       <Loader2 className="animate-spin" size={20} />

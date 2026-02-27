@@ -11,7 +11,7 @@ export default function Layout() {
   const mainRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="flex h-screen bg-transparent overflow-hidden">
+    <div className="layout-root">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -29,15 +29,15 @@ export default function Layout() {
       <AnimatePresence mode="wait">
         <motion.div
           initial={false}
-          animate={{ x: sidebarOpen ? 0 : 0 }} // Logic handled by class on mobile, but let's make it consistent
-          className={`fixed inset-y-0 left-0 z-50 w-64 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-500 ease-[cubic-bezier(0.32,0,0.67,0)] lg:transition-none`}
+          animate={{ x: sidebarOpen ? 0 : 0 }}
+          className={`layout-sidebar-wrapper ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
         >
           <Sidebar onClose={() => setSidebarOpen(false)} />
         </motion.div>
       </AnimatePresence>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-0">
+      <div className="layout-main-wrapper">
         {/* Decorative background element */}
         <motion.div
           animate={{
@@ -45,15 +45,15 @@ export default function Layout() {
             opacity: [0.3, 0.5, 0.3]
           }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-gradient-to-bl from-[#38bdf8]/20 to-transparent pointer-events-none rounded-full blur-[120px] -z-10"
+          className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-gradient-to-bl from-[#7EC8F2]/15 to-transparent pointer-events-none rounded-full blur-[120px] -z-10"
         ></motion.div>
 
-        {/* Mobile Header - collapses on scroll */}
+        {/* Mobile Header */}
         <MobileHeader onMenuClick={() => setSidebarOpen(true)} containerRef={mainRef} />
 
         <main
           ref={mainRef}
-          className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 pt-28 lg:pt-10 scroll-smooth"
+          className="layout-main-content"
         >
           <div className="max-w-7xl mx-auto w-full">
             <Outlet />

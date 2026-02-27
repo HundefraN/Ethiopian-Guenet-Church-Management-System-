@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Activity, Clock, ChevronRight, User, Plus, Edit2, Trash2, Lock, Unlock, RefreshCw, LogIn, LogOut, Settings, Users, Building, Shield, Upload } from "lucide-react";
+import { Activity, Clock, ChevronRight, User, Plus, Edit2, Trash2, Lock, Unlock, RefreshCw, LogIn, LogOut, Settings, Users, Building, Shield, Upload, Key } from "lucide-react";
 import { supabase } from "../supabaseClient";
-import { ActivityLog } from "../types";
 import { useNavigate } from "react-router-dom";
 import { timeAgo } from "../utils/timeAgo";
 import { getActionLabel, getActionColor, getEntityLabel } from "../utils/activityLogger";
+import { useAuth } from "../context/AuthContext";
 
 // Icon mapper for action types
 const getActionIcon = (action: string) => {
@@ -19,6 +19,7 @@ const getActionIcon = (action: string) => {
     case "LOGOUT": return LogOut;
     case "UPLOAD": return Upload;
     case "TOGGLE": return Settings;
+    case "PASSWORD_CHANGE": return Key;
     default: return Activity;
   }
 };
@@ -30,15 +31,18 @@ export default function ActivityLogList({
   limit?: number;
   churchId?: string;
 }) {
+  const { profile } = useAuth();
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchLogs();
+    if (profile) {
+      fetchLogs();
+    }
 
     const channel = supabase
-      .channel(`internal_activity_logs_${churchId || "all"}`)
+      .channel(`internal_activity_logs_${churchId || profile?.id || "all"}`)
       .on(
         "postgres_changes",
         {
@@ -55,36 +59,41 @@ export default function ActivityLogList({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [churchId]);
+  }, [churchId, profile]);
 
   const fetchLogs = async () => {
     try {
-      let query = supabase
-        .from("activity_logs")
-        .select(
-          `
-          *,
-          profiles:user_id (
-            full_name,
-            avatar_url,
-            role,
-            church_id
-          )
-        `
-        )
-        .order("created_at", { ascending: false })
-        .limit(limit);
+      const role = profile?.role;
 
-      // Note: Filtering by church_id on joined table is tricky in Supabase unless we use !inner join or filter in JS
-      // However, Supabase filters on joined tables using the syntax: table!inner(column)
-
-      if (churchId) {
-        // Filter logs where the user belongs to the church
-        // Using !inner ensures we only get logs from users in that church
-        query = supabase
+      // Servant: only their own activities
+      if (role === "servant") {
+        const { data, error } = await supabase
           .from("activity_logs")
-          .select(
-            `
+          .select(`
+            *,
+            profiles:user_id (
+              full_name,
+              avatar_url,
+              role,
+              church_id
+            )
+          `)
+          .eq("user_id", profile?.id)
+          .order("created_at", { ascending: false })
+          .limit(limit);
+
+        if (error) throw error;
+        setLogs(data || []);
+        return;
+      }
+
+      // Pastor: activities from users in the same church
+      const effectiveChurchId = churchId || (role === "pastor" ? profile?.church_id : null);
+
+      if (effectiveChurchId) {
+        const { data, error } = await supabase
+          .from("activity_logs")
+          .select(`
             *,
             profiles:user_id!inner (
               full_name,
@@ -92,14 +101,30 @@ export default function ActivityLogList({
               role,
               church_id
             )
-          `
-          )
-          .eq("profiles.church_id", churchId)
+          `)
+          .eq("profiles.church_id", effectiveChurchId)
           .order("created_at", { ascending: false })
           .limit(limit);
+
+        if (error) throw error;
+        setLogs(data || []);
+        return;
       }
 
-      const { data, error } = await query;
+      // Super Admin: all activities
+      const { data, error } = await supabase
+        .from("activity_logs")
+        .select(`
+          *,
+          profiles:user_id (
+            full_name,
+            avatar_url,
+            role,
+            church_id
+          )
+        `)
+        .order("created_at", { ascending: false })
+        .limit(limit);
 
       if (error) throw error;
       setLogs(data || []);
@@ -168,7 +193,16 @@ export default function ActivityLogList({
               {/* When */}
               <div className="flex items-center gap-2 mt-1.5">
                 <Clock size={11} className="text-gray-400" />
-                <span className="text-[11px] text-gray-400 font-medium">
+                <span
+                  className="text-[11px] text-gray-400 font-medium"
+                  title={new Date(log.created_at).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                >
                   {timeAgo(log.created_at)}
                 </span>
                 {log.profiles?.role && (

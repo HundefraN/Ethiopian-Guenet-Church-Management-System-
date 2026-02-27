@@ -5,6 +5,7 @@
   color: #374151;
   margin-bottom: 0.5rem;
 }
+
 .form-input,
 .form-select {
   width: 100%;
@@ -18,16 +19,19 @@
   color: #1f2937;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
+
 .form-input:hover,
 .form-select:hover {
   border-color: #d1d5db;
 }
+
 .form-input:focus,
 .form-select:focus {
-  border-color: #006341;
-  box-shadow: 0 0 0 4px rgba(0, 99, 65, 0.1);
+  border-color: #4B9BDC;
+  box-shadow: 0 0 0 3px rgba(75, 155, 220, 0.15);
   background-color: #ffffff;
 }
+
 .form-input::placeholder {
   color: #9ca3af;
 }
