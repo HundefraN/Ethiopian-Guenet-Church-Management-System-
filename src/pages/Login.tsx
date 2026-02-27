@@ -25,7 +25,19 @@ export default function Login() {
   }, [session, profile, navigate]);
 
   if (authLoading || (session && profile)) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-4 border-gray-100 border-t-[#4B9BDC] animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
+            </div>
+          </div>
+          <p className="text-gray-500 font-medium animate-pulse">Establishing secure session...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -40,11 +52,11 @@ export default function Login() {
 
     if (error) {
       toast.error(error.message, { id: loadingToast });
+      setLoading(false);
     } else {
       toast.success("Signed in successfully", { id: loadingToast });
-      navigate("/");
+      // Navigation is now handled by the useEffect once the profile is loaded
     }
-    setLoading(false);
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {

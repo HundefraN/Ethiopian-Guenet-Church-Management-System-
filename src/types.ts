@@ -30,6 +30,7 @@ export interface Church {
   id: string;
   name: string;
   location: string | null;
+  map_link?: string | null;
 }
 
 export interface Department {

@@ -16,6 +16,8 @@ import {
   DollarSign,
   Building,
   Shield,
+  ExternalLink,
+  Map,
 } from "lucide-react";
 import { Member } from "../types";
 
@@ -92,7 +94,7 @@ export default function MemberDetailsModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-gray-900/40 backdrop-blur-md"
+        className="absolute inset-0 bg-white/10 backdrop-blur-2xl"
       />
 
       <motion.div
@@ -177,7 +179,22 @@ export default function MemberDetailsModal({
             <motion.div variants={cardVariants} className="col-span-1 bg-white rounded-3xl p-6 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(75,155,220,0.08)] transition-all">
               <SectionHeader icon={Heart} title="Spiritual Life" />
               <div className="flex flex-col gap-2">
-                <InfoItem label="Branch" value={member.churches?.name} icon={Building} />
+                <div className="flex items-center justify-between gap-2">
+                  <InfoItem label="Branch" value={member.churches?.name} icon={Building} />
+                  {member.churches?.map_link && (
+                    <a
+                      href={member.churches.map_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mb-4 p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider border border-emerald-100/50"
+                      title="View on Map"
+                    >
+                      <Map size={14} />
+                      <span className="hidden sm:inline">Map</span>
+                      <ExternalLink size={10} />
+                    </a>
+                  )}
+                </div>
                 <InfoItem label="Department" value={member.departments?.name} icon={Shield} />
                 <div className="h-px bg-gray-50 my-2"></div>
                 <InfoItem label="Salvation Date" value={formatDate(member.salvation_date)} icon={Calendar} />

@@ -3,9 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Calendar, MapPin, Briefcase, Phone, Mail, Heart,
+  User, Calendar, MapPin, Briefcase, Phone, Mail, Heart, Shield,
   BookOpen, Users, Save, ArrowLeft, Upload, X, CheckCircle, Globe,
   Plus, Trash2, FileText, DollarSign, ChevronRight, Loader2
 } from "lucide-react";
@@ -61,6 +61,7 @@ const memberSchema = z.object({
   zone_rep_signature: z.string().optional().nullable(),
   middle_sector_rep_signature: z.string().optional().nullable(),
   status: z.enum(["Active", "Death", "Transfer"]),
+  department_id: z.string().optional().nullable(),
 });
 
 export type MemberFormValues = z.infer<typeof memberSchema>;
@@ -86,6 +87,9 @@ export default function AddMember() {
   const [uploading, setUploading] = useState(false);
   const [loadingMember, setLoadingMember] = useState(false);
   const [initialData, setInitialData] = useState<any>(null);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [isDeptMenuOpen, setIsDeptMenuOpen] = useState(false);
+  const deptMenuRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -104,6 +108,18 @@ export default function AddMember() {
   const { fields, append, remove } = useFieldArray({ control, name: "children" });
 
   useEffect(() => {
+    const fetchDepartments = async () => {
+      if (profile?.church_id || profile?.role === "super_admin") {
+        let query = supabase.from("departments").select("*").order("name");
+        if (profile?.role !== "super_admin") {
+          query = query.eq("church_id", profile.church_id);
+        }
+        const { data } = await query;
+        if (data) setDepartments(data);
+      }
+    };
+    fetchDepartments();
+
     if (profile?.role === "super_admin" && isEditing) {
       toast.error("Super Admins cannot edit member data.");
       navigate("/members");
@@ -137,8 +153,15 @@ export default function AddMember() {
     } else {
       const draft = localStorage.getItem("member_draft");
       if (draft) {
-        try { const parsed = JSON.parse(draft); reset(parsed); toast.success("Draft restored"); }
+        try {
+          const parsed = JSON.parse(draft);
+          reset(parsed);
+          toast.success("Draft restored");
+        }
         catch (e) { console.error("Failed to parse draft", e); }
+      } else if (profile?.department_id) {
+        // Set default department for new members if not editing
+        setValue("department_id", profile.department_id);
       }
     }
   }, [id, isEditing, navigate, reset, setValue, profile]);
@@ -164,6 +187,17 @@ export default function AddMember() {
     });
     return () => observers.forEach((o) => o.disconnect());
   }, [loadingMember]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (deptMenuRef.current && !deptMenuRef.current.contains(event.target as Node)) {
+        setIsDeptMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const scrollToSection = (sectionId: string) => {
     const el = sectionRefs.current[sectionId];
@@ -205,7 +239,7 @@ export default function AddMember() {
       const payload = {
         ...data, photo: photoUrl,
         church_id: profile?.church_id,
-        department_id: profile?.department_id || null,
+        department_id: data.department_id || null,
         income_amount: data.income_amount && !isNaN(parseFloat(data.income_amount)) ? parseFloat(data.income_amount) : null,
         dob: data.dob || null, salvation_date: data.salvation_date || null,
         marriage_date: data.marriage_date || null, fellowship_start_date: data.fellowship_start_date || null,
@@ -269,17 +303,24 @@ export default function AddMember() {
       transition={{ duration: 0.15 }}
       className="min-h-screen pb-20"
     >
-      {/* Floating Header */}
-      <div className="sticky top-0 z-40 mb-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between px-6 py-4 rounded-2xl bg-white/80 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.08)]">
+      {/* Sticky Header - Flush to top edge */}
+      <div className="sticky top-0 z-50 w-full mb-8 -mt-4 md:-mt-10">
+        <div className="w-full bg-white/95 backdrop-blur-2xl border-b border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={() => navigate(-1)} className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-500 transition-all hover:scale-105 active:scale-95">
+              <button
+                onClick={() => navigate(-1)}
+                className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-500 transition-all hover:scale-105 active:scale-95 border border-transparent hover:border-gray-200"
+              >
                 <ArrowLeft size={20} />
               </button>
               <div>
-                <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">{isEditing ? "Edit Member" : "New Member Registration"}</h1>
-                <p className="text-xs text-gray-400 font-medium mt-0.5">Fill in the sections below to complete registration</p>
+                <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight leading-none overflow-hidden">
+                  {isEditing ? "Edit Member" : "New Member Registration"}
+                </h1>
+                <p className="text-[10px] md:text-xs text-blue-500 font-bold uppercase tracking-wider mt-1 opacity-80">
+                  {isEditing ? "Update church records" : "Join the church family"}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -399,6 +440,117 @@ export default function AddMember() {
                     <label className="form-label">Full Name <span className="text-red-400">*</span></label>
                     <input {...register("full_name")} className="form-input" placeholder="e.g. Abebe Kebede" />
                     {errors.full_name && <p className="form-error">{errors.full_name.message}</p>}
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="form-label text-blue-700 flex items-center justify-between">
+                      <span>Assigned Department</span>
+                      {watch("department_id") && (
+                        <button
+                          type="button"
+                          onClick={() => setValue("department_id", "", { shouldDirty: true })}
+                          className="text-[10px] text-red-500 hover:text-red-600 font-bold uppercase tracking-wider"
+                        >
+                          Clear Assignment
+                        </button>
+                      )}
+                    </label>
+                    <div className="relative" ref={deptMenuRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsDeptMenuOpen(!isDeptMenuOpen)}
+                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 transition-all duration-200 bg-white shadow-sm ${isDeptMenuOpen
+                          ? "border-[#4B9BDC] ring-4 ring-[#4B9BDC]/10"
+                          : "border-blue-100/50 hover:border-blue-200"
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${watch("department_id") ? "bg-blue-500 text-white" : "bg-blue-50 text-blue-400"
+                            }`}>
+                            <Shield size={20} />
+                          </div>
+                          <div className="text-left">
+                            <p className={`text-sm font-bold truncate ${watch("department_id") ? "text-gray-900" : "text-gray-400"
+                              }`}>
+                              {departments.find(d => d.id === watch("department_id"))?.name || "Choose a Department"}
+                            </p>
+                            <p className="text-[10px] text-gray-400 font-medium leading-none mt-0.5">
+                              {watch("department_id") ? "Currently assigned" : "No department assigned yet"}
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRight
+                          size={20}
+                          className={`text-gray-300 transition-transform duration-300 ${isDeptMenuOpen ? "rotate-90" : ""
+                            }`}
+                        />
+                      </button>
+
+                      <AnimatePresence>
+                        {isDeptMenuOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                            className="absolute left-0 right-0 top-full mt-2 z-50 bg-white/95 backdrop-blur-xl border border-blue-100 rounded-3xl shadow-[0_20px_50px_rgba(75,155,220,0.15)] overflow-hidden"
+                          >
+                            <div className="p-2 max-h-64 overflow-y-auto custom-scrollbar">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setValue("department_id", "", { shouldDirty: true });
+                                  setIsDeptMenuOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors ${!watch("department_id")
+                                  ? "bg-blue-50 text-blue-700 font-bold"
+                                  : "hover:bg-gray-50 text-gray-500 hover:text-gray-900"
+                                  }`}
+                              >
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${!watch("department_id") ? "bg-blue-100" : "bg-gray-100"}`}>
+                                  <Users size={16} />
+                                </div>
+                                <div>
+                                  <p className="text-sm">No Department</p>
+                                  <p className="text-[9px] opacity-70">General congregation member</p>
+                                </div>
+                              </button>
+
+                              <div className="h-px bg-gray-50 my-1 mx-2" />
+
+                              {departments.length === 0 ? (
+                                <div className="p-4 text-center">
+                                  <p className="text-xs text-gray-400 italic">No departments configured</p>
+                                </div>
+                              ) : (
+                                departments.map((dept) => {
+                                  const isSelected = watch("department_id") === dept.id;
+                                  return (
+                                    <button
+                                      key={dept.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setValue("department_id", dept.id, { shouldDirty: true });
+                                        setIsDeptMenuOpen(false);
+                                      }}
+                                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left mb-0.5 transition-all ${isSelected
+                                        ? "bg-blue-500 text-white shadow-md shadow-blue-200"
+                                        : "hover:bg-blue-50 text-gray-600 hover:text-blue-700"
+                                        }`}
+                                    >
+                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? "bg-white/20" : "bg-blue-50 text-blue-400"}`}>
+                                        <Briefcase size={16} />
+                                      </div>
+                                      <span className="text-sm font-semibold">{dept.name}</span>
+                                      {isSelected && <CheckCircle size={14} className="ml-auto" />}
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                   <div>
                     <label className="form-label">Date of Birth</label>

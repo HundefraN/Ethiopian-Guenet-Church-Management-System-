@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Building, MapPin, Search, Plus, Loader2, X, ChevronRight, Users, Shield, BookOpen, Edit2, Trash2 } from "lucide-react";
+import { Building, MapPin, Search, Plus, Loader2, X, ChevronRight, Users, Shield, BookOpen, Edit2, Trash2, ExternalLink, Map } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { Church } from "../types";
@@ -18,7 +18,7 @@ export default function Churches() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newChurch, setNewChurch] = useState({ name: "", location: "" });
+  const [newChurch, setNewChurch] = useState({ name: "", location: "", map_link: "" });
   const [submitting, setSubmitting] = useState(false);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -149,13 +149,13 @@ export default function Churches() {
         "CHURCH",
         `Added new church "${newChurch.name}" at ${newChurch.location || "unspecified location"}`,
         data.id,
-        { name: newChurch.name, location: newChurch.location }
+        { name: newChurch.name, location: newChurch.location, map_link: newChurch.map_link }
       );
 
       // Add empty members array to match type
       const newChurchWithCount: ChurchWithCount = { ...data, members: [] };
       setChurches([...churches, newChurchWithCount]);
-      setNewChurch({ name: "", location: "" });
+      setNewChurch({ name: "", location: "", map_link: "" });
       setIsModalOpen(false);
       toast.success("Church added successfully");
     } catch (error: any) {
@@ -174,7 +174,7 @@ export default function Churches() {
 
     try {
       setSubmitting(true);
-      const updates = { name: newChurch.name, location: newChurch.location };
+      const updates = { name: newChurch.name, location: newChurch.location, map_link: newChurch.map_link };
 
       const { error } = await supabase
         .from("churches")
@@ -199,7 +199,7 @@ export default function Churches() {
         setSelectedChurch({ ...selectedChurch, ...updates });
       }
 
-      setNewChurch({ name: "", location: "" });
+      setNewChurch({ name: "", location: "", map_link: "" });
       setEditingChurch(null);
       setIsEditModalOpen(false);
       toast.success("Church updated successfully");
@@ -259,7 +259,8 @@ export default function Churches() {
   const hasEditChanges = useMemo(() => {
     if (!editingChurch) return false;
     return newChurch.name !== (editingChurch.name || "") ||
-      newChurch.location !== (editingChurch.location || "");
+      newChurch.location !== (editingChurch.location || "") ||
+      newChurch.map_link !== (editingChurch.map_link || "");
   }, [newChurch, editingChurch]);
 
   return (
@@ -314,7 +315,11 @@ export default function Churches() {
                     <button
                       onClick={() => {
                         setEditingChurch(selectedChurch);
-                        setNewChurch({ name: selectedChurch.name, location: selectedChurch.location || "" });
+                        setNewChurch({
+                          name: selectedChurch.name,
+                          location: selectedChurch.location || "",
+                          map_link: selectedChurch.map_link || ""
+                        });
                         setIsEditModalOpen(true);
                       }}
                       className="p-2 hover:bg-blue-50 rounded-full transition-colors text-blue-400 hover:text-blue-600 bg-white shadow-sm"
@@ -350,6 +355,21 @@ export default function Churches() {
                 <MapPin size={16} className="text-[#4B9BDC]" />
                 <span>{selectedChurch.location || "No location specified"}</span>
               </div>
+
+              {selectedChurch.map_link && (
+                <motion.a
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  href={selectedChurch.map_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mb-8 flex items-center justify-center gap-2 w-full py-4 bg-gradient-to-br from-emerald-50 to-teal-50 text-emerald-700 rounded-2xl border border-emerald-100/50 font-bold hover:shadow-md transition-all group"
+                >
+                  <Map size={20} className="group-hover:rotate-12 transition-transform" />
+                  <span>View on Google Maps</span>
+                  <ExternalLink size={16} className="ml-1 opacity-50" />
+                </motion.a>
+              )}
 
               {loadingStats ? (
                 <div className="flex justify-center py-12">
@@ -501,9 +521,16 @@ export default function Churches() {
                       <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#4B9BDC] transition-colors leading-tight">
                         {church.name}
                       </h3>
-                      <div className="flex items-center gap-2 text-gray-500 text-sm mb-6 font-medium">
-                        <MapPin size={16} className="shrink-0 text-gray-400 group-hover:text-[#4B9BDC] transition-colors" />
-                        <span className="truncate">{church.location || "No location specified"}</span>
+                      <div className="flex items-center justify-between gap-2 text-gray-500 text-sm mb-6 font-medium">
+                        <div className="flex items-center gap-2 truncate">
+                          <MapPin size={16} className="shrink-0 text-gray-400 group-hover:text-[#4B9BDC] transition-colors" />
+                          <span className="truncate">{church.location || "No location specified"}</span>
+                        </div>
+                        {church.map_link && (
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-50 text-emerald-500 shrink-0" title="Map link available">
+                            <Map size={12} />
+                          </div>
+                        )}
                       </div>
 
                       <div className="pt-5 border-t border-gray-100 flex items-center justify-between">
@@ -538,7 +565,7 @@ export default function Churches() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+            className="fixed inset-0 bg-white/10 backdrop-blur-2xl flex items-center justify-center z-[100] p-4"
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -593,6 +620,29 @@ export default function Churches() {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
+                    Map Link (Google Maps URL)
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-[#4B9BDC] transition-colors">
+                      <Map size={18} />
+                    </div>
+                    <input
+                      type="url"
+                      value={newChurch.map_link}
+                      onChange={(e) =>
+                        setNewChurch({ ...newChurch, map_link: e.target.value })
+                      }
+                      className="w-full pl-12 pr-5 py-3.5 bg-gray-50 border-0 ring-1 ring-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#4B9BDC] transition-all font-medium text-gray-900 placeholder-gray-400"
+                      placeholder="https://maps.google.com/..."
+                    />
+                  </div>
+                  <p className="mt-2 ml-1 text-[11px] text-gray-500 font-medium">
+                    Paste a Google Maps or other map service link to help people find this church.
+                  </p>
+                </div>
+
                 <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
                   <button
                     type="button"
@@ -631,7 +681,7 @@ export default function Churches() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+            className="fixed inset-0 bg-white/10 backdrop-blur-2xl flex items-center justify-center z-[100] p-4"
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -647,7 +697,7 @@ export default function Churches() {
                   <p className="text-sm text-gray-500 mt-1 font-medium">Update details for this branch</p>
                 </div>
                 <button
-                  onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "" }); }}
+                  onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "", map_link: "" }); }}
                   className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                 >
                   <X size={20} />
@@ -686,10 +736,33 @@ export default function Churches() {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
+                    Map Link (Google Maps URL)
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-400 transition-colors">
+                      <Map size={18} />
+                    </div>
+                    <input
+                      type="url"
+                      value={newChurch.map_link}
+                      onChange={(e) =>
+                        setNewChurch({ ...newChurch, map_link: e.target.value })
+                      }
+                      className="w-full pl-12 pr-5 py-3.5 bg-gray-50 border-0 ring-1 ring-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all font-medium text-gray-900 placeholder-gray-400"
+                      placeholder="https://maps.google.com/..."
+                    />
+                  </div>
+                  <p className="mt-2 ml-1 text-[11px] text-gray-500 font-medium">
+                    Paste a Google Maps or other map service link to help people find this church.
+                  </p>
+                </div>
+
                 <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
                   <button
                     type="button"
-                    onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "" }); }}
+                    onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "", map_link: "" }); }}
                     className="px-6 py-3 font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
                   >
                     Cancel

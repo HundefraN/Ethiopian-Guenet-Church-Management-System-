@@ -24,6 +24,7 @@ interface SidebarProps {
 
 export default function Sidebar({ onClose }: SidebarProps) {
   const { profile, signOut } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [churchName, setChurchName] = useState<string>("");
   const location = useLocation();
 
@@ -101,6 +102,18 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const isPathActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
+  };
+
+  const handleSignOut = async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      if (onClose) onClose();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -226,14 +239,16 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </div>
           </div>
           <button
-            onClick={() => {
-              signOut();
-              if (onClose) onClose();
-            }}
-            className="sidebar-signout-btn group/btn"
+            onClick={handleSignOut}
+            disabled={isLoggingOut}
+            className="sidebar-signout-btn group/btn disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <LogOut size={15} className="group-hover/btn:-translate-x-1 transition-transform" />
-            <span>Sign Out</span>
+            {isLoggingOut ? (
+              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <LogOut size={15} className="group-hover/btn:-translate-x-1 transition-transform" />
+            )}
+            <span>{isLoggingOut ? "Signing Out..." : "Sign Out"}</span>
           </button>
         </div>
       </div>

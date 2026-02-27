@@ -15,6 +15,8 @@ import {
   RefreshCw,
   Save,
   ChevronRight,
+  ExternalLink,
+  Map,
 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import { Church, Profile } from "../types";
@@ -30,6 +32,7 @@ interface Pastor extends Profile {
   email?: string; // Email is not in Profile type but returned by join or we need to fetch it
   churches?: {
     name: string;
+    map_link?: string | null;
   } | null;
 }
 
@@ -83,7 +86,8 @@ export default function Pastors() {
           `
           *,
           churches (
-            name
+            name,
+            map_link
           )
         `
         )
@@ -464,12 +468,26 @@ export default function Pastors() {
                   </span>
 
                   <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 mt-2 mb-2">
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <Building size={16} className={pastor.churches ? "text-indigo-500" : "text-gray-400"} />
-                      {pastor.churches ? (
-                        <span className="text-gray-700 truncate">{pastor.churches.name}</span>
-                      ) : (
-                        <span className="text-gray-400 italic">No Branch Assigned</span>
+                    <div className="flex items-center justify-between gap-2 text-sm font-medium">
+                      <div className="flex items-center gap-2 truncate">
+                        <Building size={16} className={pastor.churches ? "text-indigo-500" : "text-gray-400"} />
+                        {pastor.churches ? (
+                          <span className="text-gray-700 truncate">{pastor.churches.name}</span>
+                        ) : (
+                          <span className="text-gray-400 italic">No Branch Assigned</span>
+                        )}
+                      </div>
+                      {pastor.churches?.map_link && (
+                        <a
+                          href={pastor.churches.map_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors"
+                          title="View on Map"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Map size={14} />
+                        </a>
                       )}
                     </div>
                   </div>
@@ -487,7 +505,7 @@ export default function Pastors() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+            className="fixed inset-0 bg-white/10 backdrop-blur-2xl flex items-center justify-center z-[100] p-4"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}

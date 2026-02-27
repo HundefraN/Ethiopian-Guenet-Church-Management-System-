@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { logActivity, getObjectDiff } from "../utils/activityLogger";
 import ConfirmDialog from "../components/ConfirmDialog";
+import DepartmentDetailsModal from "../components/DepartmentDetailsModal";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DepartmentWithDetails extends Department {
@@ -39,6 +40,9 @@ export default function Departments() {
     null
   );
   const [formData, setFormData] = useState({ name: "", church_id: "" });
+  const [selectedDeptForView, setSelectedDeptForView] = useState<DepartmentWithDetails | null>(
+    null
+  );
   const [submitting, setSubmitting] = useState(false);
 
   // Confirm Dialog State
@@ -384,60 +388,74 @@ export default function Departments() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2 }}
                 key={dept.id}
-                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-purple-200 transition-all duration-150 group relative overflow-hidden"
+                className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-purple-200 transition-all duration-150 group relative overflow-hidden flex flex-col cursor-pointer"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-purple-50/50 blur-3xl -mr-10 -mt-10 transition-all duration-200 group-hover:bg-purple-100/60 z-0"></div>
+                {/* Clickable Area for Details */}
+                <div
+                  className="absolute inset-0 z-[1]"
+                  onClick={() => setSelectedDeptForView(dept)}
+                ></div>
 
-                <div className="flex items-start justify-between mb-5 relative z-10">
-                  <div className="w-14 h-14 bg-purple-50/80 rounded-2xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-150 shadow-sm">
-                    <Shield size={28} />
-                  </div>
-                  {profile?.role !== "super_admin" && profile?.role === "pastor" && (
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      <button
-                        onClick={() => handleEdit(dept)}
-                        className="p-2.5 text-blue-400 hover:text-white hover:bg-blue-500 rounded-xl transition-colors shadow-sm bg-white border border-gray-100"
-                        title="Edit Department"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(dept.id)}
-                        className="p-2.5 text-red-400 hover:text-white hover:bg-red-500 rounded-xl transition-colors shadow-sm bg-white border border-gray-100"
-                        title="Delete Department"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                <div className="p-6 flex flex-col flex-1 relative z-[2] pointer-events-none">
+                  <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-purple-50/50 blur-3xl -mr-10 -mt-10 transition-all duration-200 group-hover:bg-purple-100/60 z-0"></div>
+
+                  <div className="flex items-start justify-between mb-5 relative z-10 pointer-events-auto">
+                    <div className="w-14 h-14 bg-purple-50/80 rounded-2xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-150 shadow-sm">
+                      <Shield size={28} />
                     </div>
-                  )}
-                </div>
-
-                <div className="relative z-10">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-purple-700 transition-colors leading-tight">
-                    {dept.name}
-                  </h3>
-
-                  {dept.churches && (
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500 font-medium mb-6">
-                      <Building size={14} className="text-gray-400" />
-                      <p className="truncate">{dept.churches.name}</p>
-                    </div>
-                  )}
-
-                  <div className="pt-5 border-t border-gray-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex -space-x-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-white">
-                          <Users size={12} />
-                        </div>
+                    {profile?.role !== "super_admin" && profile?.role === "pastor" && (
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(dept);
+                          }}
+                          className="p-2.5 text-blue-400 hover:text-white hover:bg-blue-500 rounded-xl transition-colors shadow-sm bg-white border border-gray-100"
+                          title="Edit Department"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(dept.id);
+                          }}
+                          className="p-2.5 text-red-400 hover:text-white hover:bg-red-500 rounded-xl transition-colors shadow-sm bg-white border border-gray-100"
+                          title="Delete Department"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
-                      <span className="text-xl font-black text-gray-900 ml-1">
-                        {(dept.profile_departments?.[0]?.count || 0) + (dept.members?.[0]?.count || 0)}
-                      </span>
-                    </div>
-                    <div className="bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 flex items-center gap-1.5">
-                      <Calendar size={14} className="text-gray-400" />
-                      <span className="text-xs font-bold text-gray-600">Weekly</span>
+                    )}
+                  </div>
+
+                  <div className="relative z-10">
+                    <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-purple-700 transition-colors leading-tight">
+                      {dept.name}
+                    </h3>
+
+                    {dept.churches && (
+                      <div className="flex items-center gap-1.5 text-sm text-gray-500 font-medium mb-6">
+                        <Building size={14} className="text-gray-400" />
+                        <p className="truncate">{dept.churches.name}</p>
+                      </div>
+                    )}
+
+                    <div className="pt-5 border-t border-gray-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex -space-x-2">
+                          <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-white">
+                            <Users size={12} />
+                          </div>
+                        </div>
+                        <span className="text-xl font-black text-gray-900 ml-1">
+                          {(dept.profile_departments?.[0]?.count || 0) + (dept.members?.[0]?.count || 0)}
+                        </span>
+                      </div>
+                      <div className="bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 flex items-center gap-1.5">
+                        <Calendar size={14} className="text-gray-400" />
+                        <span className="text-xs font-bold text-gray-600">Weekly</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -454,7 +472,7 @@ export default function Departments() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+            className="fixed inset-0 bg-white/10 backdrop-blur-2xl flex items-center justify-center z-[100] p-4"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -557,6 +575,16 @@ export default function Departments() {
               </form>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Department Details Modal */}
+      <AnimatePresence>
+        {selectedDeptForView && (
+          <DepartmentDetailsModal
+            department={selectedDeptForView}
+            onClose={() => setSelectedDeptForView(null)}
+          />
         )}
       </AnimatePresence>
 

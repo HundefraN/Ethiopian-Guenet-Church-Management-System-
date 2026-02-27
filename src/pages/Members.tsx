@@ -69,7 +69,8 @@ export default function Members() {
             name
           ),
           churches (
-            name
+            name,
+            map_link
           )
         `);
 

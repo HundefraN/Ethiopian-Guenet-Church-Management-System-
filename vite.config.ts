@@ -6,7 +6,6 @@ import { defineConfig, loadEnv } from "vite";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
   return {
-    // Add this line below to tell Vite where the app lives on GitHub Pages
     base: "/Ethiopian-Guenet-Church-Management-System-/",
     plugins: [react(), tailwindcss()],
     define: {
