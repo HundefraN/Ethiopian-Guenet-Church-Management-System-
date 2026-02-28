@@ -555,7 +555,8 @@
                 "other": "ሌላ",
                 "divorced": "ያላገባ በፍትህ የተለያየ",
                 "widowed": "በሞት ያጣ",
-                "remarried": "ዳግም ጋብቻ"
+                "remarried": "ዳግም ጋብቻ",
+                "unknown": "ያልታወቀ"
             },
             "spouseName": "የባለቤት/ሚስት/ባል ስም",
             "faith": "እምነት",

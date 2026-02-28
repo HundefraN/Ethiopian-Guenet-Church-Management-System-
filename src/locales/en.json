@@ -552,7 +552,8 @@
                 "other": "Other",
                 "divorced": "Divorced",
                 "widowed": "Widowed",
-                "remarried": "Remarried"
+                "remarried": "Remarried",
+                "unknown": "Unknown"
             },
             "spouseName": "Spouse Name",
             "faith": "Faith",

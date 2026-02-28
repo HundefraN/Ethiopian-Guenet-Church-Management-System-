@@ -413,18 +413,21 @@ export default function Reports() {
             const ctx = canvas.getContext("2d");
             if (!ctx) return { data: "", width: 0, height: 0 };
 
-            // Hi-res scaling
+            // Hi-res scaling for crispiness
             const scale = 4;
-            ctx.font = `${isBold ? "bold " : ""}${size * scale}px "Noto Sans Ethiopic", "Abyssinica SIL", sans-serif`;
-            const metrics = ctx.measureText(text);
+            // Clean up text if it's a translation key by mistake
+            const cleanText = text.includes('.') && text.split('.').length > 2 ? t(text) : text;
 
-            canvas.width = metrics.width + (10 * scale);
-            canvas.height = (size * 1.5) * scale;
+            ctx.font = `${isBold ? "bold " : ""}${size * scale}px "Noto Sans Ethiopic", "Abyssinica SIL", sans-serif`;
+            const metrics = ctx.measureText(cleanText);
+
+            canvas.width = metrics.width + (12 * scale);
+            canvas.height = (size * 1.6) * scale;
 
             ctx.font = `${isBold ? "bold " : ""}${size * scale}px "Noto Sans Ethiopic", "Abyssinica SIL", sans-serif`;
             ctx.fillStyle = color;
             ctx.textBaseline = "middle";
-            ctx.fillText(text, 5 * scale, canvas.height / 2);
+            ctx.fillText(cleanText, 6 * scale, canvas.height / 2);
 
             return {
                 data: canvas.toDataURL("image/png"),
@@ -477,30 +480,40 @@ export default function Reports() {
 
         doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
-        doc.text(t("reports.pdf.totalMembers"), 25, 76);
-        doc.text(t("reports.pdf.totalBranches"), 85, 76);
-        doc.text(t("reports.pdf.currentScope"), 145, 76);
+        drawAmharic(t("reports.pdf.totalMembers"), 25, 76, 8, "#64748B", true);
+        drawAmharic(t("reports.pdf.totalBranches"), 85, 76, 8, "#64748B", true);
+        drawAmharic(t("reports.pdf.currentScope"), 145, 76, 8, "#64748B", true);
 
         doc.setFontSize(12);
         doc.setTextColor(30, 58, 138);
-        doc.text(stats.members.length.toLocaleString(), 25, 84);
-        doc.text(churches.length.toLocaleString(), 85, 84);
+        doc.text(stats.members.length.toLocaleString(), 25, 86);
+        doc.text(churches.length.toLocaleString(), 85, 86);
 
-        const displayChurchName = churchName.length > 20 ? churchName.substring(0, 18) + "..." : churchName;
+        const displayChurchName = churchName.length > 30 ? churchName.substring(0, 28) + "..." : churchName;
         // Check if churchName is Amharic
         const isAmharicName = /[\u1200-\u137F]/.test(displayChurchName);
         if (isAmharicName) {
-            drawAmharic(displayChurchName, 145, 84, 10, "#1E3A8A");
+            drawAmharic(displayChurchName, 145, 86, 10, "#1E3A8A", true);
         } else {
-            doc.text(displayChurchName, 145, 84);
+            doc.setFontSize(10);
+            doc.setTextColor(30, 58, 138);
+            doc.text(displayChurchName, 145, 86);
         }
 
         let y = 108;
 
-        const amharicTableHook = (data: any) => {
+        const isAmharic = (text: any) => typeof text === 'string' && /[\u1200-\u137F]/.test(text);
+
+        const willDrawCell = (data: any) => {
+            if (isAmharic(data.cell.raw)) {
+                data.cell.text = [""]; // Prevent original text from drawing
+            }
+        };
+
+        const didDrawCell = (data: any) => {
             if (data.section === 'body' || data.section === 'head') {
                 const text = data.cell.raw;
-                if (typeof text === 'string' && /[\u1200-\u137F]/.test(text)) {
+                if (isAmharic(text)) {
                     const { data: imgData, width, height } = renderAmharicText(
                         text,
                         data.section === 'head' ? 10 : 9,
@@ -508,7 +521,6 @@ export default function Reports() {
                         data.section === 'head'
                     );
                     if (imgData) {
-                        data.cell.text = [""]; // Clear original text
                         const x = data.cell.x + (data.cell.width - width) / 2;
                         const y = data.cell.y + (data.cell.height) / 2;
                         doc.addImage(imgData, "PNG", x, y - (height / 2), width, height);
@@ -532,9 +544,14 @@ export default function Reports() {
             theme: "striped",
             headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 4 },
             bodyStyles: { fontSize: 9, cellPadding: 4 },
+            columnStyles: {
+                1: { halign: 'center' },
+                2: { halign: 'center' }
+            },
             alternateRowStyles: { fillColor: [245, 247, 250] },
             margin: { left: 15, right: 15 },
-            didDrawCell: amharicTableHook
+            willDrawCell: willDrawCell,
+            didDrawCell: didDrawCell
         });
         y = (doc as any).lastAutoTable.finalY + 15;
 
@@ -555,9 +572,14 @@ export default function Reports() {
             theme: "striped",
             headStyles: { fillColor: [16, 185, 129], textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 4 },
             bodyStyles: { fontSize: 9, cellPadding: 4 },
+            columnStyles: {
+                1: { halign: 'center' },
+                2: { halign: 'center' }
+            },
             alternateRowStyles: { fillColor: [240, 253, 244] },
             margin: { left: 15, right: 15 },
-            didDrawCell: amharicTableHook
+            willDrawCell: willDrawCell,
+            didDrawCell: didDrawCell
         });
         y = (doc as any).lastAutoTable.finalY + 15;
 
@@ -580,9 +602,14 @@ export default function Reports() {
             theme: "striped",
             headStyles: { fillColor: [139, 92, 246], textColor: 255, fontStyle: "bold", cellPadding: 5 },
             bodyStyles: { cellPadding: 5 },
+            columnStyles: {
+                1: { halign: 'center' },
+                2: { halign: 'center' }
+            },
             alternateRowStyles: { fillColor: [245, 243, 255] },
             margin: { left: 15, right: 15 },
-            didDrawCell: amharicTableHook
+            willDrawCell: willDrawCell,
+            didDrawCell: didDrawCell
         });
         y = (doc as any).lastAutoTable.finalY + 15;
 
@@ -600,15 +627,20 @@ export default function Reports() {
             head: [[t("reports.pdf.status"), t("reports.pdf.count"), t("reports.pdf.percentage")]],
             body: demographicMarital.map((g) => {
                 const total = demographicMarital.reduce((a, b) => a + b.count, 0);
-                const nameLabel = t(`members.form.maritalStatus.${g.name.toLowerCase()}`) || g.name;
+                const nameLabel = g.name === "Unknown" ? t("common.unknown") : (t(`members.form.maritalStatus.${g.name.toLowerCase()}`) || g.name);
                 return [nameLabel, g.count, total > 0 ? `${((g.count / total) * 100).toFixed(1)}%` : "0%"];
             }),
             theme: "striped",
             headStyles: { fillColor: [236, 72, 153], textColor: 255, fontStyle: "bold", cellPadding: 4 },
             bodyStyles: { cellPadding: 4 },
+            columnStyles: {
+                1: { halign: 'center' },
+                2: { halign: 'center' }
+            },
             alternateRowStyles: { fillColor: [253, 242, 248] },
             margin: { left: 15, right: 15 },
-            didDrawCell: amharicTableHook
+            willDrawCell: willDrawCell,
+            didDrawCell: didDrawCell
         });
         y = (doc as any).lastAutoTable.finalY + 15;
 
@@ -640,9 +672,14 @@ export default function Reports() {
             theme: "striped",
             headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: "bold", cellPadding: 4 },
             bodyStyles: { cellPadding: 4 },
+            columnStyles: {
+                1: { halign: 'center' },
+                2: { halign: 'center' }
+            },
             alternateRowStyles: { fillColor: [239, 246, 255] },
             margin: { left: 15, right: 15 },
-            didDrawCell: amharicTableHook
+            willDrawCell: willDrawCell,
+            didDrawCell: didDrawCell
         });
         y = (doc as any).lastAutoTable.finalY + 15;
 
@@ -674,9 +711,14 @@ export default function Reports() {
             theme: "striped",
             headStyles: { fillColor: [245, 158, 11], textColor: 255, fontStyle: "bold", cellPadding: 4 },
             bodyStyles: { cellPadding: 4 },
+            columnStyles: {
+                1: { halign: 'center' },
+                2: { halign: 'center' }
+            },
             alternateRowStyles: { fillColor: [255, 251, 235] },
             margin: { left: 15, right: 15 },
-            didDrawCell: amharicTableHook
+            willDrawCell: willDrawCell,
+            didDrawCell: didDrawCell
         });
 
         // Footer for all pages
@@ -1299,7 +1341,7 @@ export default function Reports() {
                                             <div key={idx} className="space-y-1.5">
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-300">
-                                                        {t(`members.form.maritalStatus.${item.name.toLowerCase()}`) || item.name}
+                                                        {item.name === "Unknown" ? t("common.unknown") : (t(`members.form.maritalStatus.${item.name.toLowerCase()}`) || item.name)}
                                                     </span>
                                                     <span className="text-xs sm:text-sm font-black text-gray-900 dark:text-gray-100">
                                                         {item.count} ({pct.toFixed(1)}%)
