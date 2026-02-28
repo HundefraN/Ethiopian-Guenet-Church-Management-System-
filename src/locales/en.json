@@ -701,6 +701,8 @@
     },
     "reports": {
         "title": "Report Generator",
+        "headerChurch": "Church",
+        "headerReports": "Reports",
         "overview": "Analytics Overview",
         "subtitle": "Board-ready professional reports with growth forecasting and geographic insights.",
         "generate": "Generate Report",

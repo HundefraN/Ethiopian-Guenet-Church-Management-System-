@@ -834,7 +834,7 @@ export default function Reports() {
                             </span>
                         </div>
                         <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-                            Church <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-emerald-300">{t("reports.intelligent")}</span> Reports
+                            {t("reports.headerChurch")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-emerald-300">{t("reports.intelligent")}</span> {t("reports.headerReports")}
                         </h1>
                         <p className="text-blue-100/70 max-w-xl font-medium text-xs sm:text-sm md:text-base">
                             {t("reports.subtitle")}
