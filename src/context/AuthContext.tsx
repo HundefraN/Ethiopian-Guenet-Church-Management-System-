@@ -57,10 +57,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         fetchProfile(session.user.id);
         // Log login activity on SIGNED_IN event
         if (_event === "SIGNED_IN") {
+          // Detect device type
+          const ua = navigator.userAgent;
+          let deviceType = "Desktop";
+          if (/mobile/i.test(ua)) {
+            deviceType = "Mobile";
+          } else if (/tablet/i.test(ua) || /ipad/i.test(ua)) {
+            deviceType = "Tablet";
+          }
+
           logActivity(
             "LOGIN",
             "SYSTEM",
-            `User logged in`,
+            `User logged in from ${deviceType} device`,
             session.user.id
           );
         }

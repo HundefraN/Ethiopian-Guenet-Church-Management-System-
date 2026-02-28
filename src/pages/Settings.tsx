@@ -258,13 +258,13 @@ export default function Settings() {
       if (error) throw error;
 
       await logActivity(
-        "UPDATE",
+        "TOGGLE",
         "SETTINGS",
-        `Toggled maintenance mode to ${newStatus}`,
+        `${newStatus ? "Enabled" : "Disabled"} maintenance mode from settings`,
         globalSettings.id.toString(),
         {
-          old: globalSettings.is_maintenance_mode,
-          new: newStatus,
+          old: { is_maintenance_mode: !newStatus },
+          new: { is_maintenance_mode: newStatus },
         }
       );
 
