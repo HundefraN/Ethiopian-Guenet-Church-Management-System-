@@ -13,8 +13,10 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   settings: GlobalSettings | null;
+  calendarType: 'gregorian' | 'ethiopian';
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateCalendarType: (type: 'gregorian' | 'ethiopian') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +29,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [profile, setProfile] = useState<Profile | null>(null);
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [calendarType, setCalendarTypeState] = useState<'gregorian' | 'ethiopian'>(() => {
+    return (localStorage.getItem('guenet-calendar') as any) || 'gregorian';
+  });
+
+  const updateCalendarType = async (type: 'gregorian' | 'ethiopian') => {
+    setCalendarTypeState(type);
+    localStorage.setItem('guenet-calendar', type);
+    if (profile) {
+      await supabase.from('profiles').update({ calendar_type: type }).eq('id', profile.id);
+    }
+  };
+
+  useEffect(() => {
+    if (profile?.calendar_type) {
+      setCalendarTypeState(profile.calendar_type);
+      localStorage.setItem('guenet-calendar', profile.calendar_type);
+    }
+  }, [profile]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -147,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <AuthContext.Provider
-      value={{ session, user, profile, loading, settings, signOut, refreshProfile }}
+      value={{ session, user, profile, loading, settings, calendarType, signOut, refreshProfile, updateCalendarType }}
     >
       {children}
     </AuthContext.Provider>

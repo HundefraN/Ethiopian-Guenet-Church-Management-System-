@@ -14,23 +14,26 @@ import {
   ExternalLink,
   Map,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { formatDisplayDate } from "../utils/dateFormatter";
 
 interface MemberDetailsProps {
   member: any; // Allow for joined data
 }
 
 export default function MemberDetails({ member }: MemberDetailsProps) {
+  const { calendarType } = useAuth();
+
   if (!member) {
-      return (
-          <div className="flex items-center justify-center h-full text-gray-500">
-              <p>Member not found or loading...</p>
-          </div>
-      )
+    return (
+      <div className="flex items-center justify-center h-full text-gray-500">
+        <p>Member not found or loading...</p>
+      </div>
+    )
   }
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
+    return formatDisplayDate(dateString, calendarType);
   };
 
   const SectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) => (
@@ -86,44 +89,44 @@ export default function MemberDetails({ member }: MemberDetailsProps) {
     <div className="flex flex-col h-full">
       {/* Header Info */}
       <div className="relative mb-6 md:mb-8">
-          <div className="flex items-center gap-4 md:gap-5 z-10">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#4B9BDC] to-[#7EC8F2] rounded-2xl blur opacity-30"></div>
-              <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-gradient-to-br from-[#4B9BDC]/10 to-[#7EC8F2]/10 text-[#4B9BDC] flex items-center justify-center text-2xl md:text-3xl font-black uppercase ring-2 ring-white shadow-xl overflow-hidden border border-[#4B9BDC]/20">
-                {member.photo ? (
-                  <img
-                    src={member.photo}
-                    alt={member.full_name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  member.full_name?.charAt(0) || '?'
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-xl md:text-2xl font-extrabold text-gray-900 dark:text-gray-100 drop-shadow-sm mb-1">
-                {member.full_name}
-              </h2>
-              <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-                <span
-                  className={`px-2 py-0.5 md:px-3 md:py-1 rounded-lg text-[10px] md:text-xs font-bold uppercase tracking-wide border ${member.status === "Active"
-                    ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30"
-                    : member.status === "Death"
-                      ? "bg-gray-50 dark:bg-gray-800/20 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700/30"
-                      : "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800/30"
-                    }`}
-                >
-                  {member.status || "Active"}
-                </span>
-                <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] md:text-xs flex items-center gap-1">
-                  <Calendar size={12} />
-                  Joined {formatDate(member.form_filled_date)}
-                </span>
-              </div>
+        <div className="flex items-center gap-4 md:gap-5 z-10">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#4B9BDC] to-[#7EC8F2] rounded-2xl blur opacity-30"></div>
+            <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-gradient-to-br from-[#4B9BDC]/10 to-[#7EC8F2]/10 text-[#4B9BDC] flex items-center justify-center text-2xl md:text-3xl font-black uppercase ring-2 ring-white shadow-xl overflow-hidden border border-[#4B9BDC]/20">
+              {member.photo ? (
+                <img
+                  src={member.photo}
+                  alt={member.full_name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                member.full_name?.charAt(0) || '?'
+              )}
             </div>
           </div>
+
+          <div>
+            <h2 className="text-xl md:text-2xl font-extrabold text-gray-900 dark:text-gray-100 drop-shadow-sm mb-1">
+              {member.full_name}
+            </h2>
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+              <span
+                className={`px-2 py-0.5 md:px-3 md:py-1 rounded-lg text-[10px] md:text-xs font-bold uppercase tracking-wide border ${member.status === "Active"
+                  ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30"
+                  : member.status === "Death"
+                    ? "bg-gray-50 dark:bg-gray-800/20 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700/30"
+                    : "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800/30"
+                  }`}
+              >
+                {member.status || "Active"}
+              </span>
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] md:text-xs flex items-center gap-1">
+                <Calendar size={12} />
+                Joined {formatDate(member.form_filled_date)}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <motion.div
@@ -166,23 +169,23 @@ export default function MemberDetails({ member }: MemberDetailsProps) {
             </div>
             <InfoItem label="Department" value={member.departments?.name} icon={Shield} />
             <div className="h-px bg-gray-50 my-2"></div>
-            
+
             {/* Additional spiritual info fields can go here */}
-             <InfoItem label="Salvation Date" value={formatDate(member.salvation_date)} icon={Calendar} />
-             <InfoItem label="Baptism Date" value={formatDate(member.baptism_date)} icon={Calendar} />
-             <InfoItem label="Membership Date" value={formatDate(member.membership_date)} icon={Calendar} />
+            <InfoItem label="Salvation Date" value={formatDate(member.salvation_date)} icon={Calendar} />
+            <InfoItem label="Baptism Date" value={formatDate(member.baptism_date)} icon={Calendar} />
+            <InfoItem label="Membership Date" value={formatDate(member.membership_date)} icon={Calendar} />
           </div>
         </motion.div>
-        
+
         {/* Education & Work */}
         <motion.div variants={cardVariants} className="bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl p-5 md:p-6 border border-gray-100 dark:border-gray-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(75,155,220,0.08)] transition-all">
-            <SectionHeader icon={Briefcase} title="Education & Work" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 md:gap-y-4 gap-x-6">
-                <InfoItem label="Education Level" value={member.education_level} />
-                <InfoItem label="Field of Study" value={member.field_of_study} />
-                <InfoItem label="Occupation" value={member.occupation} />
-                <InfoItem label="Employer" value={member.employer} />
-            </div>
+          <SectionHeader icon={Briefcase} title="Education & Work" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 md:gap-y-4 gap-x-6">
+            <InfoItem label="Education Level" value={member.education_level} />
+            <InfoItem label="Field of Study" value={member.field_of_study} />
+            <InfoItem label="Occupation" value={member.occupation} />
+            <InfoItem label="Employer" value={member.employer} />
+          </div>
         </motion.div>
 
       </motion.div>

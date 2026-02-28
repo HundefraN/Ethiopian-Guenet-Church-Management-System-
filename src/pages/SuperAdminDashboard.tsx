@@ -16,6 +16,7 @@ import { logActivity } from "../utils/activityLogger";
 import { springPresets, containerVariants as sharedContainerVariants, itemVariants as sharedItemVariants, interactivePresets } from "../utils/animations";
 import { useTheme } from "../context/ThemeContext";
 import { ds } from "../utils/darkStyles";
+import { formatDisplayDateTime } from "../utils/dateFormatter";
 
 // Animated counter component using framer-motion for smooth, realistic counting
 function AnimatedNumber({ value }: { value: number }) {
@@ -85,7 +86,7 @@ function DonutChart({ segments }: { segments: { value: number; color: string; la
 export default function SuperAdminDashboard() {
   const { isDark } = useTheme();
   const d = ds(isDark);
-  const { settings } = useAuth();
+  const { settings, calendarType } = useAuth();
   const [loading, setLoading] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(settings?.is_maintenance_mode || false);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
@@ -456,13 +457,7 @@ export default function SuperAdminDashboard() {
                         <span className="text-gray-500 dark:text-gray-400">·</span>
                         <span
                           className="text-xs font-medium text-gray-500 dark:text-gray-400"
-                          title={new Date(log.created_at).toLocaleString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          title={formatDisplayDateTime(log.created_at, calendarType)}
                         >
                           {timeAgo(log.created_at)}
                         </span>

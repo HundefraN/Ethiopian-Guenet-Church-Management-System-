@@ -130,13 +130,26 @@ export default function ChangeRoleModal({
     <div className="fixed inset-0 bg-white/5 dark:bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-2xl transition-all duration-300">
       <div className="bg-white dark:bg-gray-900 rounded-[32px] w-full max-w-md shadow-2xl border border-white/50 dark:border-gray-800 overflow-hidden animate-in fade-in zoom-in duration-300">
         <div className="px-8 py-6 border-b border-gray-100/50 dark:border-gray-800/50 flex justify-between items-center bg-gradient-to-r from-gray-50/80 dark:from-gray-950/80 to-white dark:to-gray-900">
-          <div>
-            <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
-              Change User Role
-            </h2>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-0.5">
-              Update permissions and access levels
-            </p>
+          <div className="flex items-center gap-4">
+            {user?.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.full_name || "User"}
+                className="w-12 h-12 rounded-2xl object-cover shadow-sm ring-2 ring-white dark:ring-gray-800"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+                <User size={24} />
+              </div>
+            )}
+            <div>
+              <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
+                {user?.full_name || "Change Role"}
+              </h2>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-0.5">
+                Update permissions and access
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}

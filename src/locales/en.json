@@ -1,0 +1,111 @@
+{
+    "sidebar": {
+        "dashboard": "Dashboard",
+        "churches": "Churches",
+        "pastors": "Pastors",
+        "servants": "Servants",
+        "departments": "Departments",
+        "members": "Members",
+        "settings": "Settings",
+        "signOut": "Sign Out",
+        "signingOut": "Signing Out..."
+    },
+    "settings": {
+        "title": "Settings",
+        "subtitle": "Configure application preferences",
+        "tabs": {
+            "general": "General",
+            "security": "Security",
+            "notifications": "Notifications",
+            "profile": "Profile"
+        },
+        "language": {
+            "label": "Language",
+            "description": "Select your preferred interface language",
+            "english": "English (US)",
+            "amharic": "Amharic (አማርኛ)",
+            "oromo": "Oromo (Afaan Oromoo)"
+        },
+        "calendar": {
+            "label": "Calendar Format",
+            "description": "Choose how dates are displayed across the system",
+            "gregorian": "Gregorian",
+            "ethiopian": "Ethiopian"
+        },
+        "appearance": {
+            "label": "Appearance",
+            "light": "Switch to light mode",
+            "dark": "Switch to dark mode"
+        },
+        "maintenance": {
+            "label": "Maintenance Mode",
+            "description": "Disable application access for all non-admin users"
+        },
+        "profile": {
+            "label": "My Profile",
+            "picture": "Profile Picture",
+            "upload": "Click to upload or drag and drop",
+            "uploadLimit": "SVG, PNG, JPG or GIF (max. 5MB)",
+            "fullName": "Full Name",
+            "role": "Role",
+            "save": "Save Changes",
+            "saving": "Saving..."
+        },
+        "security": {
+            "title": "Change Password",
+            "subtitle": "Update your password to keep your account secure",
+            "currentPassword": "Current Password",
+            "newPassword": "New Password",
+            "confirmPassword": "Confirm New Password",
+            "updateBtn": "Update Password",
+            "updating": "Updating...",
+            "passwordMismatch": "Passwords do not match",
+            "tipsTitle": "Security Tips",
+            "tips": [
+                "Never share your password with anyone",
+                "Use a unique password that you don't use for other accounts",
+                "Consider using a password manager to generate and store passwords",
+                "Change your password regularly for better security"
+            ]
+        },
+        "notifications": {
+            "title": "Coming Soon",
+            "description": "Notification preferences are under development."
+        }
+    },
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "back": "Back",
+        "loading": "Loading...",
+        "success": "Success",
+        "error": "Error"
+    },
+    "login": {
+        "title": "Ethiopian Guenet Church",
+        "subtitle": "Management System",
+        "welcomeBack": "Welcome back",
+        "signInSub": "Please sign in to your account to continue.",
+        "email": "Email address",
+        "password": "Password",
+        "rememberMe": "Remember me",
+        "forgotPassword": "Forgot password?",
+        "signIn": "Sign In",
+        "signingIn": "Signing in...",
+        "resetPassword": "Reset Password",
+        "resetSub": "Enter your email address and we'll send you a link to reset your password.",
+        "sendReset": "Send Reset Link",
+        "sending": "Sending...",
+        "backToLogin": "Back to login",
+        "checkEmail": "Check your email",
+        "checkEmailSub": "We've sent a password reset link to your email address. Please check your inbox and follow the instructions.",
+        "backToSignIn": "Back to Sign In",
+        "didntReceive": "Didn't receive an email?",
+        "tryAgain": "Try again",
+        "establishingSession": "Establishing secure session...",
+        "empoweringMinistry": "Empowering Ministry Through Technology",
+        "description": "A comprehensive management system designed for Ethiopian Guenet Church to streamline administration, connect members, and support spiritual growth."
+    }
+}

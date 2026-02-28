@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { timeAgo } from "../utils/timeAgo";
 import { getActionLabel, getActionColor, getEntityLabel } from "../utils/activityLogger";
 import { useAuth } from "../context/AuthContext";
+import { formatDisplayDateTime } from "../utils/dateFormatter";
 
 // Icon mapper for action types
 const getActionIcon = (action: string) => {
@@ -31,7 +32,7 @@ export default function ActivityLogList({
   limit?: number;
   churchId?: string;
 }) {
-  const { profile } = useAuth();
+  const { profile, calendarType } = useAuth();
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -166,9 +167,24 @@ export default function ActivityLogList({
             key={log.id}
             className="flex items-start gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors border border-transparent hover:border-gray-100 dark:hover:border-gray-800 group"
           >
-            {/* Action Icon */}
-            <div className={`mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${colors.bg} ${colors.text}`}>
-              <ActionIcon size={16} />
+            {/* Action Icon or User Avatar */}
+            <div className="relative shrink-0">
+              {log.profiles?.avatar_url ? (
+                <img
+                  src={log.profiles.avatar_url}
+                  alt={log.profiles.full_name || "User"}
+                  className="w-9 h-9 rounded-lg object-cover"
+                />
+              ) : (
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${colors.bg} ${colors.text}`}>
+                  <ActionIcon size={16} />
+                </div>
+              )}
+              {log.profiles?.avatar_url && (
+                <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900 ${colors.bg} ${colors.text}`}>
+                  <ActionIcon size={8} />
+                </div>
+              )}
             </div>
 
             <div className="flex-1 min-w-0">
@@ -195,13 +211,7 @@ export default function ActivityLogList({
                 <Clock size={11} className="text-gray-500 dark:text-gray-400" />
                 <span
                   className="text-[11px] text-gray-500 dark:text-gray-400 font-medium"
-                  title={new Date(log.created_at).toLocaleString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
+                  title={formatDisplayDateTime(log.created_at, calendarType)}
                 >
                   {timeAgo(log.created_at)}
                 </span>

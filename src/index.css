@@ -382,9 +382,19 @@ textarea.form-input:focus {
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: visible;
+  /* Changed from hidden to allow active active link overlap */
+  background: transparent;
+  color: white;
+}
+
+.sidebar-bg-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   overflow: hidden;
   background: linear-gradient(195deg, #0e1f33 0%, #0a1628 35%, #071120 100%);
-  color: white;
+  z-index: 0;
 }
 
 .sidebar-noise {
@@ -619,14 +629,15 @@ textarea.form-input:focus {
   background: var(--active-nav-bg, #eff4fa);
   box-shadow: -15px 0 50px -10px rgba(75, 155, 220, 0.2), inset 2px 0 10px rgba(255, 255, 255, 0.5);
   border-radius: 40px 0 0 40px;
-  margin-right: -1px;
-  /* Ensure it overlaps with main content slightly */
+  /* Make it overlap the main content to hide the border line seamlessly */
+  right: -2px !important;
   pointer-events: none;
   z-index: 0;
 }
 
 .dark .sidebar-nav-item--active {
   --active-nav-bg: #020617;
+  /* Matches the dark main content bg gradient start perfectly */
   box-shadow: -15px 0 50px -10px rgba(0, 0, 0, 0.5);
   background: var(--active-nav-bg);
 }
@@ -640,24 +651,25 @@ textarea.form-input:focus {
 .sidebar-nav-item--active::after {
   content: "";
   position: absolute;
-  right: 1px;
+  right: 0px;
+  /* Align perfectly with the modified right edge */
   width: 40px;
   height: 40px;
   background: transparent;
   pointer-events: none;
-  z-index: 10;
+  z-index: 0;
 }
 
 .sidebar-nav-item--active::before {
   bottom: 100%;
   border-bottom-right-radius: 40px;
-  box-shadow: 20px 20px 0 20px var(--active-nav-bg, #eff4fa);
+  box-shadow: 20px 20px 0 20px var(--active-nav-bg, #f2f7fc);
 }
 
 .sidebar-nav-item--active::after {
   top: 100%;
   border-top-right-radius: 40px;
-  box-shadow: 20px -20px 0 20px var(--active-nav-bg, #eff4fa);
+  box-shadow: 20px -20px 0 20px var(--active-nav-bg, #f2f7fc);
 }
 
 /* ─── Nav Icon ─── */

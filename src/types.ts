@@ -7,6 +7,8 @@ export interface Profile {
   department_id: string | null;
   full_name: string | null;
   avatar_url: string | null;
+  calendar_type?: 'gregorian' | 'ethiopian';
+  language?: 'en' | 'am';
   is_blocked?: boolean;
 }
 

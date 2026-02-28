@@ -1,0 +1,111 @@
+{
+    "sidebar": {
+        "dashboard": "ዳሽቦርድ",
+        "churches": "አብያተ ክርስቲያናት",
+        "pastors": "አገልጋዮች (ፓስተሮች)",
+        "servants": "አገልጋዮች",
+        "departments": "ዘርፎች",
+        "members": "አባላት",
+        "settings": "ማስተካከያዎች",
+        "signOut": "ውጣ",
+        "signingOut": "በመውጣት ላይ..."
+    },
+    "settings": {
+        "title": "ቅንብሮች",
+        "subtitle": "የመተግበሪያ ምርጫዎችን ያዋቅሩ",
+        "tabs": {
+            "general": "ጠቅላላ",
+            "security": "ደህንነት",
+            "notifications": "ማሳወቂያዎች",
+            "profile": "ስለ"
+        },
+        "language": {
+            "label": "ቋንቋ",
+            "description": "የሚመርጡትን የበይነገጽ ቋንቋ ይምረጡ",
+            "english": "እንግሊዝኛ (English)",
+            "amharic": "አማርኛ (Amharic)",
+            "oromo": "ኦሮምኛ (Oromo)"
+        },
+        "calendar": {
+            "label": "የቀን መቁጠሪያ አይነት",
+            "description": "ቀኖች በስርሚቱ ውስጥ እንዴት እንደሚታዩቅልዎትን የቀን መቁጠሪያ አይነት ይምረጡ",
+            "gregorian": "ግሪጎሪያን",
+            "ethiopian": "ኢትዮጵያዊ"
+        },
+        "appearance": {
+            "label": "ገጽታ",
+            "light": "ወደ ብርሃናማ ገጽታ ይቀይሩ",
+            "dark": "ጨለም ወዳለ ገጽታ ይቀይሩ"
+        },
+        "maintenance": {
+            "label": "የጥገና ሁኔታ",
+            "description": "ለሁሉም አስተዳዳሪ ላልሆኑ ተጠቃሚዎች የመተግበሪያ መዳረሻን ያሰናክሉ"
+        },
+        "profile": {
+            "label": "የኔ መገለጫ",
+            "picture": "የመገለጫ ምስል",
+            "upload": "ለመጫን እዚህ ጠቅ ያድርጉ ወይም ፋይሉን ጎትተው ያስገቡ",
+            "uploadLimit": "SVG, PNG, JPG ወይም GIF (ከ5MB ያልበለጠ)",
+            "fullName": "ሙሉ ስም",
+            "role": "ተግባር",
+            "save": "ለውጦችን አስቀምጥ",
+            "saving": "በማስቀመጥ ላይ..."
+        },
+        "security": {
+            "title": "የይለፍ ቃል ይቀይሩ",
+            "subtitle": "የመለያዎን ደህንነት ለመጠበቅ የይለፍ ቃልዎን ያዘምኑ",
+            "currentPassword": "የአሁኑ የይለፍ ቃል",
+            "newPassword": "አዲስ የይለፍ ቃል",
+            "confirmPassword": "አዲሱን የይለፍ ቃል ያረጋግጡ",
+            "updateBtn": "ያዘምኑ",
+            "updating": "በማዘመን ላይ...",
+            "passwordMismatch": "የይለፍ ቃሎች አይዛመዱም",
+            "tipsTitle": "የደህንነት ምክሮች",
+            "tips": [
+                "የይለፍ ቃልዎን ለማንም አያጋሩ",
+                "ለሌሎች መለያዎች የማይጠቀሙበት ልዩ የይለፍ ቃል ይጠቀሙ",
+                "የይለፍ ቃሎችን ለመፍጠር እና ለማስቀመጥ የይለፍ ቃል አስተዳዳሪን (Password Manager) መጠቀም ያስቡበት",
+                "ለተሻለ ደህንነት የይለፍ ቃልዎን በመደበኛነት ይቀይሩ"
+            ]
+        },
+        "notifications": {
+            "title": "በቅርቡ ይጠብቁ",
+            "description": "የማሳወቂያ ምርጫዎች በመዘጋጀት ላይ ናቸው።"
+        }
+    },
+    "common": {
+        "save": "አስቀምጥ",
+        "cancel": "ተሰርዟል",
+        "delete": "ሰርዝ",
+        "edit": "አስተካክል",
+        "back": "ተመለስ",
+        "loading": "በመጫን ላይ...",
+        "success": "ተሳክቷል",
+        "error": "ስህተት"
+    },
+    "login": {
+        "title": "የኢትዮጵያ ገነት ቤተክርስቲያን",
+        "subtitle": "የአስተዳደር ስርዓት",
+        "welcomeBack": "እንኳን ደህና መጡ",
+        "signInSub": "እባክዎን ለመቀጠል ወደ መለያዎ ይግቡ።",
+        "email": "የኢሜል አድራሻ",
+        "password": "የይለፍ ቃል",
+        "rememberMe": "አስታውሰኝ",
+        "forgotPassword": "የይለፍ ቃል ረስተዋል?",
+        "signIn": "ይግቡ",
+        "signingIn": "በመግባት ላይ...",
+        "resetPassword": "የይለፍ ቃል ይቀይሩ",
+        "resetSub": "የኢሜል አድራሻዎን ያስገቡ እና የይለፍ ቃልዎን ለመቀየር የሚያስችል ሊንክ እንልክልዎታለን።",
+        "sendReset": "ሊንክ ላክ",
+        "sending": "በመላክ ላይ...",
+        "backToLogin": "ወደ መግቢያ ተመለስ",
+        "checkEmail": "ኢሜልዎን ያረጋግጡ",
+        "checkEmailSub": "ወደ ኢሜል አድራሻዎ የይለፍ ቃል መቀየሪያ ሊንክ ልከናል። እባክዎን ኢሜልዎን ያረጋግጡ እና መመሪያዎቹን ይከተሉ።",
+        "backToSignIn": "ወደ መግቢያ ተመለስ",
+        "didntReceive": "ኢሜል አልደረሰዎትም?",
+        "tryAgain": "እንደገና ይሞክሩ",
+        "establishingSession": "ግንኙነት በመፍጠር ላይ...",
+        "empoweringMinistry": "አገልግሎትን በቴክኖሎጂ ማበረታታት",
+        "description": "ለቤተክርስቲያን አስተዳደርን ለማሳለጥ፣ አባላትን ለማገናኘት እና መንፈሳዊ እድገትን ለመደገፍ የተነደፈ አጠቃላይ የአስተዳደር ስርዓት።"
+    }
+}

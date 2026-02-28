@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +18,7 @@ export default function Login() {
   const [resetSent, setResetSent] = useState(false);
   const navigate = useNavigate();
   const { session, profile, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
 
   React.useEffect(() => {
     if (session && profile) {
@@ -34,7 +36,7 @@ export default function Login() {
               <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
             </div>
           </div>
-          <p className="text-gray-500 font-medium animate-pulse">Establishing secure session...</p>
+          <p className="text-gray-500 font-medium animate-pulse">{t("login.establishingSession")}</p>
         </div>
       </div>
     );
@@ -44,7 +46,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    const loadingToast = toast.loading("Signing in...");
+    const loadingToast = toast.loading(t("login.signingIn"));
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -54,7 +56,7 @@ export default function Login() {
       toast.error(error.message, { id: loadingToast });
       setLoading(false);
     } else {
-      toast.success("Signed in successfully", { id: loadingToast });
+      toast.success(t("common.success"), { id: loadingToast });
       // Navigation is now handled by the useEffect once the profile is loaded
     }
   };
@@ -126,10 +128,10 @@ export default function Login() {
             </div>
             <div>
               <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#1e293b] dark:from-white to-[#4B9BDC] tracking-tight">
-                Ethiopian Guenet Church
+                {t("login.title")}
               </h1>
               <p className="text-sm font-semibold text-[#4B9BDC] uppercase tracking-wider">
-                Management System
+                {t("login.subtitle")}
               </p>
             </div>
           </motion.div>
@@ -145,17 +147,17 @@ export default function Login() {
               >
                 <div className="mb-8">
                   <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-2">
-                    Welcome back
+                    {t("login.welcomeBack")}
                   </h2>
                   <p className="text-gray-500 dark:text-gray-400">
-                    Please sign in to your account to continue.
+                    {t("login.signInSub")}
                   </p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-5">
                   <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
-                      Email address
+                      {t("login.email")}
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -174,7 +176,7 @@ export default function Login() {
 
                   <motion.div variants={inputVariants} whileHover={interactivePresets.hover} whileTap={interactivePresets.tap}>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
-                      Password
+                      {t("login.password")}
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -203,7 +205,7 @@ export default function Login() {
                         htmlFor="remember-me"
                         className="ml-2 block text-sm text-gray-700 dark:text-gray-400"
                       >
-                        Remember me
+                        {t("login.rememberMe")}
                       </label>
                     </div>
 
@@ -213,7 +215,7 @@ export default function Login() {
                         onClick={() => setIsForgotPassword(true)}
                         className="font-semibold text-[#4B9BDC] hover:text-[#7EC8F2] transition-colors"
                       >
-                        Forgot password?
+                        {t("login.forgotPassword")}
                       </button>
                     </div>
                   </div>
@@ -228,11 +230,11 @@ export default function Login() {
                     {loading ? (
                       <div className="flex items-center">
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                        Signing in...
+                        {t("login.signingIn")}
                       </div>
                     ) : (
                       <div className="flex items-center">
-                        Sign In
+                        {t("login.signIn")}
                         <ArrowRight
                           size={18}
                           className="ml-2 opacity-70 group-hover:translate-x-1 transition-transform"
@@ -256,10 +258,10 @@ export default function Login() {
                     <CheckCircle size={40} className="text-green-500" />
                   </div>
                   <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-2">
-                    Check your email
+                    {t("login.checkEmail")}
                   </h2>
                   <p className="text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
-                    We've sent a password reset link to your email address. Please check your inbox and follow the instructions.
+                    {t("login.checkEmailSub")}
                   </p>
                 </div>
 
@@ -273,7 +275,7 @@ export default function Login() {
                     }}
                     className="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-2xl shadow-sm text-sm font-bold text-white bg-[#4B9BDC] hover:bg-[#3a85c2] focus:outline-none transition-all duration-150 group"
                   >
-                    Back to Sign In
+                    {t("login.backToSignIn")}
                   </motion.button>
 
                   <p className="text-sm text-gray-500 dark:text-gray-400 pt-4">
@@ -303,20 +305,20 @@ export default function Login() {
                     }}
                     className="flex items-center text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors mb-6"
                   >
-                    <ArrowLeft size={16} className="mr-1" /> Back to login
+                    <ArrowLeft size={16} className="mr-1" /> {t("login.backToLogin")}
                   </button>
                   <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-2">
-                    Reset Password
+                    {t("login.resetPassword")}
                   </h2>
                   <p className="text-gray-500 dark:text-gray-400">
-                    Enter your email address and we'll send you a link to reset your password.
+                    {t("login.resetSub")}
                   </p>
                 </div>
 
                 <form onSubmit={handleResetPassword} className="space-y-5">
                   <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
-                      Email address
+                      {t("login.email")}
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -343,11 +345,11 @@ export default function Login() {
                     {loading ? (
                       <div className="flex items-center">
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                        Sending...
+                        {t("login.sending")}
                       </div>
                     ) : (
                       <div className="flex items-center">
-                        Send Reset Link
+                        {t("login.sendReset")}
                         <Mail
                           size={18}
                           className="ml-2 opacity-70 group-hover:scale-110 transition-transform"
@@ -398,7 +400,7 @@ export default function Login() {
             transition={{ delay: 0.05, duration: 0.15 }}
             className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#7EC8F2] mb-6 tracking-tight leading-tight"
           >
-            Empowering Ministry <br /> Through Technology
+            {t("login.empoweringMinistry")}
           </motion.h2>
           <motion.p
             initial={{ y: 20, opacity: 0 }}
@@ -406,9 +408,7 @@ export default function Login() {
             transition={{ delay: 0.05, duration: 0.15 }}
             className="text-lg text-blue-100 max-w-md leading-relaxed font-light"
           >
-            A comprehensive management system designed for
-            Ethiopian Guenet Church to streamline administration, connect
-            members, and support spiritual growth.
+            {t("login.description")}
           </motion.p>
         </div>
       </motion.div>

@@ -17,18 +17,21 @@ import {
   EyeOff,
   Check,
   Info,
+  Calendar,
 } from "lucide-react";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import { supabase } from "../supabaseClient";
 import toast from "react-hot-toast";
 import { logActivity, getObjectDiff } from "../utils/activityLogger";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
 export default function Settings() {
-  const { profile, user, settings: globalSettings, refreshProfile } = useAuth();
+  const { profile, user, settings: globalSettings, refreshProfile, calendarType, updateCalendarType } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const [activeTab, setActiveTab] = useState("General");
   const [updating, setUpdating] = useState(false);
   const [formData, setFormData] = useState({
@@ -280,13 +283,13 @@ export default function Settings() {
   };
 
   const tabs = [
-    { id: "General", icon: SettingsIcon, label: "General" },
-    { id: "Security", icon: Shield, label: "Security" },
-    { id: "Notifications", icon: Bell, label: "Notifications" },
-    { id: "Profile", icon: User, label: "Profile" },
+    { id: "General", icon: SettingsIcon, label: t("settings.tabs.general") },
+    { id: "Security", icon: Shield, label: t("settings.tabs.security") },
+    { id: "Notifications", icon: Bell, label: t("settings.tabs.notifications") },
+    { id: "Profile", icon: User, label: t("settings.tabs.profile") },
   ];
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -294,9 +297,11 @@ export default function Settings() {
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+    show: {
+      opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300 },
+    }
   };
 
   const tabVariants = {
@@ -314,9 +319,9 @@ export default function Settings() {
     >
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t("settings.title")}</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Configure application preferences
+            {t("settings.subtitle")}
           </p>
         </div>
       </motion.div>
@@ -347,117 +352,165 @@ export default function Settings() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm"
+                className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden"
               >
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  General Settings
-                </h2>
+                {/* Header section with gradient */}
+                <div className="h-1.5 bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400"></div>
+                <div className="p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                    {t("settings.tabs.general")}
+                  </h2>
 
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
-                        <Globe size={20} />
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-gray-100">Language</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          Change interface language
+                  <div className="space-y-8">
+                    {/* Calendar Type Selector */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-amber-600 dark:text-amber-400 transition-colors">
+                          <Calendar size={22} />
                         </div>
-                      </div>
-                    </div>
-                    <select className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-gray-200">
-                      <option>English</option>
-                      <option>Amharic</option>
-                      <option>Oromo</option>
-                    </select>
-                  </div>
-
-                  <div className="h-px bg-gray-50 dark:bg-gray-800"></div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg transition-colors ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-purple-50 text-purple-600'}`}>
-                        {isDark ? <Moon size={20} /> : <Sun size={20} />}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          Appearance
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={toggleTheme}
-                      className={`relative inline-flex h-7 w-[52px] items-center rounded-full transition-all duration-300 ${isDark
-                        ? 'bg-gradient-to-r from-indigo-600 to-blue-500 shadow-lg shadow-indigo-500/25'
-                        : 'bg-gray-200'
-                        }`}
-                    >
-                      <motion.span
-                        layout
-                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                        className={`inline-flex items-center justify-center h-5 w-5 rounded-full shadow-md ${isDark
-                          ? 'translate-x-[27px] bg-white'
-                          : 'translate-x-1 bg-white'
-                          }`}
-                      >
-                        <AnimatePresence mode="wait">
-                          {isDark ? (
-                            <motion.div key="moon" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                              <Moon size={11} className="text-indigo-600" />
-                            </motion.div>
-                          ) : (
-                            <motion.div key="sun" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                              <Sun size={11} className="text-amber-500" />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </motion.span>
-                    </button>
-                  </div>
-
-                  {profile?.role === "super_admin" && globalSettings && (
-                    <>
-                      <div className="h-px bg-gray-50 dark:bg-gray-800"></div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400">
-                            <AlertTriangle size={20} />
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                              Maintenance Mode
-                            </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              Disable access for non-admins
-                            </div>
+                        <div>
+                          <div className="font-semibold text-gray-900 dark:text-gray-100">{t("settings.calendar.label")}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {t("settings.calendar.description")}
                           </div>
                         </div>
+                      </div>
+                      <div className="flex bg-gray-100 dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-inner">
                         <button
-                          onClick={toggleMaintenanceMode}
-                          disabled={updating}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${globalSettings.is_maintenance_mode
-                            ? "bg-guenet-green"
-                            : "bg-gray-200 dark:bg-gray-700"
+                          onClick={() => updateCalendarType('gregorian')}
+                          className={`relative px-4 py-2 text-sm font-bold rounded-xl transition-all duration-300 ${calendarType === 'gregorian'
+                            ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md transform scale-105'
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
                             }`}
                         >
-                          {updating ? (
-                            <Loader2 className="animate-spin h-4 w-4 text-white mx-auto" />
-                          ) : (
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${globalSettings.is_maintenance_mode
-                                ? "translate-x-6"
-                                : "translate-x-1"
-                                }`}
-                            />
-                          )}
+                          {t("settings.calendar.gregorian")}
+                        </button>
+                        <button
+                          onClick={() => updateCalendarType('ethiopian')}
+                          className={`relative px-4 py-2 text-sm font-bold rounded-xl transition-all duration-300 ${calendarType === 'ethiopian'
+                            ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md transform scale-105'
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                            }`}
+                        >
+                          {t("settings.calendar.ethiopian")}
                         </button>
                       </div>
-                    </>
-                  )}
+                    </div>
+
+                    <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-800 to-transparent"></div>
+
+                    {/* Language Selector */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 transition-colors">
+                          <Globe size={22} />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900 dark:text-gray-100">{t("settings.language.label")}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {t("settings.language.description")}
+                          </div>
+                        </div>
+                      </div>
+                      <select
+                        value={language}
+                        onChange={(e) => setLanguage(e.target.value as any)}
+                        className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-gray-200 shadow-sm transition-all appearance-none cursor-pointer hover:bg-white dark:hover:bg-gray-700"
+                      >
+                        <option value="en">{t("settings.language.english")}</option>
+                        <option value="am">{t("settings.language.amharic")}</option>
+                      </select>
+                    </div>
+
+                    <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-800 to-transparent"></div>
+
+                    {/* Appearance Toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-2.5 rounded-xl transition-all duration-500 ${isDark ? 'bg-indigo-500/10 text-indigo-400 rotate-[360deg]' : 'bg-purple-50 text-purple-600'}`}>
+                          {isDark ? <Moon size={22} /> : <Sun size={22} />}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900 dark:text-gray-100">
+                            {t("settings.appearance.label")}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {isDark ? t("settings.appearance.light") : t("settings.appearance.dark")}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={toggleTheme}
+                        className={`relative inline-flex h-8 w-[60px] items-center rounded-full transition-all duration-300 ${isDark
+                          ? 'bg-indigo-600 shadow-lg shadow-indigo-500/25'
+                          : 'bg-gray-300'
+                          }`}
+                      >
+                        <motion.span
+                          layout
+                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          className={`inline-flex items-center justify-center h-6 w-6 rounded-full shadow-md ${isDark
+                            ? 'translate-x-[30px] bg-white'
+                            : 'translate-x-1 bg-white'
+                            }`}
+                        >
+                          <AnimatePresence mode="wait">
+                            {isDark ? (
+                              <motion.div key="moon" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                                <Moon size={14} className="text-indigo-600" />
+                              </motion.div>
+                            ) : (
+                              <motion.div key="sun" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                                <Sun size={14} className="text-amber-500" />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </motion.span>
+                      </button>
+                    </div>
+
+                    {profile?.role === "super_admin" && globalSettings && (
+                      <>
+                        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-800 to-transparent"></div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="p-2.5 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-600 dark:text-red-400 transition-colors">
+                              <AlertTriangle size={22} />
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                {t("settings.maintenance.label")}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                {t("settings.maintenance.description")}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={toggleMaintenanceMode}
+                            disabled={updating}
+                            className={`relative inline-flex h-8 w-[60px] items-center rounded-full transition-all duration-300 ${globalSettings.is_maintenance_mode
+                              ? "bg-red-500 shadow-lg shadow-red-500/25"
+                              : "bg-gray-300 dark:bg-gray-700"
+                              }`}
+                          >
+                            {updating ? (
+                              <Loader2 className="animate-spin h-5 w-5 text-white mx-auto" />
+                            ) : (
+                              <motion.span
+                                layout
+                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition ${globalSettings.is_maintenance_mode
+                                  ? "translate-x-[30px]"
+                                  : "translate-x-1"
+                                  }`}
+                              />
+                            )}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -472,7 +525,7 @@ export default function Settings() {
                 className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm"
               >
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-                  My Profile
+                  {t("settings.profile.label")}
                 </h2>
 
                 <form onSubmit={handleUpdateProfile} className="space-y-6">
@@ -510,7 +563,7 @@ export default function Settings() {
                   <div className="grid grid-cols-1 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
-                        Profile Picture
+                        {t("settings.profile.picture")}
                       </label>
                       <div
                         className={`relative border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${dragActive
@@ -556,10 +609,10 @@ export default function Settings() {
                               <Upload size={20} />
                             </div>
                             <p className="text-sm font-medium text-gray-900 dark:text-gray-200">
-                              Click to upload or drag and drop
+                              {t("settings.profile.upload")}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              SVG, PNG, JPG or GIF (max. 5MB)
+                              {t("settings.profile.uploadLimit")}
                             </p>
                           </div>
                         )}
@@ -568,7 +621,7 @@ export default function Settings() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
-                        Full Name
+                        {t("settings.profile.fullName")}
                       </label>
                       <input
                         type="text"
@@ -583,7 +636,7 @@ export default function Settings() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
-                        Role
+                        {t("settings.profile.role")}
                       </label>
                       <input
                         type="text"
@@ -603,10 +656,10 @@ export default function Settings() {
                       {updating ? (
                         <>
                           <Loader2 size={18} className="animate-spin" />
-                          <span>Saving...</span>
+                          <span>{t("settings.profile.saving")}</span>
                         </>
                       ) : (
-                        <span>Save Changes</span>
+                        <span>{t("settings.profile.save")}</span>
                       )}
                     </button>
                   </div>
@@ -633,15 +686,15 @@ export default function Settings() {
                         <Lock size={22} className="text-[#4B9BDC]" />
                       </div>
                       <div>
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Change Password</h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Update your password to keep your account secure</p>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t("settings.security.title")}</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t("settings.security.subtitle")}</p>
                       </div>
                     </div>
 
                     <form onSubmit={handleChangePassword} className="space-y-5">
                       {/* Current Password */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Current Password</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">{t("settings.security.currentPassword")}</label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <Lock size={16} className="text-gray-500 dark:text-gray-400" />
@@ -662,7 +715,7 @@ export default function Settings() {
 
                       {/* New Password */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">New Password</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">{t("settings.security.newPassword")}</label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <Shield size={16} className="text-gray-500 dark:text-gray-400" />
@@ -686,7 +739,7 @@ export default function Settings() {
 
                       {/* Confirm New Password */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Confirm New Password</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">{t("settings.security.confirmPassword")}</label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <Check size={16} className="text-gray-500 dark:text-gray-400" />
@@ -710,7 +763,7 @@ export default function Settings() {
                         </div>
                         {confirmNewPassword.length > 0 && confirmNewPassword !== newPassword && (
                           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
-                            <Info size={12} /> Passwords do not match
+                            <Info size={12} /> {t("settings.security.passwordMismatch")}
                           </motion.p>
                         )}
                       </div>
@@ -724,9 +777,9 @@ export default function Settings() {
                           className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#4B9BDC] to-[#3a85c2] text-white font-medium rounded-xl hover:from-[#3a85c2] hover:to-[#295b86] transition-all shadow-sm shadow-[#4B9BDC]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                         >
                           {changingPassword ? (
-                            <><Loader2 size={18} className="animate-spin" /><span>Updating...</span></>
+                            <><Loader2 size={18} className="animate-spin" /><span>{t("settings.security.updating")}</span></>
                           ) : (
-                            <><Shield size={18} /><span>Update Password</span></>
+                            <><Shield size={18} /><span>{t("settings.security.updateBtn")}</span></>
                           )}
                         </motion.button>
                       </div>
@@ -738,13 +791,15 @@ export default function Settings() {
                 <div className="bg-gradient-to-br from-[#4B9BDC]/5 to-[#7EC8F2]/5 dark:from-[#4B9BDC]/10 dark:to-[#7EC8F2]/10 rounded-2xl border border-[#4B9BDC]/10 dark:border-gray-800 p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <Info size={18} className="text-[#4B9BDC]" />
-                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Security Tips</h3>
+                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t("settings.security.tipsTitle")}</h3>
                   </div>
                   <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
-                    <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>Never share your password with anyone</li>
-                    <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>Use a unique password that you don't use for other accounts</li>
-                    <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>Consider using a password manager to generate and store passwords</li>
-                    <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>Change your password regularly for better security</li>
+                    {(t("settings.security.tips") as any as string[]).map((tip, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#4B9BDC] shrink-0"></span>
+                        {tip}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </motion.div>
@@ -763,8 +818,8 @@ export default function Settings() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
                   <Bell className="text-gray-500 dark:text-gray-400" size={32} />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Coming Soon</h3>
-                <p className="text-gray-500 dark:text-gray-400 mt-2">Notification preferences are under development.</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{t("settings.notifications.title")}</h3>
+                <p className="text-gray-500 dark:text-gray-400 mt-2">{t("settings.notifications.description")}</p>
               </motion.div>
             )}
           </AnimatePresence>

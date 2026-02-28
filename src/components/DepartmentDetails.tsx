@@ -40,14 +40,14 @@ export default function DepartmentDetails({ department }: DepartmentDetailsProps
 
     const fetchDepartmentMembers = async () => {
         if (!department?.id) return;
-        
+
         try {
             setLoading(true);
 
             // 1. Fetch regular members
             const { data: regularMembers, error: membersError } = await supabase
                 .from("members")
-                .select("id, full_name, email, phone")
+                .select("id, full_name, email, phone, photo")
                 .eq("department_id", department.id);
 
             if (membersError) throw membersError;
@@ -73,7 +73,8 @@ export default function DepartmentDetails({ department }: DepartmentDetailsProps
                     full_name: m.full_name,
                     email: m.email,
                     phone: m.phone,
-                    type: "Member" as const
+                    type: "Member" as const,
+                    avatar_url: m.photo
                 })) || []),
                 ...(profileDepts?.map((pd: any) => ({
                     id: pd.profiles.id,

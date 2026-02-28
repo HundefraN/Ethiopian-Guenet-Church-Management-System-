@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { supabase } from "../supabaseClient";
 import {
   Home,
@@ -24,6 +25,7 @@ interface SidebarProps {
 
 export default function Sidebar({ onClose }: SidebarProps) {
   const { profile, signOut } = useAuth();
+  const { t } = useLanguage();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [churchName, setChurchName] = useState<string>("");
   const location = useLocation();
@@ -51,43 +53,43 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   const links = [
     {
-      name: "Dashboard",
+      name: t("sidebar.dashboard"),
       path: "/",
       icon: LayoutDashboard,
       roles: ["super_admin", "pastor", "servant"],
     },
     {
-      name: "Churches",
+      name: t("sidebar.churches"),
       path: "/churches",
       icon: Building,
       roles: ["super_admin"],
     },
     {
-      name: "Pastors",
+      name: t("sidebar.pastors"),
       path: "/pastors",
       icon: User,
       roles: ["super_admin"],
     },
     {
-      name: "Servants",
+      name: t("sidebar.servants"),
       path: "/servants",
       icon: User,
       roles: ["super_admin", "pastor"],
     },
     {
-      name: "Departments",
+      name: t("sidebar.departments"),
       path: "/departments",
       icon: Shield,
       roles: ["super_admin", "pastor"],
     },
     {
-      name: "Members",
+      name: t("sidebar.members"),
       path: "/members",
       icon: Users,
       roles: ["super_admin", "pastor", "servant"],
     },
     {
-      name: "Settings",
+      name: t("sidebar.settings"),
       path: "/settings",
       icon: Settings,
       roles: ["super_admin", "pastor", "servant"],
@@ -118,13 +120,16 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   return (
     <div className="sidebar-container">
-      {/* Subtle Grain Texture Overlay for Realism */}
-      <div className="sidebar-noise"></div>
+      {/* Background layer for overflow hidden isolation */}
+      <div className="sidebar-bg-layer">
+        {/* Subtle Grain Texture Overlay for Realism */}
+        <div className="sidebar-noise"></div>
 
-      {/* Subtle animated gradient orbs */}
-      <div className="sidebar-orb sidebar-orb-1"></div>
-      <div className="sidebar-orb sidebar-orb-2"></div>
-      <div className="sidebar-orb sidebar-orb-3"></div>
+        {/* Subtle animated gradient orbs */}
+        <div className="sidebar-orb sidebar-orb-1"></div>
+        <div className="sidebar-orb sidebar-orb-2"></div>
+        <div className="sidebar-orb sidebar-orb-3"></div>
+      </div>
 
       {/* Header / Brand */}
       <div className="sidebar-header">
@@ -173,7 +178,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           const isActive = isPathActive(link.path);
 
           return (
-            <motion.div variants={itemVariants} key={link.name} className="relative">
+            <motion.div variants={itemVariants} key={link.path} className="relative">
               <NavLink
                 to={link.path}
                 end={link.path === "/"}
@@ -248,7 +253,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             ) : (
               <LogOut size={15} className="group-hover/btn:-translate-x-1 transition-transform" />
             )}
-            <span>{isLoggingOut ? "Signing Out..." : "Sign Out"}</span>
+            <span>{isLoggingOut ? t("sidebar.signingOut") : t("sidebar.signOut")}</span>
           </button>
         </div>
       </div>

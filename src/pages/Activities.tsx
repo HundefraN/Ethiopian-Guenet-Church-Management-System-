@@ -31,25 +31,17 @@ import {
 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { getActionLabel, getActionColor, getEntityLabel } from "../utils/activityLogger";
 import { useAuth } from "../context/AuthContext";
 import { timeAgo } from "../utils/timeAgo";
 import { useTheme } from "../context/ThemeContext";
 import { ds } from "../utils/darkStyles";
+import { formatDisplayDate, formatDisplayDateTime } from "../utils/dateFormatter";
 
 
 
-const formatFullDate = (date: string) => {
-  return new Date(date).toLocaleString("en-US", {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+// Local format wrapper using global context will be handled in-component
 
 // Icon mapper for action types
 const getActionIcon = (action: string) => {
@@ -77,7 +69,7 @@ const PAGE_SIZE = 20;
 export default function Activities() {
   const { isDark } = useTheme();
   const d = ds(isDark);
-  const { profile } = useAuth();
+  const { profile, calendarType } = useAuth();
   const [logs, setLogs] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -268,17 +260,12 @@ export default function Activities() {
   // Group logs by date
   const groupedLogs: Record<string, any[]> = {};
   logs.forEach((log) => {
-    const date = new Date(log.created_at).toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    const date = formatDisplayDate(log.created_at, calendarType);
     if (!groupedLogs[date]) groupedLogs[date] = [];
     groupedLogs[date].push(log);
   });
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -286,9 +273,9 @@ export default function Activities() {
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } },
+    show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100 } },
   };
 
   const renderChanges = (changes: any) => {
@@ -573,7 +560,7 @@ export default function Activities() {
 
                                   <div className="flex items-center gap-1.5 shrink-0">
                                     <Clock size={12} className="text-gray-500 dark:text-gray-400" />
-                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium" title={formatFullDate(log.created_at)}>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium" title={formatDisplayDateTime(log.created_at, calendarType)}>
                                       {timeAgo(log.created_at)}
                                     </span>
                                   </div>
