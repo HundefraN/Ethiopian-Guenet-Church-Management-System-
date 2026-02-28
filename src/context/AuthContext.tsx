@@ -3,6 +3,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../supabaseClient";
 import { Profile, GlobalSettings } from "../types";
 import { logActivity } from "../utils/activityLogger";
+import { UAParser } from 'ua-parser-js';
 
 import toast from "react-hot-toast";
 
@@ -57,19 +58,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         fetchProfile(session.user.id);
         // Log login activity on SIGNED_IN event
         if (_event === "SIGNED_IN") {
-          // Detect device type
-          const ua = navigator.userAgent;
-          let deviceType = "Desktop";
-          if (/mobile/i.test(ua)) {
-            deviceType = "Mobile";
-          } else if (/tablet/i.test(ua) || /ipad/i.test(ua)) {
-            deviceType = "Tablet";
+          // Detect device type and model
+          const parser = new UAParser();
+          const result = parser.getResult();
+
+          let deviceName = "Unknown Device";
+
+          if (result.device.vendor && result.device.model) {
+            deviceName = `${result.device.vendor} ${result.device.model}`;
+          } else if (result.os.name) {
+            deviceName = `${result.os.name} ${result.os.version || ''} Desktop`.trim();
           }
+
+          let deviceType = result.device.type === 'mobile' ? 'Mobile' : result.device.type === 'tablet' ? 'Tablet' : 'Desktop';
 
           logActivity(
             "LOGIN",
             "SYSTEM",
-            `User logged in from ${deviceType} device`,
+            `User logged in from ${deviceType} (${deviceName})`,
             session.user.id
           );
         }
