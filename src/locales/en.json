@@ -27,7 +27,8 @@
             "description": "Choose your preferred interface language",
             "english": "English",
             "amharic": "Amharic",
-            "oromo": "Oromo"
+            "oromo": "Oromo",
+            "tigrinya": "Tigrinya"
         },
         "calendar": {
             "label": "Calendar Type",
@@ -479,7 +480,8 @@
             "email": "Email Address",
             "emailPlaceholder": "pastor@example.com",
             "temporaryPassword": "Temporary Password",
-            "assignBranch": "Assign Branch"
+            "assignBranch": "Assign Branch",
+            "chooseAnotherWay": "Choose another way (Skip search)"
         },
         "actions": {
             "block": "Block Pastor",

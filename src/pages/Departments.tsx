@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
   Shield,
   Search,
@@ -80,6 +81,14 @@ export default function Departments() {
       setSelectedDeptForView(null);
     }
   }, [id, departments]);
+
+  const { pathname } = useLocation();
+
+  // Reset states on route change (fixes pop back bug)
+  useEffect(() => {
+    setConfirmOpen(false);
+    setIsModalOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (editingDept) {
@@ -536,13 +545,13 @@ export default function Departments() {
         )}
 
         {/* ═══════════════ ADD/EDIT MODAL ═══════════════ */}
-        <AnimatePresence>
-          {isModalOpen && (
+        {isModalOpen && createPortal(
+          <AnimatePresence>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 flex items-center justify-center z-[100] p-4"
+              className="fixed inset-0 flex items-center justify-center z-[200] p-4"
               style={d.modalOverlay}
             >
               <motion.div
@@ -641,8 +650,9 @@ export default function Departments() {
                 </form>
               </motion.div>
             </motion.div>
-          )}
-        </AnimatePresence>
+          </AnimatePresence>,
+          document.body
+        )}
 
         <ConfirmDialog
           isOpen={confirmOpen}

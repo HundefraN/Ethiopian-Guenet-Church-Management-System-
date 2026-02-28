@@ -148,89 +148,92 @@ export default function Sidebar({ onClose }: SidebarProps) {
         <div className="sidebar-orb sidebar-orb-3"></div>
       </div>
 
-      {/* Header / Brand */}
-      <div className="sidebar-header">
-        <div className="sidebar-brand">
-          <div className="sidebar-logo-wrap group">
-            <img src={logo} alt="Logo" className="sidebar-logo-img transition-transform duration-200 group-hover:scale-110" />
-            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
-          </div>
-          <div className="sidebar-brand-text">
-            <h2 className="sidebar-church-name">
-              {churchName || (profile?.role === "super_admin" ? t("common.hq") : t("login.title"))}
-            </h2>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-              <p className="sidebar-role-badge">
-                {profile?.role ? t(`common.roles.${profile.role.toLowerCase()}`) : t('common.user')}
-              </p>
+      {/* Scrollable Area */}
+      <div className="sidebar-scroll-area">
+        {/* Header / Brand */}
+        <div className="sidebar-header">
+          <div className="sidebar-brand">
+            <div className="sidebar-logo-wrap group">
+              <img src={logo} alt="Logo" className="sidebar-logo-img transition-transform duration-200 group-hover:scale-110" />
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
+            </div>
+            <div className="sidebar-brand-text">
+              <h2 className="sidebar-church-name">
+                {churchName || (profile?.role === "super_admin" ? t("common.hq") : t("login.title"))}
+              </h2>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                <p className="sidebar-role-badge">
+                  {profile?.role ? t(`common.roles.${profile.role.toLowerCase()}`) : t('common.user')}
+                </p>
+              </div>
             </div>
           </div>
+          {onClose && (
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onClose}
+              className="sidebar-close-btn"
+            >
+              <X size={18} />
+            </motion.button>
+          )}
         </div>
-        {onClose && (
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={onClose}
-            className="sidebar-close-btn"
-          >
-            <X size={18} />
-          </motion.button>
-        )}
+
+        {/* Divider */}
+        <div className="sidebar-divider-wrap">
+          <div className="sidebar-divider"></div>
+        </div>
+
+        {/* Navigation */}
+        <motion.nav
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="sidebar-nav"
+        >
+          {filteredLinks.map((link) => {
+            const isActive = isPathActive(link.path);
+
+            return (
+              <motion.div variants={itemVariants} key={link.path} className="relative">
+                <NavLink
+                  to={link.path}
+                  end={link.path === "/"}
+                  onClick={onClose}
+                  className={`sidebar-nav-item ${isActive ? "active-text" : ""}`}
+                >
+                  {/* Sliding Background Indicator */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeNavIndicator"
+                      className="sidebar-nav-item--active absolute inset-0 -z-10"
+                      transition={springPresets.liquid}
+                    />
+                  )}
+
+                  <div className={`sidebar-nav-icon relative z-10 ${isActive ? "sidebar-nav-icon--active" : ""}`}>
+                    <link.icon size={19} strokeWidth={isActive ? 2.2 : 1.8} />
+                  </div>
+                  <span className="sidebar-nav-label relative z-10">{link.name}</span>
+
+                  {isActive && (
+                    <motion.div
+                      className="relative z-10"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <ChevronRight size={14} className="sidebar-nav-chevron" />
+                    </motion.div>
+                  )}
+                </NavLink>
+              </motion.div>
+            );
+          })}
+        </motion.nav>
       </div>
-
-      {/* Divider */}
-      <div className="sidebar-divider-wrap">
-        <div className="sidebar-divider"></div>
-      </div>
-
-      {/* Navigation */}
-      <motion.nav
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="sidebar-nav"
-      >
-        {filteredLinks.map((link) => {
-          const isActive = isPathActive(link.path);
-
-          return (
-            <motion.div variants={itemVariants} key={link.path} className="relative">
-              <NavLink
-                to={link.path}
-                end={link.path === "/"}
-                onClick={onClose}
-                className={`sidebar-nav-item ${isActive ? "active-text" : ""}`}
-              >
-                {/* Sliding Background Indicator */}
-                {isActive && (
-                  <motion.div
-                    layoutId="activeNavIndicator"
-                    className="sidebar-nav-item--active absolute inset-0 -z-10"
-                    transition={springPresets.liquid}
-                  />
-                )}
-
-                <div className={`sidebar-nav-icon relative z-10 ${isActive ? "sidebar-nav-icon--active" : ""}`}>
-                  <link.icon size={19} strokeWidth={isActive ? 2.2 : 1.8} />
-                </div>
-                <span className="sidebar-nav-label relative z-10">{link.name}</span>
-
-                {isActive && (
-                  <motion.div
-                    className="relative z-10"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    <ChevronRight size={14} className="sidebar-nav-chevron" />
-                  </motion.div>
-                )}
-              </NavLink>
-            </motion.div>
-          );
-        })}
-      </motion.nav>
 
       {/* User Profile Card */}
       <div className="sidebar-footer">
@@ -274,6 +277,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

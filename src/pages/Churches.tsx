@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Building, MapPin, Search, Plus, Loader2, X, ChevronRight, Users, Shield, BookOpen, Edit2, Trash2, ExternalLink, Map, Sparkles, TrendingUp, Globe } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { Church } from "../types";
@@ -44,6 +46,15 @@ export default function Churches() {
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const { pathname } = useLocation();
+
+  // Reset states on route change (fixes pop back bug)
+  useEffect(() => {
+    setConfirmOpen(false);
+    setIsModalOpen(false);
+    setIsEditModalOpen(false);
+    setSelectedChurch(null);
+  }, [pathname]);
 
   useEffect(() => {
     if (profile) {
@@ -721,127 +732,126 @@ export default function Churches() {
       </motion.div>
 
       {/* ═══════════════ ADD CHURCH MODAL ═══════════════ */}
-      <AnimatePresence>
-        {
-          isModalOpen && (
+      {isModalOpen && createPortal(
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center z-[200] p-4"
+            style={d.modalOverlay}
+          >
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 flex items-center justify-center z-[100] p-4"
-              style={d.modalOverlay}
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem]"
+              style={d.modalContent}
             >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 30 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 30 }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem]"
-                style={d.modalContent}
-              >
-                <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)' }}></div>
+              <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)' }}></div>
 
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">{editingChurch ? t('churches.editChurch') : t('churches.addChurch')}</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">{t('churches.subtitle')}</p>
-                  </div>
-                  <button
-                    onClick={() => setIsModalOpen(false)}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 transition-colors" style={d.subtleButton}
-                  >
-                    <X size={18} />
-                  </button>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">{editingChurch ? t('churches.editChurch') : t('churches.addChurch')}</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">{t('churches.subtitle')}</p>
+                </div>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 transition-colors" style={d.subtleButton}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={editingChurch ? handleEditChurch : handleAddChurch} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.name')}</label>
+                  <input
+                    type="text"
+                    required
+                    value={newChurch.name}
+                    onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
+                    className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                    style={d.formInput}
+                    placeholder={t('churches.form.namePlaceholder')}
+                  />
                 </div>
 
-                <form onSubmit={editingChurch ? handleEditChurch : handleAddChurch} className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.name')}</label>
-                    <input
-                      type="text"
-                      required
-                      value={newChurch.name}
-                      onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
-                      className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
-                      style={d.formInput}
-                      placeholder={t('churches.form.namePlaceholder')}
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.location')}</label>
+                  <input
+                    type="text"
+                    value={newChurch.location}
+                    onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
+                    className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                    style={d.formInput}
+                    placeholder={t('churches.form.locationPlaceholder')}
+                  />
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.location')}</label>
-                    <input
-                      type="text"
-                      value={newChurch.location}
-                      onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
-                      className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
-                      style={d.formInput}
-                      placeholder={t('churches.form.locationPlaceholder')}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.mapLink')}</label>
-                    <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 dark:text-gray-400 group-focus-within:text-blue-500 transition-colors">
-                        <Map size={18} />
-                      </div>
-                      <input
-                        type="url"
-                        value={newChurch.map_link}
-                        onChange={(e) => setNewChurch({ ...newChurch, map_link: e.target.value })}
-                        className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
-                        style={d.formInput}
-                        placeholder="https://maps.google.com/..."
-                      />
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.mapLink')}</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 dark:text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                      <Map size={18} />
                     </div>
-                    <p className="mt-2 ml-1 text-[11px] text-gray-500 font-medium">
-                      {t('churches.details.mapLinkDesc')}
-                    </p>
+                    <input
+                      type="url"
+                      value={newChurch.map_link}
+                      onChange={(e) => setNewChurch({ ...newChurch, map_link: e.target.value })}
+                      className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                      style={d.formInput}
+                      placeholder="https://maps.google.com/..."
+                    />
                   </div>
+                  <p className="mt-2 ml-1 text-[11px] text-gray-500 font-medium">
+                    {t('churches.details.mapLinkDesc')}
+                  </p>
+                </div>
 
-                  <div className="flex justify-end gap-3 mt-8 pt-6" style={d.modalFooterBorder}>
-                    <button
-                      type="button"
-                      onClick={() => setIsModalOpen(false)}
-                      className="px-6 py-3 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
-                    >
-                      {t('common.cancel')}
-                    </button>
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      type="submit"
-                      disabled={submitting || !hasAddChanges}
-                      className="px-6 py-3 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
-                      style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 8px 24px rgba(59,130,246,0.25)' }}
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 size={18} className="animate-spin" />
-                          <span>{t('common.saving')}</span>
-                        </>
-                      ) : (
-                        <span>{t('churches.addChurch')}</span>
-                      )}
-                    </motion.button>
-                  </div>
-                </form>
-              </motion.div>
+                <div className="flex justify-end gap-3 mt-8 pt-6" style={d.modalFooterBorder}>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-6 py-3 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    type="submit"
+                    disabled={submitting || !hasAddChanges}
+                    className="px-6 py-3 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                    style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 8px 24px rgba(59,130,246,0.25)' }}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        <span>{t('common.saving')}</span>
+                      </>
+                    ) : (
+                      <span>{t('churches.addChurch')}</span>
+                    )}
+                  </motion.button>
+                </div>
+              </form>
             </motion.div>
-          )
-        }
-      </AnimatePresence >
+          </motion.div>
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* ═══════════════ EDIT CHURCH MODAL ═══════════════ */}
-      <AnimatePresence>
-        {
-          isEditModalOpen && editingChurch && (
+      {
+        isEditModalOpen && editingChurch && createPortal(
+          <AnimatePresence>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 flex items-center justify-center z-[100] p-4"
+              className="fixed inset-0 flex items-center justify-center z-[200] p-4"
               style={d.modalOverlay}
             >
               <motion.div
@@ -939,9 +949,10 @@ export default function Churches() {
                 </form>
               </motion.div>
             </motion.div>
-          )
-        }
-      </AnimatePresence >
+          </AnimatePresence>,
+          document.body
+        )
+      }
 
       <ConfirmDialog
         isOpen={confirmOpen}
@@ -953,12 +964,12 @@ export default function Churches() {
       />
 
       {/* Shimmer animation keyframes */}
-      <style>{`
+      < style > {`
         @keyframes shimmer {
           0% { background-position: -200% 0; }
           100% { background-position: 200% 0; }
         }
-      `}</style>
+      `}</style >
     </motion.div >
   );
 }

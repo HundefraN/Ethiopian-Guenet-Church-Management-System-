@@ -27,7 +27,8 @@
             "description": "የሚመርጡትን የበይነገጽ ቋንቋ ይምረጡ",
             "english": "እንግሊዝኛ (English)",
             "amharic": "አማርኛ (Amharic)",
-            "oromo": "ኦሮምኛ (Oromo)"
+            "oromo": "ኦሮምኛ (Oromo)",
+            "tigrinya": "ትግርኛ (Tigrinya)"
         },
         "calendar": {
             "label": "የቀን መቁጠሪያ አይነት",
@@ -479,7 +480,8 @@
             "email": "የኢሜል አድራሻ",
             "emailPlaceholder": "pastor@example.com",
             "temporaryPassword": "ጊዜያዊ የይለፍ ቃል",
-            "assignBranch": "ቅርንጫፍ ይመድቡ"
+            "assignBranch": "ቅርንጫፍ ይመድቡ",
+            "chooseAnotherWay": "ሌላ አማራጭ ተጠቀም"
         },
         "actions": {
             "block": "መጋቢውን አግድ",

@@ -18,7 +18,7 @@ import {
     GraduationCap,
     Briefcase,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     Cell, BarChart, Bar,
@@ -81,6 +81,16 @@ const AGE_GROUPS = [
 const MARITAL_OPTIONS = ["Single", "Married", "Divorced", "Widowed"];
 const EDUCATION_OPTIONS = ["High School", "Diploma", "Bachelor's", "Master's", "PhD"];
 const EMPLOYMENT_OPTIONS = ["Employed", "Self-Employed", "Unemployed", "Student", "Retired"];
+
+const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
+};
+
+const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 30, scale: 0.95 },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", bounce: 0.4, duration: 0.8 } }
+};
 
 export default function Reports() {
     const { isDark } = useTheme();
@@ -855,14 +865,18 @@ export default function Reports() {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
             className="space-y-6 sm:space-y-8 pb-20 px-2 sm:px-4"
         >
             {/* --- HERO HEADER --- */}
-            <div
+            <motion.div
+                variants={itemVariants}
                 className="relative overflow-hidden rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 md:p-12 shadow-2xl"
                 style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3b82f6 100%)" }}
+                whileHover={{ scale: 1.01 }}
+                transition={{ type: "spring", bounce: 0.5 }}
             >
                 <div className="absolute top-0 right-0 w-64 sm:w-96 h-64 sm:h-96 bg-blue-400/20 blur-[80px] sm:blur-[100px] rounded-full -mr-16 sm:-mr-20 -mt-16 sm:-mt-20 animate-pulse" />
                 <div className="absolute bottom-0 left-0 w-48 sm:w-64 h-48 sm:h-64 bg-emerald-400/10 blur-[60px] sm:blur-[80px] rounded-full -ml-16 sm:-ml-20 -mb-16 sm:-mb-20" />
@@ -904,10 +918,11 @@ export default function Reports() {
                         </motion.button>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* --- FILTERS BAR --- */}
-            <div
+            <motion.div
+                variants={itemVariants}
                 className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center p-4 sm:p-6 rounded-2xl sm:rounded-[2rem]"
                 style={d.card}
             >
@@ -972,15 +987,16 @@ export default function Reports() {
                         <BarChart3 size={20} />
                     </button>
                 </div>
-            </div>
+            </motion.div>
 
             {/* --- DASHBOARD CONTENT --- */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
+            <motion.div variants={containerVariants} className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
                 {/* --- LEFT COLUMN --- */}
                 <div className="xl:col-span-2 space-y-6 sm:space-y-8">
                     {/* Analytics Overview */}
                     <motion.div
-                        whileHover={{ y: -4 }}
+                        variants={itemVariants}
+                        whileHover={{ y: -6, scale: 1.01 }}
                         className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl overflow-hidden relative"
                         style={d.card}
                     >
@@ -1033,8 +1049,13 @@ export default function Reports() {
                             </div>
                             <div className="space-y-3 sm:space-y-4">
                                 {distributionData.map((item, idx) => (
-                                    <div
+                                    <motion.div
                                         key={idx}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        whileInView={{ opacity: 1, x: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: idx * 0.1, type: "spring", stiffness: 100 }}
+                                        whileHover={{ scale: 1.02, x: -5 }}
                                         className="flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50"
                                     >
                                         <div className="flex items-center gap-3">
@@ -1046,7 +1067,7 @@ export default function Reports() {
                                         <span className="text-sm font-black text-gray-900 dark:text-gray-100 shrink-0 ml-2">
                                             {item.amount.toLocaleString()}
                                         </span>
-                                    </div>
+                                    </motion.div>
                                 ))}
                             </div>
                         </div>
@@ -1054,15 +1075,19 @@ export default function Reports() {
 
                     {/* Growth Forecasting */}
                     <motion.div
-                        whileHover={{ y: -4 }}
+                        variants={itemVariants}
+                        whileHover={{ y: -6, scale: 1.01 }}
                         className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl relative overflow-hidden"
                         style={d.card}
                     >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
+                                <motion.div
+                                    whileHover={{ rotate: 15, scale: 1.1 }}
+                                    className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600"
+                                >
                                     <TrendingUp size={22} className="sm:w-6 sm:h-6" />
-                                </div>
+                                </motion.div>
                                 <div>
                                     <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100">
                                         {t("reports.forecasting")}
@@ -1072,9 +1097,14 @@ export default function Reports() {
                                     </p>
                                 </div>
                             </div>
-                            <div className="bg-emerald-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black shadow-lg shadow-emerald-500/20">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.5 }}
+                                className="bg-emerald-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black shadow-lg shadow-emerald-500/20"
+                            >
                                 {t("reports.predictiveAiEnabled")}
-                            </div>
+                            </motion.div>
                         </div>
 
                         <div className="h-[260px] sm:h-[300px] min-h-[240px]">
@@ -1118,24 +1148,26 @@ export default function Reports() {
                                         fill="url(#colorMembers)"
                                         dot={{ r: 5, fill: "#fff", stroke: "#10b981", strokeWidth: 2 }}
                                         activeDot={{ r: 7, strokeWidth: 0 }}
+                                        animationDuration={1500}
+                                        animationEasing="ease-in-out"
                                     />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
 
                         <div className="mt-4 sm:mt-6 flex flex-wrap justify-center gap-4 sm:gap-8">
-                            <div className="flex items-center gap-2">
+                            <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-emerald-500" />
                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
                                     {t("reports.historicalData")}
                                 </span>
-                            </div>
-                            <div className="flex items-center gap-2">
+                            </motion.div>
+                            <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-blue-500" />
                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
                                     {t("reports.aiForecast")}
                                 </span>
-                            </div>
+                            </motion.div>
                         </div>
                     </motion.div>
                 </div>
@@ -1144,7 +1176,8 @@ export default function Reports() {
                 <div className="space-y-6 sm:space-y-8">
                     {/* Branch Distribution Map */}
                     <motion.div
-                        whileHover={{ y: -4 }}
+                        variants={itemVariants}
+                        whileHover={{ y: -6, scale: 1.01 }}
                         className="rounded-2xl sm:rounded-[2.5rem] border border-transparent shadow-xl overflow-hidden relative"
                         style={d.card}
                     >
@@ -1247,14 +1280,18 @@ export default function Reports() {
 
                     {/* Demographic Heatmap - Ultra Professional */}
                     <motion.div
-                        whileHover={{ y: -4 }}
+                        variants={itemVariants}
+                        whileHover={{ y: -6, scale: 1.01 }}
                         className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl relative overflow-hidden"
                         style={d.card}
                     >
                         <div className="flex items-center gap-3 mb-6 sm:mb-8">
-                            <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/25">
+                            <motion.div
+                                whileHover={{ rotate: 15, scale: 1.1 }}
+                                className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/25"
+                            >
                                 <Users size={22} className="sm:w-6 sm:h-6" />
-                            </div>
+                            </motion.div>
                             <div>
                                 <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100">
                                     {t("reports.demographics")}
@@ -1277,49 +1314,60 @@ export default function Reports() {
                                     </h3>
                                 </div>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
-                                    {demographicData.map((item, idx) => {
-                                        const maxVal = Math.max(...demographicData.map((d) => d.count), 1);
-                                        const intensity = item.count / maxVal;
-                                        const bgOpacity = 0.2 + intensity * 0.8;
-                                        return (
-                                            <motion.div
-                                                key={idx}
-                                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                transition={{ delay: idx * 0.05 }}
-                                                className="relative group flex flex-col items-center justify-center p-6 rounded-[2.5rem] border border-violet-200/50 dark:border-violet-500/20 shadow-xl transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 overflow-hidden min-h-[160px]"
-                                                style={{
-                                                    background: isDark
-                                                        ? `linear-gradient(180deg, rgba(139, 92, 246, ${bgOpacity * 0.4}) 0%, rgba(99, 102, 241, ${bgOpacity * 0.3}) 100%)`
-                                                        : `linear-gradient(180deg, rgba(139, 92, 246, ${bgOpacity}) 0%, rgba(99, 102, 241, ${bgOpacity * 0.8}) 100%)`,
-                                                }}
-                                            >
-                                                {/* Internal Glass Shine */}
-                                                <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/10 blur-xl -translate-y-1/2 rounded-full" />
+                                    <AnimatePresence>
+                                        {demographicData.map((item, idx) => {
+                                            const maxVal = Math.max(...demographicData.map((d) => d.count), 1);
+                                            const intensity = item.count / maxVal;
+                                            const bgOpacity = 0.2 + intensity * 0.8;
+                                            return (
+                                                <motion.div
+                                                    key={idx + '-' + item.age}
+                                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                                                    viewport={{ once: true }}
+                                                    transition={{ delay: idx * 0.05, type: 'spring' }}
+                                                    className="relative group flex flex-col items-center justify-center p-6 rounded-[2.5rem] border border-violet-200/50 dark:border-violet-500/20 shadow-xl transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 overflow-hidden min-h-[160px]"
+                                                    style={{
+                                                        background: isDark
+                                                            ? `linear-gradient(180deg, rgba(139, 92, 246, ${bgOpacity * 0.4}) 0%, rgba(99, 102, 241, ${bgOpacity * 0.3}) 100%)`
+                                                            : `linear-gradient(180deg, rgba(139, 92, 246, ${bgOpacity}) 0%, rgba(99, 102, 241, ${bgOpacity * 0.8}) 100%)`,
+                                                    }}
+                                                >
+                                                    {/* Internal Glass Shine */}
+                                                    <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/10 blur-xl -translate-y-1/2 rounded-full" />
 
-                                                <div className="relative z-10 flex flex-col items-center gap-1.5 text-center">
-                                                    <p className={`text-[10px] font-black uppercase tracking-[0.15em] ${isDark ? "text-violet-300" : "text-white/80"}`}>
-                                                        {item.age} {t("reports.yrs")}
-                                                    </p>
-                                                    <p className={`text-4xl sm:text-5xl font-black leading-none ${isDark ? "text-white" : "text-white"}`}>
-                                                        {item.count}
-                                                    </p>
-                                                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-black ${isDark ? "bg-violet-900/50 text-violet-200" : "bg-white/20 text-white"}`}>
-                                                        {item.percentage.toFixed(0)}%
-                                                    </span>
-                                                </div>
+                                                    <div className="relative z-10 flex flex-col items-center gap-1.5 text-center">
+                                                        <p className={`text-[10px] font-black uppercase tracking-[0.15em] ${isDark ? "text-violet-300" : "text-white/80"}`}>
+                                                            {item.age} {t("reports.yrs")}
+                                                        </p>
+                                                        <motion.p
+                                                            initial={{ scale: 0.5 }}
+                                                            whileInView={{ scale: 1 }}
+                                                            viewport={{ once: true }}
+                                                            transition={{ type: "spring", stiffness: 200, delay: 0.2 + idx * 0.05 }}
+                                                            className={`text-4xl sm:text-5xl font-black leading-none ${isDark ? "text-white" : "text-white"}`}
+                                                        >
+                                                            {item.count}
+                                                        </motion.p>
+                                                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-black ${isDark ? "bg-violet-900/50 text-violet-200" : "bg-white/20 text-white"}`}>
+                                                            {item.percentage.toFixed(0)}%
+                                                        </span>
+                                                    </div>
 
-                                                {/* Bottom Scale - Horizontal Progress */}
-                                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 dark:bg-white/5">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${(item.count / maxVal) * 100}%` }}
-                                                        className="h-full bg-white/60 dark:bg-white/40 shadow-[0_0_15px_rgba(255,255,255,0.5)]"
-                                                    />
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    })}
+                                                    {/* Bottom Scale - Horizontal Progress */}
+                                                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 dark:bg-white/5">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            whileInView={{ width: `${(item.count / maxVal) * 100}%` }}
+                                                            viewport={{ once: true }}
+                                                            transition={{ duration: 1, ease: "easeOut", delay: 0.3 + idx * 0.05 }}
+                                                            className="h-full bg-white/60 dark:bg-white/40 shadow-[0_0_15px_rgba(255,255,255,0.5)]"
+                                                        />
+                                                    </div>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </AnimatePresence>
                                 </div>
                             </div>
 
@@ -1350,8 +1398,9 @@ export default function Reports() {
                                                 <div className="h-2 sm:h-2.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
                                                     <motion.div
                                                         initial={{ width: 0 }}
-                                                        animate={{ width: `${pct}%` }}
-                                                        transition={{ duration: 0.8, delay: idx * 0.08 }}
+                                                        whileInView={{ width: `${pct}%` }}
+                                                        viewport={{ once: true }}
+                                                        transition={{ duration: 1, ease: "easeOut", delay: idx * 0.1 }}
                                                         className="h-full rounded-full"
                                                         style={{ backgroundColor: item.fill }}
                                                     />
@@ -1375,7 +1424,14 @@ export default function Reports() {
                                     </div>
                                     <div className="space-y-1.5">
                                         {demographicEducation.slice(0, 4).map((item, idx) => (
-                                            <div key={idx} className="flex justify-between text-[10px] sm:text-xs">
+                                            <motion.div
+                                                key={idx}
+                                                initial={{ opacity: 0, x: -10 }}
+                                                whileInView={{ opacity: 1, x: 0 }}
+                                                viewport={{ once: true }}
+                                                transition={{ delay: idx * 0.1 }}
+                                                className="flex justify-between text-[10px] sm:text-xs"
+                                            >
                                                 <span className="font-medium text-gray-600 dark:text-gray-400 truncate mr-2">
                                                     {(() => {
                                                         const eduKeyMap: Record<string, string> = {
@@ -1391,7 +1447,7 @@ export default function Reports() {
                                                 <span className="font-black text-gray-900 dark:text-gray-100 shrink-0">
                                                     {item.count}
                                                 </span>
-                                            </div>
+                                            </motion.div>
                                         ))}
                                     </div>
                                 </div>
@@ -1406,7 +1462,14 @@ export default function Reports() {
                                     </div>
                                     <div className="space-y-1.5">
                                         {demographicEmployment.slice(0, 4).map((item, idx) => (
-                                            <div key={idx} className="flex justify-between text-[10px] sm:text-xs">
+                                            <motion.div
+                                                key={idx}
+                                                initial={{ opacity: 0, x: -10 }}
+                                                whileInView={{ opacity: 1, x: 0 }}
+                                                viewport={{ once: true }}
+                                                transition={{ delay: idx * 0.1 }}
+                                                className="flex justify-between text-[10px] sm:text-xs"
+                                            >
                                                 <span className="font-medium text-gray-600 dark:text-gray-400 truncate mr-2">
                                                     {(() => {
                                                         const empKeyMap: Record<string, string> = {
@@ -1422,7 +1485,7 @@ export default function Reports() {
                                                 <span className="font-black text-gray-900 dark:text-gray-100 shrink-0">
                                                     {item.count}
                                                 </span>
-                                            </div>
+                                            </motion.div>
                                         ))}
                                     </div>
                                 </div>
@@ -1430,7 +1493,7 @@ export default function Reports() {
                         </div>
                     </motion.div>
                 </div>
-            </div>
+            </motion.div>
         </motion.div>
     );
 }

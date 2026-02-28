@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import en from '../locales/en.json';
 import am from '../locales/am.json';
+import om from '../locales/om.json';
+import ti from '../locales/ti.json';
 import { useAuth } from './AuthContext';
 import { supabase } from '../supabaseClient';
 
-type Language = 'en' | 'am';
+type Language = 'en' | 'am' | 'om' | 'ti';
 
 interface LanguageContextType {
     language: Language;
@@ -15,6 +17,8 @@ interface LanguageContextType {
 const translations: Record<Language, any> = {
     en,
     am,
+    om,
+    ti,
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);

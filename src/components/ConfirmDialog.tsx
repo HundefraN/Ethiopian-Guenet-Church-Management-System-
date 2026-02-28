@@ -1,3 +1,5 @@
+import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, Info } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -23,16 +25,26 @@ export default function ConfirmDialog({
   cancelText,
 }: ConfirmDialogProps) {
   const { t } = useLanguage();
+
+  // Handle ESC key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isOpen, onCancel]);
+
   if (!isOpen) return null;
 
   const finalConfirmText = confirmText || t('common.confirm');
   const finalCancelText = cancelText || t('common.cancel');
 
   const colors = {
-    danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
-    warning:
-      "bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500",
-    info: "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500",
+    danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 shadow-red-500/20",
+    warning: "bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500 shadow-yellow-500/20",
+    info: "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 shadow-blue-500/20",
   };
 
   const Icon = type === "danger" || type === "warning" ? AlertTriangle : Info;
@@ -49,40 +61,49 @@ export default function ConfirmDialog({
         ? "bg-yellow-50 dark:bg-yellow-900/20"
         : "bg-blue-50 dark:bg-blue-900/20";
 
-  return (
-    <div className="fixed inset-0 bg-white/10 dark:bg-black/50 backdrop-blur-2xl z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-md shadow-xl scale-100 transform transition-all border border-transparent dark:border-gray-800">
-        <div className="p-6">
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+        onClick={onCancel}
+      />
+
+      {/* Dialog Content */}
+      <div className="bg-white dark:bg-gray-900 rounded-[28px] w-full max-w-md shadow-2xl relative z-10 animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="p-8">
           <div className="flex items-start gap-4">
             <div
-              className={`p-3 rounded-full ${bgColor} ${iconColor} flex-shrink-0`}
+              className={`p-4 rounded-2xl ${bgColor} ${iconColor} flex-shrink-0 shadow-sm`}
             >
               <Icon size={24} />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h3 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 mb-2 tracking-tight">
                 {title}
               </h3>
-              <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{message}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed font-medium">{message}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-50 dark:bg-gray-800/50 px-6 py-4 rounded-b-xl flex justify-end gap-3 border-t dark:border-gray-800">
+        <div className="bg-gray-50/80 dark:bg-gray-800/50 px-8 py-5 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-800">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-gray-700 dark:text-gray-400 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+            className="px-5 py-2.5 text-gray-600 dark:text-gray-400 font-bold hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-all active:scale-95"
           >
             {finalCancelText}
           </button>
           <button
             onClick={onConfirm}
-            className={`px-4 py-2 font-medium rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-2 ${colors[type]}`}
+            className={`px-6 py-2.5 font-bold rounded-xl transition-all shadow-lg active:scale-95 ${colors[type]}`}
           >
             {finalConfirmText}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
+

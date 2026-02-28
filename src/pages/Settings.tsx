@@ -431,6 +431,8 @@ export default function Settings() {
                       >
                         <option value="en">{t("settings.language.english")}</option>
                         <option value="am">{t("settings.language.amharic")}</option>
+                        <option value="om">{t("settings.language.oromo")}</option>
+                        <option value="ti">{t("settings.language.tigrinya")}</option>
                       </select>
                     </div>
 

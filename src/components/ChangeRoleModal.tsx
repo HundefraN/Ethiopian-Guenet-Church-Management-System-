@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Building, User, Users, Check, ArrowRight } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import { Profile, Church, Department } from "../types";
@@ -40,6 +41,16 @@ export default function ChangeRoleModal({
       }
     }
   }, [isOpen, user]);
+
+  // Handle ESC key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isOpen, onClose]);
 
   const fetchChurches = async () => {
     const { data } = await supabase.from("churches").select("*").order("name");
@@ -127,10 +138,17 @@ export default function ChangeRoleModal({
     departmentId !== (user.department_id || "")
   ) : false;
 
-  return (
-    <div className="fixed inset-0 bg-white/5 dark:bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-2xl transition-all duration-300">
-      <div className="bg-white dark:bg-gray-900 rounded-[32px] w-full max-w-md shadow-2xl border border-white/50 dark:border-gray-800 overflow-hidden animate-in fade-in zoom-in duration-300">
-        <div className="px-8 py-6 border-b border-gray-100/50 dark:border-gray-800/50 flex justify-between items-center bg-gradient-to-r from-gray-50/80 dark:from-gray-950/80 to-white dark:to-gray-900">
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+        onClick={onClose}
+      />
+
+      {/* Modal Content */}
+      <div className="bg-white dark:bg-gray-900 rounded-[32px] w-full max-w-md shadow-2xl relative z-10 animate-in zoom-in-95 duration-300 border border-white/50 dark:border-gray-800 overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="px-8 py-6 border-b border-gray-100/50 dark:border-gray-800/50 flex justify-between items-center bg-gradient-to-r from-gray-50/80 dark:from-gray-950/80 to-white dark:to-gray-900 shrink-0">
           <div className="flex items-center gap-4">
             {user?.avatar_url ? (
               <img
@@ -144,164 +162,168 @@ export default function ChangeRoleModal({
               </div>
             )}
             <div>
-              <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
+              <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
                 {user?.full_name || t('common.roleModal.title')}
               </h2>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-xs font-bold text-guenet-green/80 uppercase tracking-wider mt-0.5">
                 {t('common.roleModal.subtitle')}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all duration-200"
+            className="text-gray-500 hover:text-red-500 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all active:scale-90"
           >
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          <div className="space-y-3">
-            <label className="text-[13px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1">
-              {t('common.roleModal.selectAssignment')}
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Pastor Option */}
-              <button
-                type="button"
-                onClick={() => setRole("pastor")}
-                className={`group relative flex flex-col items-center justify-center p-5 rounded-[24px] border-2 transition-all duration-300 ${role === "pastor"
-                  ? "border-guenet-green bg-guenet-green/5 dark:bg-guenet-green/10 shadow-lg shadow-guenet-green/10"
-                  : "border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:border-guenet-green/30 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md text-gray-500"
-                  }`}
-              >
-                {role === "pastor" && (
-                  <div className="absolute top-3 right-3 bg-guenet-green text-white p-1 rounded-full animate-in zoom-in duration-300">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                )}
-                <div
-                  className={`p-3 rounded-2xl mb-3 transition-colors duration-300 ${role === "pastor" ? "bg-guenet-green text-white" : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 group-hover:text-guenet-green"
-                    }`}
-                >
-                  <User size={28} />
-                </div>
-                <span
-                  className={`text-sm font-bold tracking-tight transition-colors ${role === "pastor" ? "text-guenet-green" : "text-gray-600 dark:text-gray-400"
-                    }`}
-                >
-                  {t('common.roleModal.pastorLabel')}
-                </span>
-                <p className="text-[10px] mt-1 text-gray-500 dark:text-gray-400 font-medium">{t('common.roleModal.pastorSub')}</p>
-              </button>
-
-              {/* Servant Option */}
-              <button
-                type="button"
-                onClick={() => setRole("servant")}
-                className={`group relative flex flex-col items-center justify-center p-5 rounded-[24px] border-2 transition-all duration-300 ${role === "servant"
-                  ? "border-guenet-green bg-guenet-green/5 dark:bg-guenet-green/10 shadow-lg shadow-guenet-green/10"
-                  : "border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:border-guenet-green/30 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md text-gray-500"
-                  }`}
-              >
-                {role === "servant" && (
-                  <div className="absolute top-3 right-3 bg-guenet-green text-white p-1 rounded-full animate-in zoom-in duration-300">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                )}
-                <div
-                  className={`p-3 rounded-2xl mb-3 transition-colors duration-300 ${role === "servant" ? "bg-guenet-green text-white" : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 group-hover:text-guenet-green"
-                    }`}
-                >
-                  <Users size={28} />
-                </div>
-                <span
-                  className={`text-sm font-bold tracking-tight transition-colors ${role === "servant" ? "text-guenet-green" : "text-gray-600 dark:text-gray-400"
-                    }`}
-                >
-                  {t('common.roleModal.servantLabel')}
-                </span>
-                <p className="text-[10px] mt-1 text-gray-500 dark:text-gray-400 font-medium">{t('common.roleModal.servantSub')}</p>
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4 animate-in slide-in-from-bottom-2 duration-500">
-            <div>
-              <label className="text-[13px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
-                {t('common.roleModal.churchAssignment')}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <div className="space-y-4">
+              <label className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] ml-1">
+                {t('common.roleModal.selectAssignment')}
               </label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 group-focus-within:text-guenet-green transition-colors">
-                  <Building size={20} />
-                </div>
-                <select
-                  required
-                  value={churchId}
-                  onChange={handleChurchChange}
-                  className="form-select pl-12 h-14 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+              <div className="grid grid-cols-2 gap-4">
+                {/* Pastor Option */}
+                <button
+                  type="button"
+                  onClick={() => setRole("pastor")}
+                  className={`group relative flex flex-col items-center justify-center p-5 rounded-[28px] border-2 transition-all duration-300 ${role === "pastor"
+                    ? "border-guenet-green bg-guenet-green/5 dark:bg-guenet-green/10 shadow-lg shadow-guenet-green/10"
+                    : "border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:border-guenet-green/30 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md text-gray-500"
+                    }`}
                 >
-                  <option value="">{t('common.roleModal.selectChurch')}</option>
-                  {churches.map((church) => (
-                    <option key={church.id} value={church.id}>
-                      {church.name}
-                    </option>
-                  ))}
-                </select>
+                  {role === "pastor" && (
+                    <div className="absolute top-3 right-3 bg-guenet-green text-white p-1 rounded-full animate-in zoom-in duration-300">
+                      <Check size={12} strokeWidth={3} />
+                    </div>
+                  )}
+                  <div
+                    className={`p-3 rounded-2xl mb-3 transition-colors duration-300 ${role === "pastor" ? "bg-guenet-green text-white" : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 group-hover:text-guenet-green shadow-sm"
+                      }`}
+                  >
+                    <User size={28} />
+                  </div>
+                  <span
+                    className={`text-sm font-bold tracking-tight transition-colors ${role === "pastor" ? "text-guenet-green" : "text-gray-600 dark:text-gray-400"
+                      }`}
+                  >
+                    {t('common.roleModal.pastorLabel')}
+                  </span>
+                  <p className="text-[9px] mt-1 text-gray-500 dark:text-gray-400 font-bold opacity-70 uppercase tracking-tighter">{t('common.roleModal.pastorSub')}</p>
+                </button>
+
+                {/* Servant Option */}
+                <button
+                  type="button"
+                  onClick={() => setRole("servant")}
+                  className={`group relative flex flex-col items-center justify-center p-5 rounded-[28px] border-2 transition-all duration-300 ${role === "servant"
+                    ? "border-guenet-green bg-guenet-green/5 dark:bg-guenet-green/10 shadow-lg shadow-guenet-green/10"
+                    : "border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:border-guenet-green/30 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md text-gray-500"
+                    }`}
+                >
+                  {role === "servant" && (
+                    <div className="absolute top-3 right-3 bg-guenet-green text-white p-1 rounded-full animate-in zoom-in duration-300">
+                      <Check size={12} strokeWidth={3} />
+                    </div>
+                  )}
+                  <div
+                    className={`p-3 rounded-2xl mb-3 transition-colors duration-300 ${role === "servant" ? "bg-guenet-green text-white" : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 group-hover:text-guenet-green shadow-sm"
+                      }`}
+                  >
+                    <Users size={28} />
+                  </div>
+                  <span
+                    className={`text-sm font-bold tracking-tight transition-colors ${role === "servant" ? "text-guenet-green" : "text-gray-600 dark:text-gray-400"
+                      }`}
+                  >
+                    {t('common.roleModal.servantLabel')}
+                  </span>
+                  <p className="text-[9px] mt-1 text-gray-500 dark:text-gray-400 font-bold opacity-70 uppercase tracking-tighter">{t('common.roleModal.servantSub')}</p>
+                </button>
               </div>
             </div>
 
-            {role === "servant" && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="text-[13px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
-                  {t('common.roleModal.deptAssignment')}
+            <div className="space-y-5">
+              <div>
+                <label className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] ml-1 mb-2 block">
+                  {t('common.roleModal.churchAssignment')}
                 </label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 group-focus-within:text-guenet-green transition-colors">
-                    <Users size={20} />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-guenet-green/60 group-focus-within:text-guenet-green transition-colors">
+                    <Building size={20} />
                   </div>
                   <select
-                    value={departmentId}
-                    onChange={(e) => setDepartmentId(e.target.value)}
-                    className="form-select pl-12 h-14 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                    required
+                    value={churchId}
+                    onChange={handleChurchChange}
+                    className="form-select pl-12 h-14 bg-gray-50/50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100 rounded-2xl border-gray-100 focus:ring-4 focus:ring-guenet-green/10"
                   >
-                    <option value="">{t('common.roleModal.selectDept')}</option>
-                    {departments.map((dept) => (
-                      <option key={dept.id} value={dept.id}>
-                        {dept.name}
+                    <option value="">{t('common.roleModal.selectChurch')}</option>
+                    {churches.map((church) => (
+                      <option key={church.id} value={church.id}>
+                        {church.name}
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
-            )}
-          </div>
 
-          <div className="flex items-center gap-4 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 h-12 rounded-2xl text-gray-500 dark:text-gray-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-all active:scale-95 translate-all"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={submitting || !hasChanges}
-              className="flex-2 group h-12 bg-guenet-green text-white rounded-2xl hover:brightness-110 transition-all font-bold shadow-lg shadow-guenet-green/20 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-2 px-8"
-            >
-              {submitting ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>{t('common.roleModal.saveChanges')}</span>
-                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </>
+              {role === "servant" && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <label className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] ml-1 mb-2 block">
+                    {t('common.roleModal.deptAssignment')}
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-guenet-green/60 group-focus-within:text-guenet-green transition-colors">
+                      <Users size={20} />
+                    </div>
+                    <select
+                      value={departmentId}
+                      onChange={(e) => setDepartmentId(e.target.value)}
+                      className="form-select pl-12 h-14 bg-gray-50/50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100 rounded-2xl border-gray-100 focus:ring-4 focus:ring-guenet-green/10"
+                    >
+                      <option value="">{t('common.roleModal.selectDept')}</option>
+                      {departments.map((dept) => (
+                        <option key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               )}
-            </button>
-          </div>
-        </form>
+            </div>
+
+            <div className="flex items-center gap-4 pt-4 sticky bottom-0 bg-white dark:bg-gray-900 pb-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 h-12 rounded-2xl text-gray-500 font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-95"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !hasChanges}
+                className="flex-[2] group h-12 bg-guenet-green text-white rounded-2xl hover:brightness-110 transition-all font-black shadow-lg shadow-guenet-green/20 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>{t('common.roleModal.saveChanges')}</span>
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
+

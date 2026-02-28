@@ -83,6 +83,11 @@ export default function Members() {
     }
   }, [id, members]);
 
+  // Reset confirm dialog on route change (fixes pop back bug)
+  useEffect(() => {
+    setConfirmOpen(false);
+  }, [id]);
+
   const fetchMembers = async () => {
     try {
       setLoading(true);

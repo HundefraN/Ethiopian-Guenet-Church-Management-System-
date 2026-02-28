@@ -478,6 +478,36 @@ textarea.form-input:focus {
 }
 
 /* ─────────────── Sidebar Header ─────────────── */
+.sidebar-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  direction: rtl;
+}
+
+.sidebar-scroll-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.sidebar-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.sidebar-scroll-area>* {
+  direction: ltr;
+}
+
 .sidebar-header {
   padding: 22px 20px 14px;
   display: flex;
@@ -583,12 +613,8 @@ textarea.form-input:focus {
 
 /* ─────────────── Sidebar Navigation ─────────────── */
 .sidebar-nav {
-  flex: 1;
-  padding: 52px 0 52px 0;
+  padding: 30px 0 30px 0;
   padding-left: 14px;
-  margin-top: -44px;
-  margin-bottom: -52px;
-  overflow-y: auto;
   position: relative;
   z-index: 1;
   display: flex;

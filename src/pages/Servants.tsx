@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
   User,
   Search,
@@ -60,6 +62,14 @@ export default function Servants() {
   const [changeRoleUser, setChangeRoleUser] = useState<Servant | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const { pathname } = useLocation();
+
+  // Reset states on route change (fixes pop back bug)
+  useEffect(() => {
+    setConfirmOpen(false);
+    setIsModalOpen(false);
+    setChangeRoleUser(null);
+  }, [pathname]);
   const [members, setMembers] = useState<any[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState("");
 
@@ -762,13 +772,13 @@ export default function Servants() {
       />
 
       {/* ═══════════════ ADD/EDIT SERVANT MODAL ═══════════════ */}
-      <AnimatePresence>
-        {isModalOpen && (
+      {isModalOpen && createPortal(
+        <AnimatePresence>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-[100] p-4"
+            className="fixed inset-0 flex items-center justify-center z-[200] p-4"
             style={d.modalOverlay}
           >
             <motion.div
@@ -981,8 +991,9 @@ export default function Servants() {
               </form>
             </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </motion.div>
   );
 }

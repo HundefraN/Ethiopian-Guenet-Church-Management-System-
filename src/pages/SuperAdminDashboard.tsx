@@ -523,9 +523,9 @@ export default function SuperAdminDashboard() {
                         <span className="text-gray-500 dark:text-gray-400">·</span>
                         <span
                           className="text-xs font-medium text-gray-500 dark:text-gray-400"
-                          title={formatDisplayDateTime(log.created_at, calendarType, language)}
+                          title={formatDisplayDateTime(log.created_at, calendarType, language as any)}
                         >
-                          {timeAgo(log.created_at, language)}
+                          {timeAgo(log.created_at, language as any)}
                         </span>
                       </div>
                     </div>

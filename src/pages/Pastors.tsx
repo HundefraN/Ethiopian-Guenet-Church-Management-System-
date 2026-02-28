@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
   User,
   Search,
@@ -15,9 +17,10 @@ import {
   Map,
   Sparkles,
   Crown,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "../supabaseClient";
-import { Church, Profile } from "../types";
+import { Church, Profile, Member } from "../types";
 import toast from "react-hot-toast";
 import { invokeSupabaseFunction } from "../utils/supabaseFunctions";
 import { logActivity, getObjectDiff } from "../utils/activityLogger";
@@ -48,8 +51,35 @@ export default function Pastors() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingPastor, setEditingPastor] = useState<Pastor | null>(null);
+  // Member selection states
+  const [members, setMembers] = useState<Member[]>([]);
+  const [memberSearchQuery, setMemberSearchQuery] = useState("");
+  const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isManualEntry, setIsManualEntry] = useState(false);
+
   const [changeRoleUser, setChangeRoleUser] = useState<Pastor | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
+  const { pathname } = useLocation();
+
+  // Reset states on route change (fixes pop back bug)
+  useEffect(() => {
+    setConfirmOpen(false);
+    setIsModalOpen(false);
+    setChangeRoleUser(null);
+  }, [pathname]);
+
+  const filteredDropdownMembers = useMemo(() => {
+    let list = members;
+    if (memberSearchQuery.trim()) {
+      const q = memberSearchQuery.toLowerCase();
+      list = members.filter((m) =>
+        m.full_name.toLowerCase().includes(q) ||
+        (m.email && m.email.toLowerCase().includes(q))
+      );
+    }
+    return list.slice(0, 30); // show up to 30 to allow scrolling
+  }, [members, memberSearchQuery]);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<() => void>(() => { });
@@ -71,8 +101,18 @@ export default function Pastors() {
 
   const fetchData = async () => {
     setLoading(true);
-    await Promise.all([fetchPastors(), fetchChurches()]);
+    await Promise.all([fetchPastors(), fetchChurches(), fetchMembers()]);
     setLoading(false);
+  };
+
+  const fetchMembers = async () => {
+    try {
+      const { data, error } = await supabase.from("members").select("*").order("full_name");
+      if (error) throw error;
+      setMembers((data as Member[]) || []);
+    } catch (error) {
+      console.error("Error fetching members:", error);
+    }
   };
 
   const fetchChurches = async () => {
@@ -250,8 +290,24 @@ export default function Pastors() {
 
   const openAddModal = () => {
     setEditingPastor(null);
+    setSelectedMember(null);
+    setIsMemberDropdownOpen(false);
+    setMemberSearchQuery("");
     setFormData({ full_name: "", email: "", password: "", church_id: "" });
+    setIsManualEntry(false);
     setIsModalOpen(true);
+  };
+
+  const handleSelectMember = (member: Member) => {
+    setSelectedMember(member);
+    setFormData({
+      ...formData,
+      full_name: member.full_name,
+      email: member.email || formData.email,
+      church_id: member.church_id || formData.church_id,
+    });
+    setIsMemberDropdownOpen(false);
+    setMemberSearchQuery("");
   };
 
   const filteredPastors = useMemo(() => {
@@ -553,13 +609,13 @@ export default function Pastors() {
       )}
 
       {/* ═══════════════ MODAL ═══════════════ */}
-      <AnimatePresence>
-        {isModalOpen && (
+      {isModalOpen && createPortal(
+        <AnimatePresence>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-[100] p-4"
+            className="fixed inset-0 flex items-center justify-center z-[200] p-4"
             style={d.modalOverlay}
           >
             <motion.div
@@ -567,7 +623,7 @@ export default function Pastors() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 30 }}
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem]"
+              className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem] max-h-[90vh] overflow-y-auto"
               style={d.modalContent}
             >
               <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #3178B5, #4B9BDC, #7EC8F2)' }}></div>
@@ -589,21 +645,130 @@ export default function Pastors() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('pastors.form.fullName')}</label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
-                      <User size={18} />
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">
+                    {editingPastor ? t('pastors.form.fullName') : (isManualEntry ? t('pastors.form.fullName') : t('pastors.form.fullName') + " (Select Member)")}
+                  </label>
+
+                  {editingPastor || isManualEntry ? (
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
+                        <User size={18} />
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={formData.full_name}
+                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                        style={d.formInput}
+                        placeholder={t('pastors.form.namePlaceholder')}
+                      />
+                      {!editingPastor && isManualEntry && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsManualEntry(false);
+                            setFormData({ ...formData, full_name: "" });
+                            setSelectedMember(null);
+                          }}
+                          className="mt-2 text-xs font-bold text-[#4B9BDC] hover:text-[#3178B5] transition-colors ml-1"
+                        >
+                          {t('common.roles.MEMBER')} {t('common.search')}
+                        </button>
+                      )}
                     </div>
-                    <input
-                      type="text"
-                      required
-                      value={formData.full_name}
-                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                      className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
-                      style={d.formInput}
-                      placeholder={t('pastors.form.namePlaceholder')}
-                    />
-                  </div>
+                  ) : (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsMemberDropdownOpen(!isMemberDropdownOpen)}
+                        className="w-full flex items-center justify-between pl-4 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-left shadow-sm"
+                        style={{ ...d.formInput, borderColor: isMemberDropdownOpen ? '#4B9BDC' : 'transparent', outline: isMemberDropdownOpen ? '2px solid rgba(75,155,220,0.2)' : 'none' }}
+                      >
+                        <div className="flex items-center gap-3 truncate">
+                          <User size={18} className="text-[#4B9BDC] shrink-0" />
+                          <span className={selectedMember ? "text-gray-900 dark:text-gray-100 truncate" : "text-gray-400 truncate"}>
+                            {selectedMember ? selectedMember.full_name : "Select a member..."}
+                          </span>
+                        </div>
+                        <ChevronDown size={18} className={`text-gray-400 transition-transform duration-200 shrink-0 ${isMemberDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isMemberDropdownOpen && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-[110]"
+                            onClick={() => setIsMemberDropdownOpen(false)}
+                          />
+                          <div className="absolute z-[120] w-full mt-2 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col pt-1">
+                            <div className="p-3 border-b border-gray-100 dark:border-gray-700">
+                              <div className="relative">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  value={memberSearchQuery}
+                                  onChange={(e) => setMemberSearchQuery(e.target.value)}
+                                  placeholder="Search by name or email..."
+                                  className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B9BDC]/50 text-sm font-medium text-gray-900 dark:text-white placeholder-gray-400"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="max-h-60 overflow-y-auto custom-scrollbar pb-1">
+                              {filteredDropdownMembers.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                                  No members found.
+                                </div>
+                              ) : (
+                                filteredDropdownMembers.map((member) => {
+                                  const church = churches.find(c => c.id === member.church_id);
+                                  const isSelected = selectedMember?.id === member.id;
+
+                                  return (
+                                    <div
+                                      key={member.id}
+                                      onClick={() => handleSelectMember(member)}
+                                      className={`px-4 py-3 cursor-pointer flex flex-col transition-colors border-b border-gray-50 dark:border-gray-700/50 last:border-0 ${isSelected
+                                        ? 'bg-blue-50/70 dark:bg-blue-900/20'
+                                        : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                        }`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className={`font-bold ${isSelected ? 'text-[#4B9BDC]' : 'text-gray-900 dark:text-white'}`}>
+                                          {member.full_name}
+                                        </span>
+                                        {church && (
+                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                                            {church.name}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {member.email && (
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                          {member.email}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {!isManualEntry && (
+                        <button
+                          type="button"
+                          onClick={() => setIsManualEntry(true)}
+                          className="mt-2 text-xs font-bold text-[#4B9BDC] hover:text-[#3178B5] transition-colors ml-1"
+                        >
+                          {t('pastors.form.chooseAnotherWay')}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {!editingPastor && (
@@ -697,8 +862,9 @@ export default function Pastors() {
               </form>
             </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
 
       {changeRoleUser && (
         <ChangeRoleModal
