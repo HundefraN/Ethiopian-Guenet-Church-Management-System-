@@ -28,6 +28,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
 
 interface Servant extends Profile {
@@ -45,6 +46,7 @@ interface Servant extends Profile {
 }
 
 export default function Servants() {
+  const { t } = useLanguage();
   const { profile } = useAuth();
   const { isDark } = useTheme();
   const d = ds(isDark);
@@ -66,7 +68,7 @@ export default function Servants() {
   const [confirmTitle, setConfirmTitle] = useState("");
   const [confirmMessage, setConfirmMessage] = useState("");
   const [confirmType, setConfirmType] = useState<"danger" | "warning" | "info">("danger");
-  const [confirmButtonText, setConfirmButtonText] = useState("Confirm");
+  const [confirmButtonText, setConfirmButtonText] = useState(t('common.confirm'));
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -160,7 +162,7 @@ export default function Servants() {
         .eq("role", "servant")
         .order("created_at", { ascending: false });
 
-      if (profile?.role === "pastor" && profile.church_id) {
+      if ((profile?.role === "pastor" || profile?.role === "servant") && profile.church_id) {
         query = query.eq("church_id", profile.church_id);
       }
 
@@ -189,7 +191,7 @@ export default function Servants() {
         .eq("role", "servant")
         .order("created_at", { ascending: false });
 
-      if (profile?.role === "pastor" && profile.church_id) {
+      if ((profile?.role === "pastor" || profile?.role === "servant") && profile.church_id) {
         query = query.eq("church_id", profile.church_id);
       }
 
@@ -198,7 +200,7 @@ export default function Servants() {
       setServants((data as any) || []);
     } catch (error) {
       console.error("Error fetching servants (legacy):", error);
-      toast.error("Failed to load servants");
+      toast.error(t('servants.messages.loadError'));
     }
   };
 
@@ -235,12 +237,12 @@ export default function Servants() {
 
   const handleBlockToggleClick = (servant: Servant) => {
     const isBlocking = !servant.is_blocked;
-    setConfirmTitle(isBlocking ? "Block Servant" : "Unblock Servant");
+    setConfirmTitle(isBlocking ? t('servants.actions.block') : t('servants.actions.unblock'));
     setConfirmMessage(
-      `Are you sure you want to ${isBlocking ? "block" : "unblock"} ${servant.full_name}? ${isBlocking ? "They will lose access to the system." : "They will regain access to the system."}`
+      `${t('servants.messages.blockConfirmPrefix').replace('{{action}}', isBlocking ? t('common.block').toLowerCase() : t('common.unblock').toLowerCase()).replace('{{name}}', servant.full_name)} ${isBlocking ? t('servants.messages.blockWarning') : t('servants.messages.unblockWarning')}`
     );
     setConfirmType(isBlocking ? "danger" : "info");
-    setConfirmButtonText(isBlocking ? "Block" : "Unblock");
+    setConfirmButtonText(isBlocking ? t('servants.actions.block') : t('servants.actions.unblock'));
     setConfirmAction(() => () => toggleBlockStatus(servant));
     setConfirmOpen(true);
   };
@@ -254,16 +256,16 @@ export default function Servants() {
       await logActivity(
         newStatus ? "BLOCK" : "UNBLOCK",
         "SERVANT",
-        `${newStatus ? "Blocked" : "Unblocked"} servant ${servant.full_name}`,
+        (newStatus ? t('activity.actions.BLOCK') : t('activity.actions.UNBLOCK')) + ` ${t('servants.servant').toLowerCase()} ${servant.full_name}`,
         servant.id,
         { old: { is_blocked: servant.is_blocked }, new: { is_blocked: newStatus } }
       );
 
-      toast.success(`Servant ${newStatus ? "blocked" : "unblocked"} successfully`);
+      toast.success(`${t('servants.servant')} ${newStatus ? t('common.blocked').toLowerCase() : t('common.unblocked').toLowerCase()} ${t('common.successfully').toLowerCase()}`);
       fetchServants();
     } catch (error: any) {
       console.error("Error updating servant status:", error);
-      toast.error(error.message || "Failed to update status");
+      toast.error(error.message || t('common.error'));
     }
     setConfirmOpen(false);
   };
@@ -271,7 +273,7 @@ export default function Servants() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (profile?.role === "super_admin" && !editingServant) {
-      toast.error("Super admins cannot register servants directly");
+      toast.error(t('servants.messages.superAdminForbidden'));
       return;
     }
 
@@ -281,14 +283,14 @@ export default function Servants() {
 
       if (editingServant) {
         if (!formData.full_name) {
-          toast.error("Full name is required");
+          toast.error(t('servants.messages.nameRequired'));
           return;
         }
 
         const oldChurch = churches.find(c => c.id === editingServant.church_id)?.name || "Unknown";
         const newChurch = churches.find(c => c.id === (profile?.role === "super_admin" ? formData.church_id : editingServant.church_id))?.name || oldChurch;
-        const oldDepts = editingServant.profile_departments?.map(pd => pd.departments?.name).filter(Boolean).sort().join(", ") || "None";
-        const newDepts = departments.filter(d => formData.department_ids.includes(d.id)).map(d => d.name).sort().join(", ") || "None";
+        const oldDepts = editingServant.profile_departments?.map(pd => pd.departments?.name).filter(Boolean).sort().join(", ") || t('common.noBranchAssigned'); // Using a key that roughly means "None"
+        const newDepts = departments.filter(d => formData.department_ids.includes(d.id)).map(d => d.name).sort().join(", ") || t('common.noBranchAssigned');
 
         const logOld: any = { full_name: editingServant.full_name, departments: oldDepts };
         const logNew: any = { full_name: formData.full_name, departments: newDepts };
@@ -303,7 +305,7 @@ export default function Servants() {
         const diff = getObjectDiff(logOld, logNew);
 
         if (!diff) {
-          toast.error("No changes detected");
+          toast.error(t('common.noChanges'));
           setSubmitting(false);
           return;
         }
@@ -318,16 +320,16 @@ export default function Servants() {
         servantId = editingServant.id;
 
         const changedFields = Object.keys(diff.new).filter(k => k !== 'church_id').join(", ");
-        await logActivity("UPDATE", "SERVANT", `Updated servant "${editingServant.full_name}" (Changed: ${changedFields})`, editingServant.id, diff);
-        toast.success("Servant updated successfully");
+        await logActivity("UPDATE", "SERVANT", t('activity.actions.UPDATE') + ` ${t('servants.servant').toLowerCase()} "${editingServant.full_name}" (Changed: ${changedFields})`, editingServant.id, diff);
+        toast.success(t('servants.messages.updateSuccess'));
       } else {
         if (!editingServant && !selectedMemberId && profile?.role !== "super_admin") {
-          toast.error("Please select a member first");
+          toast.error(t('servants.messages.selectMember'));
           return;
         }
 
         if (!formData.full_name || !formData.email || !formData.password || !formData.church_id) {
-          toast.error("Member details (name, email, password) and church are required");
+          toast.error(t('servants.messages.detailsRequired'));
           return;
         }
 
@@ -348,16 +350,16 @@ export default function Servants() {
 
         servantId = responseData.user.id;
         const churchName = churches.find(c => c.id === formData.church_id)?.name || "Unknown";
-        const selectedDepts = departments.filter(d => formData.department_ids.includes(d.id)).map(d => d.name).join(", ") || "None";
+        const selectedDepts = departments.filter(d => formData.department_ids.includes(d.id)).map(d => d.name).join(", ") || t('common.noBranchAssigned');
 
-        await logActivity("CREATE", "SERVANT", `Registered new servant ${formData.full_name}`, servantId, {
+        await logActivity("CREATE", "SERVANT", t('activity.actions.CREATE') + ` ${t('servants.servant').toLowerCase()} ${formData.full_name}`, servantId, {
           email: formData.email,
           full_name: formData.full_name,
           church: churchName,
           departments: selectedDepts
         });
 
-        toast.success("Servant registered successfully");
+        toast.success(t('servants.messages.registerSuccess'));
       }
 
       if (servantId) {
@@ -379,7 +381,7 @@ export default function Servants() {
       fetchServants();
     } catch (error: any) {
       console.error("Error saving servant:", error);
-      toast.error(error.message || "Failed to save servant");
+      toast.error(error.message || t('servants.messages.saveError'));
     } finally {
       setSubmitting(false);
     }
@@ -391,20 +393,20 @@ export default function Servants() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this servant? This action cannot be undone.")) return;
+    if (!window.confirm(t('servants.confirmDeleteMsg'))) return;
     try {
       const servantToDelete = servants.find((s) => s.id === id);
       const { error } = await supabase.from("profiles").delete().eq("id", id);
       if (error) throw error;
 
-      await logActivity("DELETE", "SERVANT", `Deleted servant ${servantToDelete?.full_name || "Unknown"}`, id,
+      await logActivity("DELETE", "SERVANT", t('activity.actions.DELETE') + ` ${t('servants.servant').toLowerCase()} ${servantToDelete?.full_name || "Unknown"}`, id,
         servantToDelete ? { full_name: servantToDelete.full_name, church: servantToDelete.churches?.name } : null
       );
-      toast.success("Servant deleted successfully");
+      toast.success(t('servants.messages.deleteSuccess'));
       fetchServants();
     } catch (error: any) {
       console.error("Error deleting servant:", error);
-      toast.error(error.message || "Failed to delete servant");
+      toast.error(error.message || t('servants.messages.deleteError'));
     }
   };
 
@@ -471,7 +473,7 @@ export default function Servants() {
                 <Flame size={24} className="text-blue-100" />
               </div>
               <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
-                <Sparkles size={10} className="inline mr-1" /> Ministry Team
+                <Sparkles size={10} className="inline mr-1" /> {t('dashboard.ministryTeam')}
               </div>
             </motion.div>
             <motion.h1
@@ -481,7 +483,7 @@ export default function Servants() {
               className="text-4xl md:text-5xl font-black tracking-tight mb-3"
               style={{ background: 'linear-gradient(135deg, #ffffff 0%, #7EC8F2 50%, #4B9BDC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
             >
-              Servants Directory
+              {t('servants.title')}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 10 }}
@@ -489,7 +491,7 @@ export default function Servants() {
               transition={{ delay: 0.2 }}
               className="text-blue-100/70 max-w-lg text-sm md:text-base font-medium"
             >
-              Manage church servants, department assignments, and access levels.
+              {t('servants.subtitle')}
             </motion.p>
           </div>
 
@@ -505,11 +507,11 @@ export default function Servants() {
               </div>
               <div>
                 <p className="text-2xl font-black text-white leading-none">{servants.length}</p>
-                <p className="text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">Servants</p>
+                <p className="text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">{t('sidebar.servants')}</p>
               </div>
             </div>
 
-            {profile?.role !== "super_admin" && (
+            {profile?.role === "pastor" && (
               <motion.button
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
@@ -518,7 +520,7 @@ export default function Servants() {
                 style={{ background: 'linear-gradient(135deg, #ffffff, #e8f1fa)', color: '#3178B5', boxShadow: '0 8px 32px rgba(49,120,181,0.3), inset 0 1px 0 rgba(255,255,255,0.8)' }}
               >
                 <Plus size={18} />
-                <span>Register Servant</span>
+                <span>{t('servants.registerServant')}</span>
               </motion.button>
             )}
           </motion.div>
@@ -545,7 +547,7 @@ export default function Servants() {
           </div>
           <input
             type="text"
-            placeholder="Search servants by name, assigned church, or department..."
+            placeholder={t('servants.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
@@ -556,7 +558,7 @@ export default function Servants() {
             <button
               onClick={() => setSearchQuery("")}
               className="p-2 mr-2 text-gray-500 dark:text-gray-400 hover:text-[#4B9BDC] rounded-xl hover:bg-blue-50 transition-colors"
-              title="Clear search"
+              title={t('common.clearSearch')}
             >
               <X size={16} />
             </button>
@@ -584,9 +586,9 @@ export default function Servants() {
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5" style={d.emptyIcon}>
             <Users className="h-10 w-10 text-gray-500 dark:text-gray-400" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">No servants found</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('servants.messages.noResults')}</h3>
           <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-            Try adjusting your search or register a new servant.
+            {t('common.tryAdjusting')}
           </p>
         </motion.div>
       ) : (
@@ -650,10 +652,10 @@ export default function Servants() {
                           className="absolute -top-1.5 -left-1.5 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg z-20 uppercase tracking-tight ring-2 ring-white"
                           style={{ background: '#ef4444' }}
                         >
-                          Blocked
+                          {t('common.blocked')}
                         </motion.div>
                       ) : (
-                        <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-white ring-2 ring-white shadow-sm" style={{ background: '#10b981' }} title="Active">
+                        <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-white ring-2 ring-white shadow-sm" style={{ background: '#10b981' }} title={t('common.active')}>
                           <Shield size={11} strokeWidth={3} />
                         </div>
                       )}
@@ -663,7 +665,7 @@ export default function Servants() {
                       <button
                         onClick={() => handleBlockToggleClick(servant)}
                         className={`p-2 rounded-lg transition-colors ${servant.is_blocked ? "text-emerald-600 hover:bg-emerald-50" : "text-red-500 hover:bg-red-50"}`}
-                        title={servant.is_blocked ? "Unblock Servant" : "Block Servant"}
+                        title={servant.is_blocked ? t('servants.actions.unblock') : t('servants.actions.block')}
                       >
                         {servant.is_blocked ? <Shield size={14} /> : <ShieldOff size={14} />}
                       </button>
@@ -671,16 +673,16 @@ export default function Servants() {
                         <button
                           onClick={() => setChangeRoleUser(servant)}
                           className="p-2 text-[#4B9BDC] hover:text-[#3178B5] hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Change Role"
+                          title={t('servants.actions.changeRole')}
                         >
                           <RefreshCw size={14} />
                         </button>
                       )}
-                      {profile?.role !== "super_admin" && (
+                      {profile?.role === "pastor" && (
                         <button
                           onClick={() => handleEdit(servant)}
                           className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit Servant"
+                          title={t('servants.editServant')}
                         >
                           <Edit2 size={14} />
                         </button>
@@ -693,7 +695,7 @@ export default function Servants() {
                       {servant.full_name}
                     </h3>
                     <span className="text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-md mb-3 inline-block" style={{ background: 'rgba(75,155,220,0.08)', color: '#3178B5' }}>
-                      Servant
+                      {t('servants.servant')}
                     </span>
 
                     <div className="rounded-xl p-3 mt-2 space-y-2" style={d.infoBox}>
@@ -703,7 +705,7 @@ export default function Servants() {
                           {servant.churches ? (
                             <span className="text-gray-700 dark:text-gray-400 truncate text-xs font-semibold">{servant.churches.name}</span>
                           ) : (
-                            <span className="text-gray-500 dark:text-gray-400 italic text-xs dark:text-gray-500">No Branch Assigned</span>
+                            <span className="text-gray-500 dark:text-gray-400 italic text-xs dark:text-gray-500">{t('servants.messages.noBranchAssigned')}</span>
                           )}
                         </div>
                         {servant.churches?.map_link && (
@@ -713,7 +715,7 @@ export default function Servants() {
                             rel="noopener noreferrer"
                             className="p-1.5 rounded-lg transition-colors shrink-0"
                             style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981' }}
-                            title="View on Map"
+                            title={t('dashboard.activity.viewOnMap')}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Map size={12} />
@@ -782,9 +784,9 @@ export default function Servants() {
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
-                    {editingServant ? "Edit Servant" : "Register Servant"}
+                    {editingServant ? t('servants.editServant') : t('servants.registerServant')}
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Manage servant profile</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">{t('servants.servantSubtitle')}</p>
                 </div>
                 <button
                   onClick={handleCloseModal}
@@ -797,7 +799,7 @@ export default function Servants() {
               <form onSubmit={handleSubmit} className="space-y-5">
                 {profile?.role === "super_admin" && (
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Assign Branch</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('servants.details.assignBranch')}</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
                         <Building size={18} />
@@ -809,7 +811,7 @@ export default function Servants() {
                         className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400 appearance-none"
                         style={d.formInput}
                       >
-                        <option value="" disabled className="text-gray-500 dark:text-gray-400">Select a church...</option>
+                        <option value="" disabled className="text-gray-500 dark:text-gray-400">{t('servants.details.selectBranch')}</option>
                         {churches.map((church) => (
                           <option key={church.id} value={church.id}>{church.name}</option>
                         ))}
@@ -820,7 +822,7 @@ export default function Servants() {
 
                 {editingServant ? (
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Full Name</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('servants.details.fullName')}</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
                         <User size={18} />
@@ -832,13 +834,13 @@ export default function Servants() {
                         onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                         className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                         style={d.formInput}
-                        placeholder="e.g. Abebe Kebede"
+                        placeholder={t('members.form.fullNamePlaceholder')}
                       />
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Select Member from Church</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('servants.details.selectMember')}</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
                         <User size={18} />
@@ -850,7 +852,7 @@ export default function Servants() {
                         className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 appearance-none"
                         style={d.formInput}
                       >
-                        <option value="" disabled>Select a member...</option>
+                        <option value="" disabled>{t('servants.details.selectMemberPlaceholder')}</option>
                         {members.map(m => (
                           <option key={m.id} value={m.id}>{m.full_name}</option>
                         ))}
@@ -863,7 +865,7 @@ export default function Servants() {
                 {!editingServant && (
                   <>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Email Address</label>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('servants.details.email')}</label>
                       <div className="relative">
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
                           <Mail size={18} />
@@ -875,23 +877,23 @@ export default function Servants() {
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                           style={d.formInput}
-                          placeholder="servant@example.com"
+                          placeholder={t('members.form.emailPlaceholder')}
                         />
                       </div>
                       {selectedMemberId && members.find(m => m.id === selectedMemberId)?.email && formData.email === members.find(m => m.id === selectedMemberId)?.email && (
                         <p className="mt-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium ml-1 flex items-start gap-1">
-                          <span className="text-lg leading-none">&bull;</span> Using the member's existing email. You can edit this above if you'd like to use a different one.
+                          <span className="text-lg leading-none">&bull;</span> {t('servants.messages.usingMemberEmail')}
                         </p>
                       )}
                       {selectedMemberId && !members.find(m => m.id === selectedMemberId)?.email && !formData.email && (
                         <p className="mt-1.5 text-xs text-amber-600 font-medium ml-1 flex items-start gap-1">
-                          <span className="text-lg leading-none">&bull;</span> This member doesn't have an email in their profile. Please provide one for login.
+                          <span className="text-lg leading-none">&bull;</span> {t('servants.messages.provideEmail')}
                         </p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Temporary Password</label>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('servants.details.temporaryPassword')}</label>
                       <div className="relative">
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
                           <Shield size={18} />
@@ -903,7 +905,7 @@ export default function Servants() {
                           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                           className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                           style={d.formInput}
-                          placeholder="Min. 6 characters"
+                          placeholder={t('servants.details.passwordPlaceholder')}
                         />
                       </div>
                       <PasswordStrengthMeter password={formData.password} />
@@ -913,17 +915,17 @@ export default function Servants() {
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1 flex justify-between">
-                    <span>Assign Departments</span>
+                    <span>{t('servants.details.assignDepartments')}</span>
                     {formData.department_ids.length > 0 && (
                       <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(75,155,220,0.08)', color: '#3178B5', border: '1px solid rgba(249,115,22,0.15)' }}>
-                        {formData.department_ids.length} Selected
+                        {formData.department_ids.length} {t('common.selected')}
                       </span>
                     )}
                   </label>
                   <div className="rounded-2xl p-4 max-h-48 overflow-y-auto space-y-2" style={d.checkboxArea}>
                     {departments.length === 0 ? (
                       <p className="text-sm font-medium text-gray-500 italic text-center py-4">
-                        No departments available. Select a church first.
+                        {t('servants.messages.noDepartmentsSelectBranch')}
                       </p>
                     ) : (
                       departments.map((dept) => (
@@ -956,7 +958,7 @@ export default function Servants() {
                     onClick={handleCloseModal}
                     className="px-6 py-3 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <motion.button
                     whileHover={{ scale: 1.03 }}
@@ -971,7 +973,7 @@ export default function Servants() {
                     ) : (
                       <>
                         {editingServant ? <Save size={18} /> : <Plus size={18} />}
-                        <span>{editingServant ? "Save Changes" : "Register Servant"}</span>
+                        <span>{editingServant ? t('common.save') : t('servants.registerServant')}</span>
                       </>
                     )}
                   </motion.button>

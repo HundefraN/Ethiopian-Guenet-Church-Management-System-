@@ -14,6 +14,11 @@ import {
   User,
   ChevronRight,
   LayoutDashboard,
+  UserCheck,
+  ShieldCheck,
+  Layers,
+  Calendar,
+  FileBarChart,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { containerVariants as sharedContainerVariants, itemVariants as sharedItemVariants, springPresets } from "../utils/animations";
@@ -67,26 +72,38 @@ export default function Sidebar({ onClose }: SidebarProps) {
     {
       name: t("sidebar.pastors"),
       path: "/pastors",
-      icon: User,
+      icon: UserCheck,
       roles: ["super_admin"],
     },
     {
       name: t("sidebar.servants"),
       path: "/servants",
-      icon: User,
+      icon: ShieldCheck,
       roles: ["super_admin", "pastor"],
     },
     {
       name: t("sidebar.departments"),
       path: "/departments",
-      icon: Shield,
-      roles: ["super_admin", "pastor"],
+      icon: Layers,
+      roles: ["super_admin", "pastor", "servant"],
     },
     {
       name: t("sidebar.members"),
       path: "/members",
       icon: Users,
       roles: ["super_admin", "pastor", "servant"],
+    },
+    {
+      name: t("sidebar.activities"),
+      path: "/activities",
+      icon: Calendar,
+      roles: ["super_admin", "pastor", "servant"],
+    },
+    {
+      name: t("sidebar.reports"),
+      path: "/reports",
+      icon: FileBarChart,
+      roles: ["super_admin"],
     },
     {
       name: t("sidebar.settings"),
@@ -140,12 +157,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </div>
           <div className="sidebar-brand-text">
             <h2 className="sidebar-church-name">
-              {churchName || (profile?.role === "super_admin" ? "Guenet HQ" : "Guenet")}
+              {churchName || (profile?.role === "super_admin" ? t("common.hq") : t("login.title"))}
             </h2>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
               <p className="sidebar-role-badge">
-                {profile?.role?.replace("_", " ") || "User"}
+                {profile?.role ? t(`common.roles.${profile.role.toLowerCase()}`) : t('common.user')}
               </p>
             </div>
           </div>
@@ -231,16 +248,16 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 />
               ) : (
                 <div className="sidebar-avatar-placeholder">
-                  {profile?.full_name?.charAt(0) || "U"}
+                  {profile?.full_name?.charAt(0) || t('common.u')}
                 </div>
               )}
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-[#0c1929] rounded-full"></div>
             </div>
             <div className="sidebar-user-text">
               <p className="sidebar-user-name">
-                {profile?.full_name || "User"}
+                {profile?.full_name || t('common.user')}
               </p>
-              <p className="sidebar-user-role">{profile?.role?.replace("_", " ")}</p>
+              <p className="sidebar-user-role">{profile?.role ? t(`common.roles.${profile.role.toLowerCase()}`) : ""}</p>
             </div>
           </div>
           <button

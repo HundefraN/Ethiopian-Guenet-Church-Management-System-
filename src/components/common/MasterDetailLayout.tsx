@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, X } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 interface MasterDetailLayoutProps {
@@ -18,10 +19,13 @@ export default function MasterDetailLayout({
   detail,
   isOpen,
   onClose,
-  title = "Details",
+  title,
   actions,
 }: MasterDetailLayoutProps) {
+  const { t } = useLanguage();
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+
+  const displayTitle = title || t("members.detailsTitle"); // Fallback to localized 'Details'
 
   // Desktop View (Split Screen)
   if (isDesktop) {
@@ -29,9 +33,8 @@ export default function MasterDetailLayout({
       <div className="flex h-[calc(100vh-2rem)] overflow-hidden rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
         {/* List Pane */}
         <div
-          className={`flex-1 overflow-y-auto transition-all duration-300 ease-in-out ${
-            isOpen ? 'w-1/2 lg:w-[45%]' : 'w-full'
-          } border-r border-gray-100 dark:border-gray-800`}
+          className={`flex-1 overflow-y-auto transition-all duration-300 ease-in-out ${isOpen ? 'w-1/2 lg:w-[45%]' : 'w-full'
+            } border-r border-gray-100 dark:border-gray-800`}
         >
           {children}
         </div>
@@ -46,9 +49,9 @@ export default function MasterDetailLayout({
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className="w-1/2 lg:w-[55%] h-full bg-gray-50/50 dark:bg-gray-950/50 flex flex-col overflow-hidden relative"
             >
-               {/* Detail Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{title}</h2>
+              {/* Detail Header */}
+              <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{displayTitle}</h2>
                 <div className="flex items-center gap-2">
                   {actions}
                   <button
@@ -59,21 +62,21 @@ export default function MasterDetailLayout({
                   </button>
                 </div>
               </div>
-              
+
               {/* Detail Content */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-4 md:p-6">
                 {detail}
               </div>
             </motion.div>
           )}
-           {!isOpen && (
+          {!isOpen && (
             <div className="hidden lg:flex flex-1 items-center justify-center bg-gray-50/30 dark:bg-gray-900/30 text-gray-500 dark:text-gray-400 flex-col gap-4">
-               <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 border-dashed animate-spin-slow"></div>
-               </div>
-               <p className="font-medium">Select an item to view details</p>
+              <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 border-dashed animate-spin-slow"></div>
+              </div>
+              <p className="font-medium">{t("common.selectItem")}</p>
             </div>
-           )}
+          )}
         </AnimatePresence>
       </div>
     );
@@ -106,7 +109,7 @@ export default function MasterDetailLayout({
                 >
                   <ArrowLeft size={24} />
                 </button>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate flex-1">{title}</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate flex-1">{displayTitle}</h2>
                 {actions}
               </div>
               <div className="flex-1 overflow-y-auto p-4 pb-24 bg-gray-50/30 dark:bg-black/20">

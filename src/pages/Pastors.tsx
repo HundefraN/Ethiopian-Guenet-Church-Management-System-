@@ -26,6 +26,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
 
 interface Pastor extends Profile {
@@ -38,6 +39,7 @@ interface Pastor extends Profile {
 
 export default function Pastors() {
   const { isDark } = useTheme();
+  const { t } = useLanguage();
   const d = ds(isDark);
   const [pastors, setPastors] = useState<Pastor[]>([]);
   const [churches, setChurches] = useState<Church[]>([]);
@@ -54,7 +56,7 @@ export default function Pastors() {
   const [confirmTitle, setConfirmTitle] = useState("");
   const [confirmMessage, setConfirmMessage] = useState("");
   const [confirmType, setConfirmType] = useState<"danger" | "warning" | "info">("danger");
-  const [confirmButtonText, setConfirmButtonText] = useState("Confirm");
+  const [confirmButtonText, setConfirmButtonText] = useState(t('common.confirm'));
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -90,18 +92,18 @@ export default function Pastors() {
       setPastors((data as any) || []);
     } catch (error) {
       console.error("Error fetching pastors:", error);
-      toast.error("Failed to load pastors");
+      toast.error(t('pastors.messages.loadError'));
     }
   };
 
   const handleBlockToggleClick = (pastor: Pastor) => {
     const isBlocking = !pastor.is_blocked;
-    setConfirmTitle(isBlocking ? "Block Pastor" : "Unblock Pastor");
+    setConfirmTitle(isBlocking ? t('pastors.actions.block') : t('pastors.actions.unblock'));
     setConfirmMessage(
-      `Are you sure you want to ${isBlocking ? "block" : "unblock"} ${pastor.full_name}? ${isBlocking ? "They will lose access to the system." : "They will regain access to the system."}`
+      t('pastors.messages.blockConfirmPrefix', { action: (isBlocking ? t('common.block') : t('common.unblock')).toLowerCase(), name: pastor.full_name }) + " " + (isBlocking ? t('pastors.messages.blockWarning') : t('pastors.messages.unblockWarning'))
     );
     setConfirmType(isBlocking ? "danger" : "info");
-    setConfirmButtonText(isBlocking ? "Block" : "Unblock");
+    setConfirmButtonText(isBlocking ? t('common.block') : t('common.unblock'));
     setConfirmAction(() => () => toggleBlockStatus(pastor));
     setConfirmOpen(true);
   };
@@ -124,11 +126,11 @@ export default function Pastors() {
         { old: { is_blocked: !newStatus }, new: { is_blocked: newStatus } }
       );
 
-      toast.success(`Pastor ${newStatus ? "blocked" : "unblocked"} successfully`);
+      toast.success(t('pastors.messages.' + (newStatus ? 'blockSuccess' : 'unblockSuccess')));
       fetchPastors();
     } catch (error: any) {
       console.error("Error updating pastor status:", error);
-      toast.error(error.message || "Failed to update status");
+      toast.error(error.message || t('common.error'));
     }
     setConfirmOpen(false);
   };
@@ -138,7 +140,7 @@ export default function Pastors() {
 
     if (editingPastor) {
       if (!formData.full_name) {
-        toast.error("Full name is required");
+        toast.error(t('pastors.messages.nameRequired'));
         return;
       }
 
@@ -158,7 +160,7 @@ export default function Pastors() {
         const diff = getObjectDiff(logOld, logNew);
 
         if (!diff) {
-          toast.error("No changes detected");
+          toast.error(t('common.noChanges'));
           setSubmitting(false);
           return;
         }
@@ -181,19 +183,19 @@ export default function Pastors() {
 
         await logActivity("UPDATE", "PASTOR", details, editingPastor.id, diff);
 
-        toast.success("Pastor updated successfully");
+        toast.success(t('pastors.messages.updateSuccess'));
         setEditingPastor(null);
         setIsModalOpen(false);
         fetchPastors();
       } catch (error: any) {
         console.error("Error updating pastor:", error);
-        toast.error("Failed to update pastor");
+        toast.error(t('pastors.messages.updateError'));
       } finally {
         setSubmitting(false);
       }
     } else {
       if (!formData.full_name || !formData.email || !formData.password) {
-        toast.error("Full name, email and password are required");
+        toast.error(t('pastors.messages.detailsRequired'));
         return;
       }
 
@@ -222,13 +224,13 @@ export default function Pastors() {
           church: churchName,
         });
 
-        toast.success("Pastor registered successfully");
+        toast.success(t('pastors.messages.registerSuccess'));
         setFormData({ full_name: "", email: "", password: "", church_id: "" });
         setIsModalOpen(false);
         fetchPastors();
       } catch (error: any) {
         console.error("Error creating pastor:", error);
-        toast.error(error.message || "Failed to register pastor");
+        toast.error(error.message || t('common.error'));
       } finally {
         setSubmitting(false);
       }
@@ -299,7 +301,7 @@ export default function Pastors() {
                 <Crown size={24} className="text-blue-100" />
               </div>
               <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
-                <Sparkles size={10} className="inline mr-1" /> Leadership
+                <Sparkles size={10} className="inline mr-1" /> {t('pastors.labels.leadership')}
               </div>
             </motion.div>
             <motion.h1
@@ -309,7 +311,7 @@ export default function Pastors() {
               className="text-4xl md:text-5xl font-black tracking-tight mb-3"
               style={{ background: 'linear-gradient(135deg, #ffffff 0%, #7EC8F2 50%, #4B9BDC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
             >
-              Pastors Directory
+              {t('pastors.title')}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 10 }}
@@ -317,7 +319,7 @@ export default function Pastors() {
               transition={{ delay: 0.2 }}
               className="text-blue-100/70 max-w-lg text-sm md:text-base font-medium"
             >
-              Manage church leadership, pastoral assignments, and account access globally.
+              {t('pastors.subtitle')}
             </motion.p>
           </div>
 
@@ -333,7 +335,7 @@ export default function Pastors() {
               </div>
               <div>
                 <p className="text-2xl font-black text-white leading-none">{pastors.length}</p>
-                <p className="text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">Pastors</p>
+                <p className="text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">{t('sidebar.pastors')}</p>
               </div>
             </div>
 
@@ -345,7 +347,7 @@ export default function Pastors() {
               style={{ background: 'linear-gradient(135deg, #ffffff, #e8f1fa)', color: '#3178B5', boxShadow: '0 8px 32px rgba(49,120,181,0.3), inset 0 1px 0 rgba(255,255,255,0.8)' }}
             >
               <Plus size={18} />
-              <span>Register Pastor</span>
+              <span>{t('pastors.registerPastor')}</span>
             </motion.button>
           </motion.div>
         </div>
@@ -371,7 +373,7 @@ export default function Pastors() {
           </div>
           <input
             type="text"
-            placeholder="Search pastors by name or assigned church..."
+            placeholder={t('pastors.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
@@ -382,7 +384,7 @@ export default function Pastors() {
             <button
               onClick={() => setSearchQuery("")}
               className="p-2 mr-2 text-gray-500 dark:text-gray-400 hover:text-[#4B9BDC] rounded-xl hover:bg-blue-50 transition-colors"
-              title="Clear search"
+              title={t('common.clearSearch')}
             >
               <X size={16} />
             </button>
@@ -410,9 +412,9 @@ export default function Pastors() {
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5" style={d.emptyIcon}>
             <User className="h-10 w-10 text-gray-500 dark:text-gray-400" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">No pastors found</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('pastors.messages.noPastors')}</h3>
           <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-            Try adjusting your search or register a new pastor.
+            {t('pastors.messages.noPastorsSub')}
           </p>
         </motion.div>
       ) : (
@@ -441,13 +443,11 @@ export default function Pastors() {
                 key={pastor.id}
                 whileHover={{ y: -4, scale: 1.01 }}
                 className="group relative overflow-hidden rounded-[1.5rem] flex flex-col"
-
                 style={d.card}
               >
                 <div className={`h-1 ${pastor.is_blocked ? 'bg-red-500' : ''}`} style={!pastor.is_blocked ? { background: 'linear-gradient(90deg, #3178B5, #4B9BDC, #7EC8F2)' } : {}}></div>
 
                 <div className="p-5 flex flex-col flex-1">
-                  {/* Hover glow */}
                   <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] -mr-8 -mt-8 opacity-0 group-hover:opacity-20 transition-opacity duration-500" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)' }}></div>
 
                   <div className="flex items-start justify-between mb-4 mt-1">
@@ -477,10 +477,10 @@ export default function Pastors() {
                           className="absolute -top-1.5 -left-1.5 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg z-20 uppercase tracking-tight ring-2 ring-white"
                           style={{ background: '#ef4444' }}
                         >
-                          Blocked
+                          {t('common.blocked')}
                         </motion.div>
                       ) : (
-                        <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-white ring-2 ring-white shadow-sm" style={{ background: '#10b981' }} title="Active">
+                        <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-white ring-2 ring-white shadow-sm" style={{ background: '#10b981' }} title={t('common.active')}>
                           <Shield size={11} strokeWidth={3} />
                         </div>
                       )}
@@ -490,21 +490,21 @@ export default function Pastors() {
                       <button
                         onClick={() => handleBlockToggleClick(pastor)}
                         className={`p-2 rounded-lg transition-colors ${pastor.is_blocked ? "text-emerald-600 hover:bg-emerald-50" : "text-red-500 hover:bg-red-50"}`}
-                        title={pastor.is_blocked ? "Unblock Pastor" : "Block Pastor"}
+                        title={pastor.is_blocked ? t('pastors.actions.unblock') : t('pastors.actions.block')}
                       >
                         {pastor.is_blocked ? <Shield size={14} /> : <ShieldOff size={14} />}
                       </button>
                       <button
                         onClick={() => setChangeRoleUser(pastor)}
                         className="p-2 text-[#4B9BDC] hover:text-[#3178B5] hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Change Role"
+                        title={t('pastors.actions.changeRole')}
                       >
                         <RefreshCw size={14} />
                       </button>
                       <button
                         onClick={() => openEditModal(pastor)}
                         className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit Pastor"
+                        title={t('pastors.edit')}
                       >
                         <Edit2 size={14} />
                       </button>
@@ -516,7 +516,7 @@ export default function Pastors() {
                       {pastor.full_name}
                     </h3>
                     <span className="text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-md mb-3 inline-block" style={{ background: 'rgba(75,155,220,0.08)', color: '#3178B5' }}>
-                      Pastor
+                      {t('pastors.pastor')}
                     </span>
 
                     <div className="rounded-xl p-3 mt-2 space-y-2" style={d.infoBox}>
@@ -526,7 +526,7 @@ export default function Pastors() {
                           {pastor.churches ? (
                             <span className="text-gray-700 dark:text-gray-400 truncate text-xs font-semibold">{pastor.churches.name}</span>
                           ) : (
-                            <span className="text-gray-500 dark:text-gray-400 italic text-xs dark:text-gray-500">No Branch Assigned</span>
+                            <span className="text-gray-500 dark:text-gray-400 italic text-xs dark:text-gray-500">{t('common.noBranchAssigned')}</span>
                           )}
                         </div>
                         {pastor.churches?.map_link && (
@@ -536,7 +536,7 @@ export default function Pastors() {
                             rel="noopener noreferrer"
                             className="p-1.5 rounded-lg transition-colors shrink-0"
                             style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981' }}
-                            title="View on Map"
+                            title={t('dashboard.activity.viewOnMap')}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Map size={12} />
@@ -575,9 +575,9 @@ export default function Pastors() {
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
-                    {editingPastor ? "Edit Pastor" : "Register Pastor"}
+                    {editingPastor ? t('pastors.edit') : t('pastors.register')}
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Manage leadership profile</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">{t('pastors.labels.manageProfile')}</p>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
@@ -589,7 +589,7 @@ export default function Pastors() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Full Name</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('pastors.form.fullName')}</label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
                       <User size={18} />
@@ -601,7 +601,7 @@ export default function Pastors() {
                       onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                       className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                       style={d.formInput}
-                      placeholder="e.g. Pastor Yohannes"
+                      placeholder={t('pastors.form.namePlaceholder')}
                     />
                   </div>
                 </div>
@@ -609,7 +609,7 @@ export default function Pastors() {
                 {!editingPastor && (
                   <>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Email Address</label>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('pastors.form.email')}</label>
                       <div className="relative">
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
                           <Mail size={18} />
@@ -621,13 +621,13 @@ export default function Pastors() {
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                           style={d.formInput}
-                          placeholder="pastor@example.com"
+                          placeholder={t('pastors.form.emailPlaceholder')}
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Temporary Password</label>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('pastors.form.temporaryPassword')}</label>
                       <div className="relative">
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
                           <Shield size={18} />
@@ -649,7 +649,7 @@ export default function Pastors() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Assign Branch (Optional)</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('pastors.form.assignBranch')}</label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
                       <Building size={18} />
@@ -660,7 +660,7 @@ export default function Pastors() {
                       className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 appearance-none"
                       style={d.formInput}
                     >
-                      <option value="" className="text-gray-500 dark:text-gray-400">No Branch Assigned</option>
+                      <option value="" className="text-gray-500 dark:text-gray-400">{t('common.noBranchAssigned')}</option>
                       {churches.map((church) => (
                         <option key={church.id} value={church.id}>{church.name}</option>
                       ))}
@@ -674,7 +674,7 @@ export default function Pastors() {
                     onClick={() => setIsModalOpen(false)}
                     className="px-6 py-3 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <motion.button
                     whileHover={{ scale: 1.03 }}
@@ -689,7 +689,7 @@ export default function Pastors() {
                     ) : (
                       <>
                         {editingPastor ? <Save size={18} /> : <Plus size={18} />}
-                        <span>{editingPastor ? "Update" : "Register"}</span>
+                        <span>{editingPastor ? t('common.save') : t('pastors.register')}</span>
                       </>
                     )}
                   </motion.button>

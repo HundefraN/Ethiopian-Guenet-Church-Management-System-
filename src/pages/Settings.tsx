@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo } from "react";
+import ImageCropper from "../components/ImageCropper";
 import {
   Settings as SettingsIcon,
   Bell,
@@ -40,6 +41,7 @@ export default function Settings() {
   });
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [cropImage, setCropImage] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,11 +74,11 @@ export default function Settings() {
     if (!profile) return;
 
     if (strengthScore < 4) {
-      toast.error("Please choose a stronger password.");
+      toast.error(t("settings.messages.strongerPassword"));
       return;
     }
     if (newPassword !== confirmNewPassword) {
-      toast.error("New passwords do not match.");
+      toast.error(t("settings.security.passwordMismatch"));
       return;
     }
 
@@ -89,7 +91,7 @@ export default function Settings() {
         password: currentPassword,
       });
       if (signInError) {
-        toast.error("Current password is incorrect.");
+        toast.error(t("settings.security.currentPasswordIncorrect") || "Current password is incorrect.");
         return;
       }
 
@@ -98,13 +100,13 @@ export default function Settings() {
       if (error) throw error;
 
       await logActivity("PASSWORD_CHANGE", "PROFILE", "Password changed from settings", profile.id);
-      toast.success("Password updated successfully!");
+      toast.success(t("settings.messages.passwordUpdated"));
       setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
     } catch (error: any) {
       console.error("Error changing password:", error);
-      toast.error(error.message || "Failed to change password.");
+      toast.error(error.message || t("settings.messages.failedChangePassword"));
     } finally {
       setChangingPassword(false);
     }
@@ -151,19 +153,27 @@ export default function Settings() {
   const handleFile = (selectedFile: File) => {
     // Check if file is an image
     if (!selectedFile.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
+      toast.error(t("settings.messages.imageOnly"));
       return;
     }
 
     // Check file size (max 5MB)
     if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.error("File size should be less than 5MB");
+      toast.error(t("settings.messages.sizeLimit"));
       return;
     }
 
-    setFile(selectedFile);
-    const objectUrl = URL.createObjectURL(selectedFile);
+    const reader = new FileReader();
+    reader.onload = (e) => setCropImage(e.target?.result as string);
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    const croppedFile = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+    setFile(croppedFile);
+    const objectUrl = URL.createObjectURL(croppedBlob);
     setPreview(objectUrl);
+    setCropImage(null);
   };
 
   const uploadAvatar = async (
@@ -213,7 +223,7 @@ export default function Settings() {
       const diff = getObjectDiff(logOld, logNew);
 
       if (!diff) {
-        toast.error("No changes detected");
+        toast.error(t("common.noChanges"));
         setUpdating(false);
         return;
       }
@@ -230,12 +240,14 @@ export default function Settings() {
       const changedFields = Object.keys(diff.new).join(", ");
       await logActivity("UPDATE", "PROFILE", `Updated profile (Changed: ${changedFields})`, profile.id, diff);
 
-      toast.success("Profile updated successfully");
+      toast.success(t("settings.messages.updateSuccess"));
       // Refresh the profile in context so sidebar/header updates immediately
       await refreshProfile();
+      setFile(null);
+      setPreview(null);
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast.error(error.message || "Failed to update profile");
+      toast.error(error.message || t("settings.messages.updateError"));
     } finally {
       setUpdating(false);
     }
@@ -271,12 +283,12 @@ export default function Settings() {
         }
       );
 
-      toast.success(`Maintenance mode ${newStatus ? "enabled" : "disabled"}`);
+      toast.success(newStatus ? t("settings.messages.maintenanceEnabled") : t("settings.messages.maintenanceDisabled"));
       // Note: In a real app, you might need to refresh the global settings in context
       window.location.reload();
     } catch (error) {
       console.error("Error updating settings:", error);
-      toast.error("Failed to update settings");
+      toast.error(t("settings.messages.failedUpdate"));
     } finally {
       setUpdating(false);
     }
@@ -555,7 +567,7 @@ export default function Settings() {
                         {profile.full_name}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                        {profile.role.replace("_", " ")}
+                        {t(`common.roles.${profile.role.toLowerCase()}`)}
                       </p>
                     </div>
                   </div>
@@ -630,7 +642,7 @@ export default function Settings() {
                           setFormData({ ...formData, full_name: e.target.value })
                         }
                         className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-guenet-green/20 focus:border-guenet-green outline-none transition-all dark:text-gray-200"
-                        placeholder="Your full name"
+                        placeholder={t("settings.profile.fullName")}
                       />
                     </div>
 
@@ -640,7 +652,7 @@ export default function Settings() {
                       </label>
                       <input
                         type="text"
-                        value={profile.role.replace("_", " ")}
+                        value={t(`common.roles.${profile.role}`)}
                         disabled
                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400 capitalize cursor-not-allowed"
                       />
@@ -705,7 +717,7 @@ export default function Settings() {
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
                             className="block w-full pl-10 pr-10 py-3 bg-gray-50/50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC] outline-none transition-all text-sm dark:text-gray-200"
-                            placeholder="Enter current password"
+                            placeholder={t("settings.security.currentPassword")}
                           />
                           <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-600 transition-colors">
                             {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -726,7 +738,7 @@ export default function Settings() {
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             className="block w-full pl-10 pr-10 py-3 bg-gray-50/50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC] outline-none transition-all text-sm dark:text-gray-200"
-                            placeholder="Enter new password"
+                            placeholder={t("settings.security.newPassword")}
                           />
                           <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-600 transition-colors">
                             {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -755,7 +767,7 @@ export default function Settings() {
                                 ? "border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400"
                                 : "border-gray-200 dark:border-gray-700 focus:ring-[#4B9BDC]/20 focus:border-[#4B9BDC]"
                               }`}
-                            placeholder="Confirm new password"
+                            placeholder={t("settings.security.confirmPassword")}
                           />
                           <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-600 transition-colors">
                             {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -825,6 +837,16 @@ export default function Settings() {
           </AnimatePresence>
         </motion.div>
       </div>
+      <AnimatePresence>
+        {cropImage && (
+          <ImageCropper
+            image={cropImage}
+            onCropComplete={handleCropComplete}
+            onCancel={() => setCropImage(null)}
+            aspect={1}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

@@ -11,19 +11,33 @@ import { Link } from "react-router-dom";
 import ActivityLogList from "../components/ActivityLogList";
 import { springPresets, containerVariants as sharedContainerVariants, itemVariants as sharedItemVariants, interactivePresets } from "../utils/animations";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
+import { Skeleton } from "../components/common/Skeleton";
 
 // Animated number
 // Animated number using high-performance springs
+// Animated number using high-performance springs
 function AnimatedNumber({ value }: { value: number }) {
-  const springValue = useSpring(0, { stiffness: 60, damping: 20 });
+  const springValue = useSpring(0, {
+    stiffness: 40,
+    damping: 15,
+    mass: 1,
+    restDelta: 0.001
+  });
   const displayValue = useTransform(springValue, (current) => Math.floor(current));
 
   useEffect(() => {
     springValue.set(value);
   }, [value, springValue]);
 
-  return <motion.span>{displayValue}</motion.span>;
+  return <motion.span
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+  >
+    {displayValue}
+  </motion.span>;
 }
 
 // Horizontal bar chart
@@ -53,6 +67,7 @@ function HorizontalBar({ label, value, maxValue, color, icon: Icon, d }: { label
 
 export default function PastorDashboard() {
   const { isDark } = useTheme();
+  const { t } = useLanguage();
   const d = ds(isDark);
   const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -137,14 +152,14 @@ export default function PastorDashboard() {
           <div className="flex items-center gap-2 mb-4">
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 px-3 py-1.5 rounded-full">
               <Sparkles size={12} className="text-violet-300" />
-              <span className="text-violet-200 text-xs font-bold uppercase tracking-wider">Church Dashboard</span>
+              <span className="text-violet-200 text-xs font-bold uppercase tracking-wider">{t('dashboard.churchTitle')}</span>
             </div>
           </div>
           <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-2">
-            Welcome back, Pastor
+            {t('dashboard.welcomePastor')}
           </h1>
           <p className="text-blue-200/70 font-medium max-w-lg text-sm">
-            Manage your church's growth, monitor ministry engagement, and oversee your congregation.
+            {t('dashboard.pastorSubtitle')}
           </p>
         </div>
       </motion.div>
@@ -152,29 +167,41 @@ export default function PastorDashboard() {
       {/* ═══════════ Stat Cards ═══════════ */}
       <motion.div variants={containerVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {[
-          { label: "Active Ministries", value: stats.departments, icon: Shield, gradient: "from-violet-600 to-indigo-500", accent: "violet" },
-          { label: "Serving Leaders", value: stats.servants, icon: UserCheck, gradient: "from-cyan-500 to-blue-500", accent: "cyan" },
-          { label: "Total Members", value: stats.members, icon: Users, gradient: "from-emerald-500 to-teal-500", accent: "emerald", recent: stats.recentMembers },
+          { label: t('dashboard.stats.activeMinistries'), value: stats.departments, icon: Shield, gradient: "from-violet-600 to-indigo-500", accent: "violet" },
+          { label: t('dashboard.stats.servingLeaders'), value: stats.servants, icon: UserCheck, gradient: "from-cyan-500 to-blue-500", accent: "cyan" },
+          { label: t('dashboard.stats.totalMembers'), value: stats.members, icon: Users, gradient: "from-emerald-500 to-teal-500", accent: "emerald", recent: stats.recentMembers },
         ].map((card, i) => (
           <motion.div key={i} variants={itemVariants}
             className="group bg-white rounded-[1.5rem] p-6 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-150 relative overflow-hidden"
             style={d.card}
           >
-            <div className="absolute -top-8 -right-8 opacity-[0.03] group-hover:opacity-[0.07] transition-all duration-200">
-              <card.icon size={120} />
-            </div>
-            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white mb-5 shadow-lg`}>
-              <card.icon size={22} />
-            </div>
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-4xl font-black text-gray-900 dark:text-gray-100 tabular-nums"><AnimatedNumber value={card.value} /></h3>
-              {card.recent && card.recent > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-800/50">
-                  <ArrowUpRight size={12} />+{card.recent}
-                </span>
-              )}
-            </div>
-            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{card.label}</p>
+            {loading ? (
+              <div className="space-y-4">
+                <Skeleton className="w-12 h-12 rounded-xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-10 w-2/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="absolute -top-8 -right-8 opacity-[0.03] group-hover:opacity-[0.07] transition-all duration-200">
+                  <card.icon size={120} />
+                </div>
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white mb-5 shadow-lg`}>
+                  <card.icon size={22} />
+                </div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-4xl font-black text-gray-900 dark:text-gray-100 tabular-nums"><AnimatedNumber value={card.value} /></h3>
+                  {card.recent && card.recent > 0 && (
+                    <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-800/50">
+                      <ArrowUpRight size={12} />+{card.recent}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{card.label}</p>
+              </>
+            )}
           </motion.div>
         ))}
       </motion.div>
@@ -182,9 +209,9 @@ export default function PastorDashboard() {
       {/* ═══════════ Quick Navigation ═══════════ */}
       <motion.div variants={containerVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { to: "/members", label: "Manage Members", desc: "View and add members", icon: Users, color: "text-blue-500", hoverBorder: "hover:border-blue-200" },
-          { to: "/departments", label: "Manage Departments", desc: "Organize ministries", icon: Shield, color: "text-violet-500", hoverBorder: "hover:border-violet-200" },
-          { to: "/servants", label: "Manage Servants", desc: "Oversee leadership", icon: UserCheck, color: "text-cyan-500", hoverBorder: "hover:border-cyan-200" },
+          { to: "/members", label: t('dashboard.actions.manageMembers'), desc: t('dashboard.actions.viewAddMembers'), icon: Users, color: "text-blue-500", hoverBorder: "hover:border-blue-200" },
+          { to: "/departments", label: t('dashboard.actions.manageDepartments'), desc: t('dashboard.actions.organizeMinistries'), icon: Shield, color: "text-violet-500", hoverBorder: "hover:border-violet-200" },
+          { to: "/servants", label: t('dashboard.actions.manageServants'), desc: t('dashboard.actions.overseeLeadership'), icon: UserCheck, color: "text-cyan-500", hoverBorder: "hover:border-cyan-200" },
         ].map((action, i) => (
           <motion.div key={i} variants={itemVariants}>
             <Link to={action.to}
@@ -214,12 +241,12 @@ export default function PastorDashboard() {
                 <Activity size={18} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Recent Activities</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Latest updates in your church</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('dashboard.activity.recentActivities')}</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.activity.latestUpdates')}</p>
               </div>
             </div>
             <Link to="/activities" className="text-sm text-[#4B9BDC] font-bold hover:text-[#1A365D] bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-xl transition-colors">
-              View All
+              {t('dashboard.activity.viewAll')}
             </Link>
           </div>
           <div className="p-6 md:p-8">
@@ -235,72 +262,89 @@ export default function PastorDashboard() {
                 <TrendingUp size={18} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Insights</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Key analytics</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('dashboard.analytics.insightTitle')}</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.analytics.insightSub')}</p>
               </div>
             </div>
           </div>
           <div className="p-6 md:p-8 flex-1 space-y-7">
-            {/* Growth */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-400">Member Growth</span>
-                <span className={`text-xs font-black px-2.5 py-1 rounded-lg border ${growthRate >= 0 ? 'text-emerald-600 bg-emerald-50 border-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/20 dark:border-emerald-800/50' : 'text-red-600 bg-red-50 border-red-100 dark:text-red-400 dark:bg-red-900/20 dark:border-red-800/50'}`}>
-                  {growthRate >= 0 ? '+' : ''}{growthRate}%
-                </span>
-              </div>
-              <div className="h-2.5 rounded-full overflow-hidden" style={d.iconBox}>
-                <motion.div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
-                  initial={{ width: '0%' }} whileInView={{ width: `${Math.min(growthRate + 10, 100)}%` }}
-                  viewport={{ once: true }} transition={{ duration: 0.2 }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-medium">{stats.recentMembers} new in 30 days</p>
-            </div>
-
-            {/* Leadership Ratio */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-400">Leadership Ratio</span>
-                <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-800/50">
-                  1:{leadershipRatio || 'N/A'}
-                </span>
-              </div>
-              <div className="h-2.5 rounded-full overflow-hidden" style={d.iconBox}>
-                <motion.div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full"
-                  initial={{ width: '0%' }} whileInView={{ width: `${Math.min((stats.servants / (stats.members || 1)) * 500, 100)}%` }}
-                  viewport={{ once: true }} transition={{ duration: 0.2 }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-medium">1 servant per {leadershipRatio || 0} members</p>
-            </div>
-
-            {/* Member Status */}
-            <div>
-              <span className="text-sm font-bold text-gray-700 dark:text-gray-400 block mb-3">Member Status</span>
-              <div className="space-y-2">
-                {[
-                  { label: "Active", val: stats.activeMembers, color: "bg-emerald-400" },
-                  { label: "Transfer", val: stats.transferMembers, color: "bg-amber-400" },
-                  { label: "Deceased", val: stats.deceasedMembers, color: "bg-gray-400" },
-                ].map((s, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${s.color}`} />
-                    <span className="text-sm text-gray-500 dark:text-gray-400 flex-1">{s.label}</span>
-                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100 tabular-nums">{s.val}</span>
+            {loading ? (
+              <div className="space-y-8">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="space-y-3">
+                    <div className="flex justify-between">
+                      <Skeleton className="h-4 w-1/3" />
+                      <Skeleton className="h-4 w-12 rounded-lg" />
+                    </div>
+                    <Skeleton className="h-2.5 w-full rounded-full" />
                   </div>
                 ))}
+                <Skeleton className="h-24 w-full rounded-2xl" />
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Growth */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-400">{t('dashboard.analytics.memberGrowth')}</span>
+                    <span className={`text-xs font-black px-2.5 py-1 rounded-lg border ${growthRate >= 0 ? 'text-emerald-600 bg-emerald-50 border-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/20 dark:border-emerald-800/50' : 'text-red-600 bg-red-50 border-red-100 dark:text-red-400 dark:bg-red-900/20 dark:border-red-800/50'}`}>
+                      {growthRate >= 0 ? '+' : ''}{growthRate}%
+                    </span>
+                  </div>
+                  <div className="h-2.5 rounded-full overflow-hidden" style={d.iconBox}>
+                    <motion.div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
+                      initial={{ width: '0%' }} whileInView={{ width: `${Math.min(growthRate + 10, 100)}%` }}
+                      viewport={{ once: true }} transition={{ duration: 0.2 }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-medium">{stats.recentMembers} {t('dashboard.analytics.newReg30d')}</p>
+                </div>
 
-            {/* Average Members Per Ministry */}
-            <div className="bg-gradient-to-br from-[#0c1929] to-[#1e3a5f] rounded-2xl p-5 text-center relative overflow-hidden">
-              <div className="absolute -right-4 -bottom-4 opacity-10"><Target size={60} /></div>
-              <div className="relative z-10">
-                <span className="block text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-300 mb-1">{avgPerDept}</span>
-                <span className="text-[10px] text-blue-300/80 font-bold uppercase tracking-wider">Avg Members / Ministry</span>
-              </div>
-            </div>
+                {/* Leadership Ratio */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-400">{t('dashboard.analytics.leadershipRatio')}</span>
+                    <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-800/50">
+                      1:{leadershipRatio || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="h-2.5 rounded-full overflow-hidden" style={d.iconBox}>
+                    <motion.div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full"
+                      initial={{ width: '0%' }} whileInView={{ width: `${Math.min((stats.servants / (stats.members || 1)) * 500, 100)}%` }}
+                      viewport={{ once: true }} transition={{ duration: 0.2 }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-medium">{t('dashboard.analytics.servantPerMember').replace('{{count}}', (leadershipRatio || 0).toString())}</p>
+                </div>
+
+                {/* Member Status */}
+                <div>
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-400 block mb-3">{t('dashboard.analytics.memberStatus')}</span>
+                  <div className="space-y-2">
+                    {[
+                      { label: t('dashboard.analytics.statusActive'), val: stats.activeMembers, color: "bg-emerald-400" },
+                      { label: t('dashboard.analytics.statusTransfer'), val: stats.transferMembers, color: "bg-amber-400" },
+                      { label: t('dashboard.analytics.statusDeceased'), val: stats.deceasedMembers, color: "bg-gray-400" },
+                    ].map((s, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${s.color}`} />
+                        <span className="text-sm text-gray-500 dark:text-gray-400 flex-1">{s.label}</span>
+                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100 tabular-nums">{s.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Average Members Per Ministry */}
+                <div className="bg-gradient-to-br from-[#0c1929] to-[#1e3a5f] rounded-2xl p-5 text-center relative overflow-hidden">
+                  <div className="absolute -right-4 -bottom-4 opacity-10"><Target size={60} /></div>
+                  <div className="relative z-10">
+                    <span className="block text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-300 mb-1">{avgPerDept}</span>
+                    <span className="text-[10px] text-blue-300/80 font-bold uppercase tracking-wider">{t('dashboard.analytics.avgMemberMinistry')}</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </motion.div>
       </motion.div>
@@ -313,8 +357,8 @@ export default function PastorDashboard() {
               <Layers size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Ministry Breakdown</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Member distribution across departments</p>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('dashboard.analytics.ministryBreakdown')}</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.analytics.deptDistribution')}</p>
             </div>
           </div>
           <div className="space-y-5">

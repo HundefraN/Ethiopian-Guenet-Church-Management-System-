@@ -32,10 +32,11 @@ import {
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, Variants } from "framer-motion";
-import { getActionLabel, getActionColor, getEntityLabel } from "../utils/activityLogger";
+import { getActionColor } from "../utils/activityLogger";
 import { useAuth } from "../context/AuthContext";
 import { timeAgo } from "../utils/timeAgo";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
 import { formatDisplayDate, formatDisplayDateTime } from "../utils/dateFormatter";
 
@@ -68,6 +69,7 @@ const PAGE_SIZE = 20;
 
 export default function Activities() {
   const { isDark } = useTheme();
+  const { t, language } = useLanguage();
   const d = ds(isDark);
   const { profile, calendarType } = useAuth();
   const [logs, setLogs] = useState<any[]>([]);
@@ -82,14 +84,14 @@ export default function Activities() {
 
   // Role-based scope description
   const scopeLabel = profile?.role === "super_admin"
-    ? "All system-wide activities"
+    ? t("activity.scope.super_admin")
     : profile?.role === "pastor"
-      ? "Activities within your church"
-      : "Your personal activities";
+      ? t("activity.scope.pastor")
+      : t("activity.scope.servant");
 
   const scopeIcon = profile?.role === "super_admin"
     ? Eye
-    : profile?.role === "pastor"
+    : (profile?.role === "pastor" || profile?.role === "servant")
       ? Building
       : User;
 
@@ -98,23 +100,6 @@ export default function Activities() {
   // Build the query based on role
   const buildQuery = useCallback((forCount = false) => {
     const role = profile?.role;
-
-    // Servant: own activities only
-    if (role === "servant") {
-      let query = forCount
-        ? supabase.from("activity_logs").select("*", { count: "exact", head: true })
-        : supabase.from("activity_logs").select(`
-            *,
-            profiles:user_id (
-              full_name,
-              avatar_url,
-              role,
-              church_id
-            )
-          `);
-      query = query.eq("user_id", profile?.id);
-      return query;
-    }
 
     // Pastor: activities from users in the same church
     if (role === "pastor" && profile?.church_id) {
@@ -146,6 +131,39 @@ export default function Activities() {
             )
           `)
           .eq("profiles.church_id", profile.church_id);
+        return query;
+      }
+    }
+
+    // Servant: ONLY their own activities
+    if (role === "servant") {
+      if (forCount) {
+        let query = supabase
+          .from("activity_logs")
+          .select(`
+            *,
+            profiles:user_id (
+              full_name,
+              avatar_url,
+              role,
+              church_id
+            )
+          `, { count: "exact", head: true })
+          .eq("user_id", profile.id);
+        return query;
+      } else {
+        let query = supabase
+          .from("activity_logs")
+          .select(`
+            *,
+            profiles:user_id (
+              full_name,
+              avatar_url,
+              role,
+              church_id
+            )
+          `)
+          .eq("user_id", profile.id);
         return query;
       }
     }
@@ -260,7 +278,7 @@ export default function Activities() {
   // Group logs by date
   const groupedLogs: Record<string, any[]> = {};
   logs.forEach((log) => {
-    const date = formatDisplayDate(log.created_at, calendarType);
+    const date = formatDisplayDate(log.created_at, calendarType, language);
     if (!groupedLogs[date]) groupedLogs[date] = [];
     groupedLogs[date].push(log);
   });
@@ -286,7 +304,9 @@ export default function Activities() {
       return (
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-100 dark:border-rose-500/20 shrink-0 mt-0.5">Before</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-100 dark:border-rose-500/20 shrink-0 mt-0.5">
+              {t("activity.before")}
+            </span>
             <div className="text-xs text-gray-500 font-mono bg-rose-50/30 dark:bg-rose-500/5 p-2 rounded-lg flex-1 break-all">
               {Object.entries(changes.old).map(([key, value]) => (
                 <div key={key}><span className="font-semibold text-gray-600 dark:text-gray-400">{key.replace(/_/g, " ")}:</span> {String(value ?? "—")}</div>
@@ -294,7 +314,9 @@ export default function Activities() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-100 dark:border-emerald-500/20 shrink-0 mt-0.5">After</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-100 dark:border-emerald-500/20 shrink-0 mt-0.5">
+              {t("activity.after")}
+            </span>
             <div className="text-xs text-gray-500 font-mono bg-emerald-50/30 dark:bg-emerald-500/5 p-2 rounded-lg flex-1 break-all">
               {Object.entries(changes.new).map(([key, value]) => (
                 <div key={key}><span className="font-semibold text-gray-600 dark:text-gray-400">{key.replace(/_/g, " ")}:</span> {String(value ?? "—")}</div>
@@ -319,12 +341,12 @@ export default function Activities() {
               {isDiff ? (
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-bold text-rose-500 uppercase">Old:</span>
+                    <span className="text-[9px] font-bold text-rose-500 uppercase">{t("activity.old")}:</span>
                     <span className="text-xs text-gray-600 font-medium line-through decoration-rose-300/50">{String(value.old ?? "—")}</span>
                   </div>
                   <ChevronRight size={12} className="text-gray-500 dark:text-gray-400 hidden sm:block" />
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-bold text-emerald-500 uppercase">New:</span>
+                    <span className="text-[9px] font-bold text-emerald-500 uppercase">{t("activity.new")}:</span>
                     <span className="text-xs text-gray-900 dark:text-gray-100 font-bold">{String(value.new ?? "—")}</span>
                   </div>
                 </div>
@@ -377,7 +399,7 @@ export default function Activities() {
               </button>
               <div className="text-white">
                 <h1 className="text-3xl font-extrabold tracking-tight mb-1">
-                  Activity Log
+                  {t("activity.title")}
                 </h1>
                 <p className="text-blue-100 text-sm flex items-center gap-2">
                   <ScopeIcon size={14} />
@@ -388,11 +410,11 @@ export default function Activities() {
             <div className="flex items-center gap-3">
               {/* Scope Badge */}
               <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/20">
-                <span className="text-white/70 text-xs font-medium block">Viewing as</span>
-                <p className="text-white text-sm font-bold capitalize">{profile?.role?.replace("_", " ") || "User"}</p>
+                <span className="text-white/70 text-xs font-medium block">{t("activity.labels.viewingAs")}</span>
+                <p className="text-white text-sm font-bold capitalize">{t(`common.roles.${profile?.role?.toLowerCase() || 'user'}`)}</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/20">
-                <span className="text-white/70 text-xs font-medium block">Total Events</span>
+                <span className="text-white/70 text-xs font-medium block">{t("activity.labels.totalEvents")}</span>
                 <p className="text-white text-xl font-black">{totalCount}</p>
               </div>
             </div>
@@ -409,7 +431,7 @@ export default function Activities() {
           </div>
           <input
             type="text"
-            placeholder="Search activities by detail..."
+            placeholder={t("activity.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full py-2 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400 text-sm"
@@ -426,7 +448,7 @@ export default function Activities() {
           >
             {ACTION_FILTERS.map((f) => (
               <option key={f} value={f}>
-                {f === "All" ? "All Actions" : getActionLabel(f)}
+                {f === "All" ? t("activity.actions.All") : t(`activity.actions.${f}`)}
               </option>
             ))}
           </select>
@@ -443,7 +465,7 @@ export default function Activities() {
           >
             {ENTITY_FILTERS.map((f) => (
               <option key={f} value={f}>
-                {f === "All" ? "All Categories" : getEntityLabel(f)}
+                {f === "All" ? t("activity.entities.All") : t(`activity.entities.${f}`)}
               </option>
             ))}
           </select>
@@ -457,7 +479,7 @@ export default function Activities() {
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <Loader2 className="animate-spin text-[#4B9BDC] mx-auto mb-4" size={40} />
-              <p className="text-gray-500 font-medium">Loading activity log...</p>
+              <p className="text-gray-500 font-medium">{t("activity.loading")}</p>
             </div>
           </div>
         ) : logs.length === 0 ? (
@@ -466,14 +488,14 @@ export default function Activities() {
               <Activity className="h-10 w-10 text-gray-500 dark:text-gray-400" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-              No activity recorded
+              {t("activity.noActivity")}
             </h3>
             <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
               {searchQuery || actionFilter !== "All" || entityFilter !== "All"
-                ? "No activities match your current filters. Try adjusting your search criteria."
+                ? t("activity.noResults")
                 : profile?.role === "servant"
-                  ? "Your personal actions will appear here as they occur."
-                  : "System actions will appear here as they occur."}
+                  ? t("activity.servantHint")
+                  : t("activity.systemHint")}
             </p>
           </div>
         ) : (
@@ -488,7 +510,7 @@ export default function Activities() {
                   </div>
                   <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800"></div>
                   <span className="text-xs font-bold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-800/50">
-                    {dateLogs.length} {dateLogs.length === 1 ? "event" : "events"}
+                    {dateLogs.length} {dateLogs.length === 1 ? t("activity.event") : t("activity.events")}
                   </span>
                 </div>
 
@@ -551,17 +573,17 @@ export default function Activities() {
                                     </span>
                                     <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${colors.bg} ${colors.text} ${colors.border}`}>
                                       <ActionIcon size={10} />
-                                      {getActionLabel(log.action_type)}
+                                      {t(`activity.actions.${log.action_type}`)}
                                     </span>
                                     <span className="text-sm text-gray-500">
-                                      {getEntityLabel(log.entity_type)}
+                                      {t(`activity.entities.${log.entity_type}`)}
                                     </span>
                                   </div>
 
                                   <div className="flex items-center gap-1.5 shrink-0">
                                     <Clock size={12} className="text-gray-500 dark:text-gray-400" />
-                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium" title={formatDisplayDateTime(log.created_at, calendarType)}>
-                                      {timeAgo(log.created_at)}
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium" title={formatDisplayDateTime(log.created_at, calendarType, language)}>
+                                      {timeAgo(log.created_at, language)}
                                     </span>
                                   </div>
                                 </div>
@@ -573,7 +595,7 @@ export default function Activities() {
                                 {log.profiles?.role && (
                                   <div className="mt-2">
                                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
-                                      {log.profiles.role.replace("_", " ")}
+                                      {t(`common.roles.${log.profiles.role.toLowerCase()}`)}
                                     </span>
                                   </div>
                                 )}
@@ -604,7 +626,7 @@ export default function Activities() {
                                   <div className="border-t pt-4" style={d.innerBorder}>
                                     <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1.5">
                                       <Settings size={10} />
-                                      Change Details
+                                      {t("activity.changeDetails")}
                                     </p>
                                     {renderChanges(log.changes)}
                                   </div>
@@ -631,7 +653,7 @@ export default function Activities() {
           style={d.card}
         >
           <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-            Showing{" "}
+            {t("activity.showing")}{" "}
             <span className="font-bold text-gray-900 dark:text-gray-100">
               {(currentPage - 1) * PAGE_SIZE + 1}
             </span>
@@ -639,8 +661,8 @@ export default function Activities() {
             <span className="font-bold text-gray-900 dark:text-gray-100">
               {Math.min(currentPage * PAGE_SIZE, totalCount)}
             </span>
-            {" of "}
-            <span className="font-bold text-gray-900 dark:text-gray-100">{totalCount}</span> events
+            {" "}{t("activity.of")}{" "}
+            <span className="font-bold text-gray-900 dark:text-gray-100">{totalCount}</span> {totalCount === 1 ? t("activity.event") : t("activity.events")}
           </p>
 
           <div className="flex items-center gap-1.5">
@@ -649,7 +671,7 @@ export default function Activities() {
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
               className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              title="First page"
+              title={t("activity.firstPage")}
             >
               <ChevronsLeft size={18} />
             </button>
@@ -659,7 +681,7 @@ export default function Activities() {
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              title="Previous page"
+              title={t("activity.previousPage")}
             >
               <ChevronLeft size={18} />
             </button>
@@ -691,7 +713,7 @@ export default function Activities() {
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              title="Next page"
+              title={t("activity.nextPage")}
             >
               <ChevronRight size={18} />
             </button>
@@ -701,7 +723,7 @@ export default function Activities() {
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
               className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              title="Last page"
+              title={t("activity.lastPage")}
             >
               <ChevronsRight size={18} />
             </button>

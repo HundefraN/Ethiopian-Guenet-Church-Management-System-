@@ -23,6 +23,7 @@ import Pastors from "./pages/Pastors";
 import Servants from "./pages/Servants";
 import Activities from "./pages/Activities";
 import AddMember from "./pages/AddMember";
+import Reports from "./pages/Reports";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, profile, loading, settings } = useAuth();
@@ -137,7 +138,7 @@ export default function App() {
                   <Route
                     path="departments"
                     element={
-                      <RoleGuard allowedRoles={["super_admin", "pastor"]}>
+                      <RoleGuard allowedRoles={["super_admin", "pastor", "servant"]}>
                         <Departments />
                       </RoleGuard>
                     }
@@ -145,7 +146,7 @@ export default function App() {
                   <Route
                     path="departments/:id"
                     element={
-                      <RoleGuard allowedRoles={["super_admin", "pastor"]}>
+                      <RoleGuard allowedRoles={["super_admin", "pastor", "servant"]}>
                         <Departments />
                       </RoleGuard>
                     }
@@ -196,8 +197,17 @@ export default function App() {
                   <Route
                     path="activities"
                     element={
-                      <RoleGuard allowedRoles={["super_admin", "pastor"]}>
+                      <RoleGuard allowedRoles={["super_admin", "pastor", "servant"]}>
                         <Activities />
+                      </RoleGuard>
+                    }
+                  />
+
+                  <Route
+                    path="reports"
+                    element={
+                      <RoleGuard allowedRoles={["super_admin"]}>
+                        <Reports />
                       </RoleGuard>
                     }
                   />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import ImageCropper from "../components/ImageCropper";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +18,7 @@ import { logActivity, getObjectDiff } from "../utils/activityLogger";
 import { invokeSupabaseFunction } from "../utils/supabaseFunctions";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 
@@ -72,18 +74,20 @@ const memberSchema = z.object({
 
 export type MemberFormValues = z.infer<typeof memberSchema>;
 
-const SECTIONS = [
-  { id: 'personal', title: 'Personal Info', icon: User, color: 'from-blue-500 to-cyan-400' },
-  { id: 'spiritual', title: 'Spiritual Life', icon: Heart, color: 'from-purple-500 to-pink-400' },
-  { id: 'education', title: 'Education & Work', icon: Briefcase, color: 'from-amber-500 to-orange-400' },
-  { id: 'family', title: 'Family Status', icon: Users, color: 'from-rose-500 to-pink-400' },
-  { id: 'service', title: 'Service History', icon: BookOpen, color: 'from-teal-500 to-emerald-400' },
-  { id: 'fellowship', title: 'Fellowship', icon: Globe, color: 'from-indigo-500 to-blue-400' },
-  { id: 'signatures', title: 'Review & Sign', icon: CheckCircle, color: 'from-slate-600 to-slate-400' },
-];
-
 export default function AddMember() {
   const { isDark } = useTheme();
+  const { t } = useLanguage();
+
+  const SECTIONS = React.useMemo(() => [
+    { id: 'personal', title: t('members.form.sections.personal'), icon: User, color: 'from-blue-500 to-cyan-400' },
+    { id: 'spiritual', title: t('members.form.sections.spiritual'), icon: Heart, color: 'from-purple-500 to-pink-400' },
+    { id: 'education', title: t('members.form.sections.education'), icon: Briefcase, color: 'from-amber-500 to-orange-400' },
+    { id: 'family', title: t('members.form.sections.family'), icon: Users, color: 'from-rose-500 to-pink-400' },
+    { id: 'service', title: t('members.form.sections.service'), icon: BookOpen, color: 'from-teal-500 to-emerald-400' },
+    { id: 'fellowship', title: t('members.form.sections.fellowship'), icon: Globe, color: 'from-indigo-500 to-blue-400' },
+    { id: 'signatures', title: t('members.form.sections.signatures'), icon: CheckCircle, color: 'from-slate-600 to-slate-400' },
+  ], [t]);
+
   const d = ds(isDark);
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -93,6 +97,7 @@ export default function AddMember() {
 
   const [activeSection, setActiveSection] = useState('personal');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [cropImage, setCropImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [loadingMember, setLoadingMember] = useState(false);
   const [initialData, setInitialData] = useState<any>(null);
@@ -136,7 +141,7 @@ export default function AddMember() {
     fetchDepartments();
 
     if (profile?.role === "super_admin" && isEditing) {
-      toast.error("Super Admins cannot edit member data.");
+      toast.error(t('common.unauthorized'));
       navigate("/members");
       return;
     }
@@ -148,7 +153,7 @@ export default function AddMember() {
           if (error) throw error;
           if (data) {
             const formattedData = Object.keys(data).reduce((acc: any, key) => {
-              acc[key] = data[key] === null ? "" : data[key];
+              acc[key] = (data[key] === null || data[key] === undefined) ? "" : data[key];
               return acc;
             }, {});
             formattedData.income_amount = data.income_amount ? String(data.income_amount) : "";
@@ -160,7 +165,7 @@ export default function AddMember() {
           }
         } catch (error) {
           console.error("Error fetching member:", error);
-          toast.error("Failed to load member details");
+          toast.error(t('members.messages.loadError'));
           navigate("/members");
         } finally { setLoadingMember(false); }
       };
@@ -171,7 +176,7 @@ export default function AddMember() {
         try {
           const parsed = JSON.parse(draft);
           reset(parsed);
-          toast.success("Draft restored");
+          toast.success(t('members.draftRestored'), { icon: "📝" });
         }
         catch (e) { console.error("Failed to parse draft", e); }
       } else if (profile?.department_id) {
@@ -225,30 +230,38 @@ export default function AddMember() {
   const saveDraft = () => {
     const data = watch();
     localStorage.setItem("member_draft", JSON.stringify(data));
-    toast.success("Draft saved successfully");
+    toast.success(t('members.draftSaved'));
   };
 
   const handleFileSelect = (file: File) => {
-    if (!file.type.startsWith('image/')) { toast.error("Please upload an image file"); return; }
+    if (!file.type.startsWith('image/')) { toast.error(t('settings.messages.imageOnly')); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => setCropImage(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    const croppedFile = new File([croppedBlob], "member_photo.jpg", { type: "image/jpeg" });
     const reader = new FileReader();
     reader.onload = (e) => setPhotoPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
-    setValue("photo", file);
+    reader.readAsDataURL(croppedBlob);
+    setValue("photo", croppedFile, { shouldDirty: true });
+    setCropImage(null);
   };
 
   const onSubmit = async (data: MemberFormValues) => {
     if (!isEditing && promoteToServant) {
       if (!data.email) {
-        toast.error("Email is required when setting as a Servant.");
+        toast.error(t('members.messages.emailRequiredServant'));
         return;
       }
       if (servantPassword.length < 6) {
-        toast.error("Servant password must be at least 6 characters.");
+        toast.error(t('members.messages.passwordMinLength'));
         return;
       }
     }
 
-    const loadingToast = toast.loading(isEditing ? "Updating member..." : "Registering member...");
+    const loadingToast = toast.loading(isEditing ? t('members.messages.updatingMember') : t('members.messages.registeringMember'));
     setUploading(true);
     try {
       let photoUrl = null;
@@ -277,7 +290,7 @@ export default function AddMember() {
         const diff = initialData ? getObjectDiff(initialData, payload) : null;
 
         if (!diff) {
-          toast.success("No changes detected", { id: loadingToast });
+          toast.success(t('members.messages.noChanges'), { id: loadingToast });
           setUploading(false);
           return;
         }
@@ -291,12 +304,12 @@ export default function AddMember() {
         await logActivity(
           "UPDATE",
           "MEMBER",
-          `Updated member "${data.full_name}" (Changed: ${changedFields})`,
+          t('members.messages.addedNewMemberLog').replace("Added", "Updated").replace("{{name}}", data.full_name) + ` (Changed: ${changedFields})`,
           id,
           diff
         );
 
-        toast.success("Member updated successfully!", { id: loadingToast });
+        toast.success(t('members.messages.updateSuccess'), { id: loadingToast });
       } else {
         const { data: newMember, error } = await supabase.from("members").insert([payload]).select().single();
         if (error) throw error;
@@ -314,14 +327,14 @@ export default function AddMember() {
             },
           });
           if (responseData?.error) {
-            toast.error("Member added, but failed to create servant account: " + responseData.error, { id: loadingToast });
+            toast.error(t('members.messages.servantAccountError').replace("{{error}}", responseData.error), { id: loadingToast });
           } else {
             const servantId = responseData.user?.id || responseData?.id;
-            await logActivity("CREATE", "SERVANT", `Promoted new member ${data.full_name} to Servant`, servantId || null, {
+            await logActivity("CREATE", "SERVANT", t('members.messages.promotingMemberLog').replace("{{name}}", data.full_name), servantId || null, {
               email: data.email,
               source: "Member Registration"
             });
-            servantCreatedMsg = " and Servant account created";
+            servantCreatedMsg = t('members.messages.servantCreatedLog');
           }
         }
 
@@ -329,8 +342,8 @@ export default function AddMember() {
         const logPayload = { ...payload };
         delete logPayload.photo; // Don't log base64 or large URLs if possible, or keep it if it's just a URL
 
-        await logActivity("CREATE", "MEMBER", `Added new member ${data.full_name}`, newMember.id, logPayload);
-        toast.success(`Member registered successfully${servantCreatedMsg}!`, { id: loadingToast });
+        await logActivity("CREATE", "MEMBER", t('members.messages.addedNewMemberLog').replace("{{name}}", data.full_name), newMember.id, logPayload);
+        toast.success(t('members.messages.deleteSuccess').replace("deleted", "registered") + servantCreatedMsg, { id: loadingToast });
         localStorage.removeItem("member_draft");
       }
       navigate("/members");
@@ -346,17 +359,17 @@ export default function AddMember() {
 
     const email = watch("email");
     if (!email) {
-      toast.error("An email address is required to register as a servant. Please update the member's email first.");
+      toast.error(t('members.messages.emailRequiredServantRegister'));
       return;
     }
 
     if (servantPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error(t('members.messages.passwordMinLength'));
       return;
     }
 
     setMakingServant(true);
-    const loadingToast = toast.loading("Creating servant account...");
+    const loadingToast = toast.loading(t('members.messages.creatingServantAccount'));
 
     try {
       const { data: responseData } = await invokeSupabaseFunction("create-user", {
@@ -376,23 +389,23 @@ export default function AddMember() {
 
       const servantId = responseData.user?.id || responseData?.id;
 
-      let churchName = "Unknown";
+      let churchName = t('members.messages.thisChurch');
       if (profile?.role === "pastor" && profile.church_id) {
-        churchName = "This Church";
+        churchName = t('members.messages.thisChurch');
       }
 
-      await logActivity("CREATE", "SERVANT", `Promoted member ${watch("full_name") || initialData.full_name} to Servant`, servantId || null, {
+      await logActivity("CREATE", "SERVANT", t('members.messages.promotingMemberLog').replace("{{name}}", watch("full_name") || initialData.full_name), servantId || null, {
         email: email,
         member_id: id,
         source: "Member Promotion"
       });
 
-      toast.success("Member successfully promoted to Servant!", { id: loadingToast });
+      toast.success(t('members.messages.promoteSuccess'), { id: loadingToast });
       setIsMakeServantModalOpen(false);
       setServantPassword("");
     } catch (error: any) {
       console.error("Error creating servant:", error);
-      toast.error(error.message || "Failed to create servant account", { id: loadingToast });
+      toast.error(error.message || t('members.messages.promoteError'), { id: loadingToast });
     } finally {
       setMakingServant(false);
     }
@@ -403,7 +416,7 @@ export default function AddMember() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="animate-spin text-[#4B9BDC] h-12 w-12 mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-gray-400 font-medium">Loading member details...</p>
+          <p className="text-gray-500 dark:text-gray-400 font-medium">{t('activity.loading')}</p>
         </div>
       </div>
     );
@@ -433,43 +446,41 @@ export default function AddMember() {
                 </button>
                 <div>
                   <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight leading-none overflow-hidden">
-                    {isEditing ? "Edit Member" : "New Member Registration"}
+                    {isEditing ? t('members.editBtn') : t('members.addBtn')}
                   </h1>
                   <p className="text-[10px] md:text-xs text-blue-500 font-bold uppercase tracking-wider mt-1 opacity-80">
-                    {isEditing ? "Update church records" : "Join the church family"}
+                    {isEditing ? t('dashboard.actions.viewAddMembers') : t('login.empoweringMinistry')}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {profile?.role !== "servant" && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (isEditing) {
-                        setIsMakeServantModalOpen(true);
-                      } else {
-                        setPromoteToServant(!promoteToServant);
-                      }
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all border ${promoteToServant ? 'bg-[#4B9BDC] text-white border-[#4B9BDC]' : 'bg-[#4B9BDC]/10 text-[#4B9BDC] hover:bg-[#4B9BDC]/20 border-[#4B9BDC]/20'}`}
-                  >
-                    <Shield size={16} />
-                    <span>{promoteToServant ? "Registering as Servant" : "Set as Servant"}</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (isEditing) {
+                      setIsMakeServantModalOpen(true);
+                    } else {
+                      setPromoteToServant(!promoteToServant);
+                    }
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all border ${promoteToServant ? 'bg-[#4B9BDC] text-white border-[#4B9BDC]' : 'bg-[#4B9BDC]/10 text-[#4B9BDC] hover:bg-[#4B9BDC]/20 border-[#4B9BDC]/20'}`}
+                >
+                  <Shield size={16} />
+                  <span>{promoteToServant ? t('members.form.registeringAsServant') : t('members.form.setAsServant')}</span>
+                </button>
                 {!isEditing && (
                   <button onClick={saveDraft} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 font-semibold transition-colors px-4 py-2.5 rounded-xl border" style={d.card}>
-                    <Save size={16} /> Save Draft
+                    <Save size={16} /> {t('members.saveDraft')}
                   </button>
                 )}
                 <button
                   onClick={handleSubmit(onSubmit)}
-                  disabled={uploading || (isEditing ? !isDirty : !watch("full_name"))}
+                  disabled={uploading || (isEditing ? (!isDirty && !(watch("photo") instanceof File)) : !watch("full_name"))}
                   className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white rounded-xl hover:scale-105 active:scale-95 font-bold shadow-[0_4px_16px_rgba(75,155,220,0.35)] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   {uploading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
-                  <span>{isEditing ? "Update" : "Register"}</span>
+                  <span>{isEditing ? t('common.updating') : t('common.save')}</span>
                 </button>
               </div>
             </div>
@@ -490,40 +501,38 @@ export default function AddMember() {
               </button>
               <div className="min-w-0 flex flex-col">
                 <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate leading-tight">
-                  {isEditing ? "Edit Member" : "New Member"}
+                  {isEditing ? t('members.editBtn') : t('members.addBtn')}
                 </h1>
                 {isEditing && (
-                   <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wider truncate opacity-80">
-                     Update Records
-                   </p>
+                  <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wider truncate opacity-80">
+                    {t('members.messages.updateRecords')}
+                  </p>
                 )}
               </div>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {profile?.role !== "servant" && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (isEditing) {
-                      setIsMakeServantModalOpen(true);
-                    } else {
-                      setPromoteToServant(!promoteToServant);
-                    }
-                  }}
-                  className={`p-2 rounded-xl transition-all border ${promoteToServant ? 'bg-[#4B9BDC] text-white border-[#4B9BDC]' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-transparent'}`}
-                  title={promoteToServant ? "Registering as Servant" : "Set as Servant"}
-                >
-                  <Shield size={20} className={promoteToServant ? "fill-current" : ""} />
-                </button>
-              )}
-              
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (isEditing) {
+                    setIsMakeServantModalOpen(true);
+                  } else {
+                    setPromoteToServant(!promoteToServant);
+                  }
+                }}
+                className={`p-2 rounded-xl transition-all border ${promoteToServant ? 'bg-[#4B9BDC] text-white border-[#4B9BDC]' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-transparent'}`}
+                title={promoteToServant ? t('members.form.registeringAsServant') : t('members.form.setAsServant')}
+              >
+                <Shield size={20} className={promoteToServant ? "fill-current" : ""} />
+              </button>
+
               {!isEditing && (
-                <button 
-                  onClick={saveDraft} 
+                <button
+                  onClick={saveDraft}
                   className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                  title="Save Draft"
+                  title={t('members.saveDraft')}
                 >
                   <Save size={20} />
                 </button>
@@ -531,9 +540,9 @@ export default function AddMember() {
 
               <button
                 onClick={handleSubmit(onSubmit)}
-                disabled={uploading || (isEditing ? !isDirty : !watch("full_name"))}
+                disabled={uploading || (isEditing ? (!isDirty && !(watch("photo") instanceof File)) : !watch("full_name"))}
                 className="p-2 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white rounded-xl shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-transform active:scale-95"
-                title={isEditing ? "Update Member" : "Register Member"}
+                title={isEditing ? t('members.editBtn') : t('members.addBtn')}
               >
                 {uploading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle size={20} />}
               </button>
@@ -574,7 +583,7 @@ export default function AddMember() {
                         {section.title}
                       </span>
                       <span className={`text-[10px] font-medium ${isActive ? 'text-[#4B9BDC]' : 'text-gray-500 dark:text-gray-400'}`}>
-                        Step {index + 1} of {SECTIONS.length}
+                        {t('members.form.step')} {index + 1} {t('members.form.of')} {SECTIONS.length}
                       </span>
                     </div>
                     {isActive && (
@@ -591,7 +600,7 @@ export default function AddMember() {
             {/* Progress */}
             <div className="mt-6 px-4">
               <div className="flex items-center justify-between text-xs mb-2">
-                <span className="text-gray-500 dark:text-gray-400 font-medium">Progress</span>
+                <span className="text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.analytics.growthAnalytics')}</span>
                 <span className="text-[#4B9BDC] font-bold">
                   {Math.round(((SECTIONS.findIndex(s => s.id === activeSection) + 1) / SECTIONS.length) * 100)}%
                 </span>
@@ -619,8 +628,8 @@ export default function AddMember() {
                   <User size={22} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Personal Information</h2>
-                  <p className="text-blue-100 text-xs font-medium">Basic details about the member</p>
+                  <h2 className="text-lg font-bold text-white">{t('members.form.sections.personal')}</h2>
+                  <p className="text-blue-100 text-xs font-medium">{t('login.signInSub')}</p>
                 </div>
               </div>
               <div className="p-8">
@@ -641,20 +650,20 @@ export default function AddMember() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="md:col-span-2">
-                    <label className="form-label">Full Name <span className="text-red-400">*</span></label>
-                    <input {...register("full_name")} className="form-input" placeholder="e.g. Abebe Kebede" />
+                    <label className="form-label">{t('members.form.fullName')} <span className="text-red-400">*</span></label>
+                    <input {...register("full_name")} className="form-input" placeholder={t('members.form.fullNamePlaceholder')} />
                     {errors.full_name && <p className="form-error">{errors.full_name.message}</p>}
                   </div>
                   <div className="md:col-span-2">
                     <label className="form-label text-blue-700 flex items-center justify-between">
-                      <span>Assigned Department</span>
+                      <span>{t('members.form.assignedDepartment')}</span>
                       {watch("department_id") && (
                         <button
                           type="button"
                           onClick={() => setValue("department_id", "", { shouldDirty: true })}
                           className="text-[10px] text-red-500 hover:text-red-600 font-bold uppercase tracking-wider"
                         >
-                          Clear Assignment
+                          {t('members.form.clearAssignment')}
                         </button>
                       )}
                     </label>
@@ -676,10 +685,10 @@ export default function AddMember() {
                           <div className="text-left">
                             <p className={`text-sm font-bold truncate ${watch("department_id") ? (isDark ? "text-white" : "text-gray-900") : "text-gray-500 dark:text-gray-400"
                               }`}>
-                              {departments.find(d => d.id === watch("department_id"))?.name || "Choose a Department"}
+                              {departments.find(d => d.id === watch("department_id"))?.name || t('members.form.chooseDept')}
                             </p>
                             <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium leading-none mt-0.5">
-                              {watch("department_id") ? "Currently assigned" : "No department assigned yet"}
+                              {watch("department_id") ? t('members.form.currentlyAssigned') : t('members.form.noDeptAssigned')}
                             </p>
                           </div>
                         </div>
@@ -715,8 +724,8 @@ export default function AddMember() {
                                   <Users size={16} />
                                 </div>
                                 <div>
-                                  <p className="text-sm">No Department</p>
-                                  <p className="text-[9px] opacity-70">General congregation member</p>
+                                  <p className="text-sm">{t('members.form.noDept')}</p>
+                                  <p className="text-[9px] opacity-70">{t('members.form.genCongregation')}</p>
                                 </div>
                               </button>
 
@@ -724,7 +733,7 @@ export default function AddMember() {
 
                               {departments.length === 0 ? (
                                 <div className="p-4 text-center">
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 italic">No departments configured</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 italic">{t('members.form.noDeptsConfigured')}</p>
                                 </div>
                               ) : (
                                 departments.map((dept) => {
@@ -758,37 +767,37 @@ export default function AddMember() {
                     </div>
                   </div>
                   <div>
-                    <label className="form-label">Date of Birth</label>
+                    <label className="form-label">{t('members.form.dob')}</label>
                     <input type="date" {...register("dob")} className="form-input" />
                   </div>
                   <div>
-                    <label className="form-label">Place of Birth</label>
-                    <input {...register("place_of_birth")} className="form-input" placeholder="City, Region" />
+                    <label className="form-label">{t('members.form.placeOfBirth')}</label>
+                    <input {...register("place_of_birth")} className="form-input" placeholder={t('members.form.placeOfBirthPlaceholder')} />
                   </div>
                   <div>
-                    <label className="form-label">Mother Tongue</label>
-                    <input {...register("mother_tongue")} className="form-input" placeholder="e.g. Amharic" />
+                    <label className="form-label">{t('members.form.motherTongue')}</label>
+                    <input {...register("mother_tongue")} className="form-input" placeholder={t('members.form.motherTonguePlaceholder')} />
                   </div>
                   <div>
-                    <label className="form-label">Phone Number</label>
-                    <input {...register("phone")} className="form-input" placeholder="+251..." />
+                    <label className="form-label">{t('members.form.phoneNumber')}</label>
+                    <input {...register("phone")} className="form-input" placeholder={t('members.form.phonePlaceholder')} />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="form-label">Email Address {promoteToServant && !isEditing && <span className="text-red-400">*</span>}</label>
-                    <input type="email" {...register("email")} className="form-input" placeholder="member@example.com" />
+                    <label className="form-label">{t('login.email')} {promoteToServant && !isEditing && <span className="text-red-400">*</span>}</label>
+                    <input type="email" {...register("email")} className="form-input" placeholder={t('members.form.emailPlaceholder')} />
                     {errors.email && <p className="form-error">{errors.email.message}</p>}
                   </div>
                   {promoteToServant && !isEditing && (
                     <div className="md:col-span-2">
-                      <label className="form-label">Temporary Password <span className="text-red-400">*</span></label>
+                      <label className="form-label">{t('members.form.tempPassword')} <span className="text-red-400">*</span></label>
                       <input
                         type="password"
                         value={servantPassword}
                         onChange={(e) => setServantPassword(e.target.value)}
                         className="form-input"
-                        placeholder="Min. 6 characters"
+                        placeholder={t('members.form.passwordTip')}
                       />
-                      <div className="mt-2 text-xs text-gray-500 font-medium">This password will be required for the servant to log in.</div>
+                      <div className="mt-2 text-xs text-gray-500 font-medium">{t('members.form.passwordNote')}</div>
                       {servantPassword && <PasswordStrengthMeter password={servantPassword} />}
                     </div>
                   )}
@@ -805,17 +814,17 @@ export default function AddMember() {
                   <Heart size={22} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Spiritual Life</h2>
-                  <p className="text-purple-100 text-xs font-medium">Faith journey and background</p>
+                  <h2 className="text-lg font-bold text-white">{t('members.form.sections.spiritual')}</h2>
+                  <p className="text-purple-100 text-xs font-medium">{t('login.description')}</p>
                 </div>
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div><label className="form-label">Date of Salvation</label><input type="date" {...register("salvation_date")} className="form-input" /></div>
-                  <div><label className="form-label">Place of Salvation</label><input {...register("salvation_place")} className="form-input" placeholder="City/Church" /></div>
-                  <div className="md:col-span-2"><label className="form-label">Previous Church</label><input {...register("previous_church")} className="form-input" placeholder="Name of previous church" /></div>
-                  <div className="md:col-span-2"><label className="form-label">Reason for Coming</label><input {...register("reason_for_coming")} className="form-input" placeholder="e.g. Transfer, New Believer" /></div>
-                  <div className="md:col-span-2"><label className="form-label">Faith Declaration</label><textarea {...register("faith")} className="form-input !h-auto" rows={4} placeholder="Brief statement of faith..." /></div>
+                  <div><label className="form-label">{t('members.form.salvationInfo')}</label><input type="date" {...register("salvation_date")} className="form-input" /></div>
+                  <div><label className="form-label">{t('members.form.placeOfBirth')}</label><input {...register("salvation_place")} className="form-input" placeholder={t('members.form.salvationPlacePlaceholder')} /></div>
+                  <div className="md:col-span-2"><label className="form-label">{t('members.form.previousChurch')}</label><input {...register("previous_church")} className="form-input" placeholder={t('members.form.prevChurchPlaceholder')} /></div>
+                  <div className="md:col-span-2"><label className="form-label">{t('members.form.reasonForComing')}</label><input {...register("reason_for_coming")} className="form-input" placeholder={t('members.form.reasonPlaceholder')} /></div>
+                  <div className="md:col-span-2"><label className="form-label">{t('members.form.faith')}</label><textarea {...register("faith")} className="form-input !h-auto" rows={4} placeholder={t('members.form.faithPlaceholder')} /></div>
                 </div>
               </div>
             </div>
@@ -829,41 +838,41 @@ export default function AddMember() {
                   <Briefcase size={22} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Education & Work</h2>
-                  <p className="text-amber-100 text-xs font-medium">Academic and professional background</p>
+                  <h2 className="text-lg font-bold text-white">{t('members.form.sections.education')}</h2>
+                  <p className="text-amber-100 text-xs font-medium">{t('dashboard.stats.activeMinistries')}</p>
                 </div>
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div><label className="form-label">Field of Study</label><input {...register("field_of_study")} className="form-input" placeholder="e.g. Engineering" /></div>
+                  <div><label className="form-label">{t('members.form.fieldOfStudy')}</label><input {...register("field_of_study")} className="form-input" placeholder={t('members.form.fieldOfStudyPlaceholder')} /></div>
                   <div>
-                    <label className="form-label">Educational Level</label>
+                    <label className="form-label">{t('members.form.educationalLevel')}</label>
                     <select {...register("educational_level")} className="form-select">
-                      <option value="">Select Level</option>
-                      <option value="High School">High School</option>
-                      <option value="Diploma">Diploma</option>
-                      <option value="Bachelor's">Bachelor's Degree</option>
-                      <option value="Master's">Master's Degree</option>
-                      <option value="PhD">PhD</option>
+                      <option value="">{t('members.form.selectLevel')}</option>
+                      <option value="High School">{t('members.form.highSchool')}</option>
+                      <option value="Diploma">{t('members.form.diploma')}</option>
+                      <option value="Bachelor's">{t('members.form.bachelors')}</option>
+                      <option value="Master's">{t('members.form.masters')}</option>
+                      <option value="PhD">{t('members.form.phd')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="form-label">Employment Status</label>
+                    <label className="form-label">{t('members.form.employmentStatus')}</label>
                     <select {...register("employment_status")} className="form-select">
-                      <option value="">Select Status</option>
-                      <option value="Employed">Employed</option>
-                      <option value="Self-Employed">Self-Employed</option>
-                      <option value="Unemployed">Unemployed</option>
-                      <option value="Student">Student</option>
-                      <option value="Retired">Retired</option>
+                      <option value="">{t('members.form.selectStatus')}</option>
+                      <option value="Employed">{t('members.form.employed')}</option>
+                      <option value="Self-Employed">{t('members.form.selfEmployed')}</option>
+                      <option value="Unemployed">{t('members.form.unemployed')}</option>
+                      <option value="Student">{t('members.form.student')}</option>
+                      <option value="Retired">{t('members.form.retired')}</option>
                     </select>
                   </div>
-                  <div><label className="form-label">Workplace Address</label><input {...register("workplace_address")} className="form-input" placeholder="Company/Organization" /></div>
+                  <div><label className="form-label">{t('members.form.workplaceAddress')}</label><input {...register("workplace_address")} className="form-input" placeholder={t('members.form.workplacePlaceholder')} /></div>
                   <div>
-                    <label className="form-label">Monthly Income</label>
+                    <label className="form-label">{t('members.form.monthlyIncome')}</label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm font-semibold">ETB</span>
-                      <input type="number" {...register("income_amount")} className="form-input !pl-14" placeholder="0.00" />
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm font-semibold">{t('members.form.currency')}</span>
+                      <input type="number" {...register("income_amount")} className="form-input !pl-14" placeholder={t('members.form.incomePlaceholder')} />
                     </div>
                   </div>
                 </div>
@@ -879,26 +888,29 @@ export default function AddMember() {
                   <Users size={22} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Family Status</h2>
-                  <p className="text-rose-100 text-xs font-medium">Marital and family details</p>
+                  <h2 className="text-lg font-bold text-white">{t('members.form.sections.family')}</h2>
+                  <p className="text-rose-100 text-xs font-medium">{t('members.form.additionalFamilyInfo')}</p>
                 </div>
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="form-label">Marital Status</label>
+                    <label className="form-label">{t('members.form.maritalStatus.status')}</label>
                     <select {...register("marital_status")} className="form-select">
-                      <option value="Single">Single</option>
-                      <option value="Married">Married</option>
-                      <option value="Divorced">Divorced</option>
-                      <option value="Widowed">Widowed</option>
+                      <option value="Single">{t('members.form.maritalStatus.single')}</option>
+                      <option value="Married">{t('members.form.maritalStatus.married')}</option>
+                      <option value="Divorced">{t('members.form.maritalStatus.divorced')}</option>
+                      <option value="Widowed">{t('members.form.maritalStatus.widowed')}</option>
                     </select>
                   </div>
+                  {maritalStatus === "Single" && (
+                    <div><label className="form-label">{t('members.form.livingSituation')}</label><input {...register("living_situation")} className="form-input" placeholder={t('members.form.livingSituationPlaceholder')} /></div>
+                  )}
                   {maritalStatus === "Married" && (
                     <>
-                      <div><label className="form-label">Spouse Name</label><input {...register("spouse_name")} className="form-input" /></div>
-                      <div><label className="form-label">Marriage Date</label><input type="date" {...register("marriage_date")} className="form-input" /></div>
-                      <div><label className="form-label">Marriage Place</label><input {...register("marriage_place")} className="form-input" /></div>
+                      <div><label className="form-label">{t('members.form.spouseName')}</label><input {...register("spouse_name")} className="form-input" /></div>
+                      <div><label className="form-label">{t('members.form.marriageInfo')}</label><input type="date" {...register("marriage_date")} className="form-input" /></div>
+                      <div><label className="form-label">{t('members.form.placeOfBirth')}</label><input {...register("marriage_place")} className="form-input" /></div>
                     </>
                   )}
                 </div>
@@ -906,10 +918,10 @@ export default function AddMember() {
                 {/* Children section */}
                 <div className="mt-8">
                   <div className="flex justify-between items-center mb-5">
-                    <h3 className="text-base font-bold text-gray-800">Children</h3>
+                    <h3 className="text-base font-bold text-gray-800">{t('members.form.childrenInfo')}</h3>
                     <button type="button" onClick={() => append({ name: "", gender: "", age: "", education: "", faith: "" })}
                       className="text-sm bg-[#4B9BDC]/10 text-[#4B9BDC] px-4 py-2 rounded-xl hover:bg-[#4B9BDC]/20 font-semibold flex items-center gap-1.5 transition-colors">
-                      <Plus size={16} /> Add Child
+                      <Plus size={16} /> {t('members.addChild')}
                     </button>
                   </div>
                   <div className="space-y-3">
@@ -921,20 +933,22 @@ export default function AddMember() {
                           <X size={12} />
                         </button>
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                          <input {...register(`children.${index}.name`)} className="form-input" placeholder="Name" />
+                          <input {...register(`children.${index}.name`)} className="form-input" placeholder={t('members.form.fullName')} />
                           <select {...register(`children.${index}.gender`)} className="form-select">
-                            <option value="">Gender</option><option value="Male">Male</option><option value="Female">Female</option>
+                            <option value="">{t('common.gender.label')}</option>
+                            <option value="Male">{t('common.gender.male')}</option>
+                            <option value="Female">{t('common.gender.female')}</option>
                           </select>
-                          <input {...register(`children.${index}.age`)} className="form-input" placeholder="Age" />
-                          <input {...register(`children.${index}.education`)} className="form-input" placeholder="Education" />
-                          <input {...register(`children.${index}.faith`)} className="form-input" placeholder="Faith" />
+                          <input {...register(`children.${index}.age`)} className="form-input" placeholder={t('members.form.age')} />
+                          <input {...register(`children.${index}.education`)} className="form-input" placeholder={t('members.form.educationalLevel')} />
+                          <input {...register(`children.${index}.faith`)} className="form-input" placeholder={t('members.form.faith')} />
                         </div>
                       </motion.div>
                     ))}
                     {fields.length === 0 && (
                       <div className="text-center py-8 bg-gray-50/60 rounded-xl border-2 border-dashed border-gray-200">
                         <Users size={24} className="text-gray-500 dark:text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">No children added yet</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">{t('members.noResults')}</p>
                       </div>
                     )}
                   </div>
@@ -951,18 +965,18 @@ export default function AddMember() {
                   <BookOpen size={22} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Service History</h2>
-                  <p className="text-teal-100 text-xs font-medium">Ministry involvement and gifts</p>
+                  <h2 className="text-lg font-bold text-white">{t('members.form.sections.service')}</h2>
+                  <p className="text-teal-100 text-xs font-medium">{t('dashboard.stats.servingLeaders')}</p>
                 </div>
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div><label className="form-label">Service Type</label><input {...register("service_type")} className="form-input" placeholder="e.g. Choir, Usher" /></div>
-                  <div><label className="form-label">Duration</label><input {...register("service_duration")} className="form-input" placeholder="e.g. 2 years" /></div>
-                  <div><label className="form-label">Responsibility</label><input {...register("service_responsibility")} className="form-input" placeholder="Role/Position" /></div>
-                  <div><label className="form-label">Current Service</label><input {...register("current_service")} className="form-input" placeholder="Current ministry" /></div>
-                  <div className="md:col-span-2"><label className="form-label">Spiritual Gift</label><input {...register("spiritual_gift")} className="form-input" placeholder="e.g. Teaching, Mercy" /></div>
-                  <div className="md:col-span-2"><label className="form-label">Desired Future Service</label><textarea {...register("future_service")} className="form-input !h-auto" rows={3} placeholder="What area would you like to serve in?" /></div>
+                  <div><label className="form-label">{t('members.form.serviceType')}</label><input {...register("service_type")} className="form-input" placeholder={t('members.form.serviceTypePlaceholder')} /></div>
+                  <div><label className="form-label">{t('members.form.serviceDuration')}</label><input {...register("service_duration")} className="form-input" placeholder={t('members.form.serviceDurationPlaceholder')} /></div>
+                  <div><label className="form-label">{t('members.form.serviceResponsibility')}</label><input {...register("service_responsibility")} className="form-input" placeholder={t('members.form.serviceResponsibilityPlaceholder')} /></div>
+                  <div><label className="form-label">{t('members.form.currentServiceInfo')}</label><input {...register("current_service")} className="form-input" placeholder={t('members.form.currentServicePlaceholder')} /></div>
+                  <div className="md:col-span-2"><label className="form-label">{t('members.form.spiritualGiftInfo')}</label><input {...register("spiritual_gift")} className="form-input" placeholder={t('members.form.spiritualGiftPlaceholder')} /></div>
+                  <div className="md:col-span-2"><label className="form-label">{t('members.form.futureService')}</label><textarea {...register("future_service")} className="form-input !h-auto" rows={3} placeholder={t('members.form.futureServicePlaceholder')} /></div>
                 </div>
               </div>
             </div>
@@ -976,16 +990,16 @@ export default function AddMember() {
                   <Globe size={22} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Family Fellowship</h2>
-                  <p className="text-indigo-100 text-xs font-medium">Fellowship group details</p>
+                  <h2 className="text-lg font-bold text-white">{t('members.form.sections.fellowship')}</h2>
+                  <p className="text-indigo-100 text-xs font-medium">{t('members.form.additionalFellowshipInfo')}</p>
                 </div>
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div><label className="form-label">Start Date</label><input type="date" {...register("fellowship_start_date")} className="form-input" /></div>
-                  <div><label className="form-label">Fellowship Name</label><input {...register("fellowship_name")} className="form-input" /></div>
-                  <div><label className="form-label">Responsibility</label><input {...register("fellowship_responsibility")} className="form-input" /></div>
-                  <div><label className="form-label">Leader</label><input {...register("fellowship_leader")} className="form-input" /></div>
+                  <div><label className="form-label">{t('members.form.fellowshipStartTime')}</label><input type="date" {...register("fellowship_start_date")} className="form-input" /></div>
+                  <div><label className="form-label">{t('members.form.fellowshipName')}</label><input {...register("fellowship_name")} className="form-input" /></div>
+                  <div><label className="form-label">{t('members.form.fellowshipResponsibility')}</label><input {...register("fellowship_responsibility")} className="form-input" /></div>
+                  <div><label className="form-label">{t('members.form.fellowshipMemberType')}</label><input {...register("fellowship_leader")} className="form-input" /></div>
                 </div>
               </div>
             </div>
@@ -999,23 +1013,23 @@ export default function AddMember() {
                   <CheckCircle size={22} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Review & Sign</h2>
-                  <p className="text-slate-200 text-xs font-medium">Confirm and submit</p>
+                  <h2 className="text-lg font-bold text-white">{t('members.form.sections.signatures')}</h2>
+                  <p className="text-slate-200 text-xs font-medium">{t('members.form.memberSignature')}</p>
                 </div>
               </div>
               <div className="p-8">
                 <div className="p-5 rounded-xl mb-6 text-blue-700 dark:text-blue-300 text-sm font-medium border flex items-start gap-3" style={d.emptyInner}>
                   <FileText size={20} className="shrink-0 mt-0.5" />
-                  <p>Please review all information before signing. By signing below, you confirm that all details provided are accurate.</p>
+                  <p>{t('members.form.reviewMsg')}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="form-label">Member Signature</label>
-                    <input {...register("member_signature")} className="form-input italic" placeholder="Type full name to sign" />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-medium">This acts as your digital signature</p>
+                    <label className="form-label">{t('members.form.memberSignature')}</label>
+                    <input {...register("member_signature")} className="form-input italic" placeholder={t('members.form.memberSignature')} />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-medium">{t('members.form.memberSignature')}</p>
                   </div>
                   <div>
-                    <label className="form-label">Date</label>
+                    <label className="form-label">{t('dashboard.stats.total')}</label>
                     <input type="date" {...register("form_filled_date")} className="form-input" />
                   </div>
                 </div>
@@ -1024,11 +1038,11 @@ export default function AddMember() {
                 <div className="mt-8 pt-6 border-t border-gray-100">
                   <button
                     onClick={handleSubmit(onSubmit)}
-                    disabled={uploading || (isEditing ? !isDirty : !watch("full_name"))}
+                    disabled={uploading || (isEditing ? (!isDirty && !(watch("photo") instanceof File)) : !watch("full_name"))}
                     className="w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white rounded-2xl hover:scale-[1.02] active:scale-[0.98] font-bold text-lg shadow-[0_8px_30px_rgba(75,155,220,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {uploading ? <Loader2 className="animate-spin" size={22} /> : <CheckCircle size={22} />}
-                    {isEditing ? "Update Member Record" : "Complete Registration"}
+                    {isEditing ? t('members.editBtn') : t('members.addBtn')}
                   </button>
                 </div>
               </div>
@@ -1059,8 +1073,8 @@ export default function AddMember() {
 
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Make Servant</h2>
-                  <p className="text-sm text-gray-500 mt-1 font-medium">Promote {watch("full_name")} to Servant</p>
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">{t('servants.changeRole')}</h2>
+                  <p className="text-sm text-gray-500 mt-1 font-medium">{t('servants.messages.selectMember')} {watch("full_name")}</p>
                 </div>
                 <button
                   onClick={() => setIsMakeServantModalOpen(false)}
@@ -1074,7 +1088,7 @@ export default function AddMember() {
               {!watch("email") ? (
                 <div className="p-4 rounded-xl border text-sm font-semibold flex gap-3" style={d.emptyInner}>
                   <Shield className="shrink-0 mt-0.5" size={18} style={{ color: '#ef4444' }} />
-                  <p className="text-red-600 dark:text-red-400">This member does not have an email address recorded. An email address is required to create a servant account. Please update their profile and provide an email first.</p>
+                  <p className="text-red-600 dark:text-red-400">{t('members.form.noEmailError')}</p>
                 </div>
               ) : (
                 <form onSubmit={handleMakeServant} className="space-y-5">
@@ -1083,7 +1097,7 @@ export default function AddMember() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Temporary Password</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">{t('members.form.tempPassword')}</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B9BDC]">
                         <Shield size={18} />
@@ -1095,7 +1109,7 @@ export default function AddMember() {
                         onChange={(e) => setServantPassword(e.target.value)}
                         className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 placeholder-gray-400"
                         style={{ background: '#f8fafc', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                        placeholder="Min. 6 characters"
+                        placeholder={t('members.form.passwordTip')}
                       />
                     </div>
                     {/* Reusing existing PasswordStrengthMeter if it is imported */}
@@ -1108,7 +1122,7 @@ export default function AddMember() {
                       onClick={() => setIsMakeServantModalOpen(false)}
                       className="flex-1 py-3.5 rounded-xl font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                     <button
                       type="submit"
@@ -1116,13 +1130,24 @@ export default function AddMember() {
                       className="flex-1 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] shadow-lg disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
                     >
                       {makingServant ? <Loader2 size={18} className="animate-spin" /> : <Shield size={18} />}
-                      Create Account
+                      {t('common.confirm')}
                     </button>
                   </div>
                 </form>
               )}
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {cropImage && (
+          <ImageCropper
+            image={cropImage}
+            onCropComplete={handleCropComplete}
+            onCancel={() => setCropImage(null)}
+            aspect={1}
+          />
         )}
       </AnimatePresence>
     </motion.div>

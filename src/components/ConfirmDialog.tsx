@@ -1,5 +1,5 @@
-import React from "react";
 import { AlertTriangle, Info } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -19,10 +19,14 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   type = "danger",
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
 }: ConfirmDialogProps) {
+  const { t } = useLanguage();
   if (!isOpen) return null;
+
+  const finalConfirmText = confirmText || t('common.confirm');
+  const finalCancelText = cancelText || t('common.cancel');
 
   const colors = {
     danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
@@ -69,13 +73,13 @@ export default function ConfirmDialog({
             onClick={onCancel}
             className="px-4 py-2 text-gray-700 dark:text-gray-400 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
           >
-            {cancelText}
+            {finalCancelText}
           </button>
           <button
             onClick={onConfirm}
             className={`px-4 py-2 font-medium rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-2 ${colors[type]}`}
           >
-            {confirmText}
+            {finalConfirmText}
           </button>
         </div>
       </div>

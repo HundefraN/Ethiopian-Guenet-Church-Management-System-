@@ -4,6 +4,7 @@ import { supabase } from "../supabaseClient";
 import { Profile, Church, Department } from "../types";
 import toast from "react-hot-toast";
 import { logActivity } from "../utils/activityLogger";
+import { useLanguage } from "../context/LanguageContext";
 
 interface ChangeRoleModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export default function ChangeRoleModal({
   user,
   onSuccess,
 }: ChangeRoleModalProps) {
+  const { t } = useLanguage();
   const [role, setRole] = useState<"pastor" | "servant">("servant");
   const [churchId, setChurchId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
@@ -27,7 +29,6 @@ export default function ChangeRoleModal({
 
   useEffect(() => {
     if (isOpen && user) {
-      // If the user's current role is super_admin, we default to pastor for the change
       const initialRole =
         user.role === "super_admin" ? "pastor" : (user.role as any);
       setRole(initialRole);
@@ -72,7 +73,7 @@ export default function ChangeRoleModal({
     if (!user) return;
 
     if (role === "servant" && !churchId) {
-      toast.error("Church is required for Servants");
+      toast.error(t('common.roleModal.churchRequired'));
       return;
     }
 
@@ -107,12 +108,12 @@ export default function ChangeRoleModal({
         }
       );
 
-      toast.success(`User role updated to ${role}`);
+      toast.success(t('common.roleModal.updateSuccess').replace('{{role}}', t(`common.roles.${role}`)));
       onSuccess();
       onClose();
     } catch (error: any) {
       console.error("Error updating role:", error);
-      toast.error("Failed to update role");
+      toast.error(t('common.roleModal.updateError'));
     } finally {
       setSubmitting(false);
     }
@@ -144,10 +145,10 @@ export default function ChangeRoleModal({
             )}
             <div>
               <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
-                {user?.full_name || "Change Role"}
+                {user?.full_name || t('common.roleModal.title')}
               </h2>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-0.5">
-                Update permissions and access
+                {t('common.roleModal.subtitle')}
               </p>
             </div>
           </div>
@@ -162,7 +163,7 @@ export default function ChangeRoleModal({
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div className="space-y-3">
             <label className="text-[13px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1">
-              Select New Assignment
+              {t('common.roleModal.selectAssignment')}
             </label>
             <div className="grid grid-cols-2 gap-4">
               {/* Pastor Option */}
@@ -189,9 +190,9 @@ export default function ChangeRoleModal({
                   className={`text-sm font-bold tracking-tight transition-colors ${role === "pastor" ? "text-guenet-green" : "text-gray-600 dark:text-gray-400"
                     }`}
                 >
-                  Pastor
+                  {t('common.roleModal.pastorLabel')}
                 </span>
-                <p className="text-[10px] mt-1 text-gray-500 dark:text-gray-400 font-medium">Church Lead</p>
+                <p className="text-[10px] mt-1 text-gray-500 dark:text-gray-400 font-medium">{t('common.roleModal.pastorSub')}</p>
               </button>
 
               {/* Servant Option */}
@@ -218,9 +219,9 @@ export default function ChangeRoleModal({
                   className={`text-sm font-bold tracking-tight transition-colors ${role === "servant" ? "text-guenet-green" : "text-gray-600 dark:text-gray-400"
                     }`}
                 >
-                  Servant
+                  {t('common.roleModal.servantLabel')}
                 </span>
-                <p className="text-[10px] mt-1 text-gray-500 dark:text-gray-400 font-medium">Dept Worker</p>
+                <p className="text-[10px] mt-1 text-gray-500 dark:text-gray-400 font-medium">{t('common.roleModal.servantSub')}</p>
               </button>
             </div>
           </div>
@@ -228,7 +229,7 @@ export default function ChangeRoleModal({
           <div className="space-y-4 animate-in slide-in-from-bottom-2 duration-500">
             <div>
               <label className="text-[13px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
-                Church Assignment
+                {t('common.roleModal.churchAssignment')}
               </label>
               <div className="relative group">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 group-focus-within:text-guenet-green transition-colors">
@@ -240,7 +241,7 @@ export default function ChangeRoleModal({
                   onChange={handleChurchChange}
                   className="form-select pl-12 h-14 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 >
-                  <option value="">Select Church</option>
+                  <option value="">{t('common.roleModal.selectChurch')}</option>
                   {churches.map((church) => (
                     <option key={church.id} value={church.id}>
                       {church.name}
@@ -253,7 +254,7 @@ export default function ChangeRoleModal({
             {role === "servant" && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                 <label className="text-[13px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
-                  Department (Optional)
+                  {t('common.roleModal.deptAssignment')}
                 </label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 group-focus-within:text-guenet-green transition-colors">
@@ -264,7 +265,7 @@ export default function ChangeRoleModal({
                     onChange={(e) => setDepartmentId(e.target.value)}
                     className="form-select pl-12 h-14 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                   >
-                    <option value="">Select Department</option>
+                    <option value="">{t('common.roleModal.selectDept')}</option>
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>
                         {dept.name}
@@ -282,7 +283,7 @@ export default function ChangeRoleModal({
               onClick={onClose}
               className="flex-1 h-12 rounded-2xl text-gray-500 dark:text-gray-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-all active:scale-95 translate-all"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -293,7 +294,7 @@ export default function ChangeRoleModal({
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Save Changes</span>
+                  <span>{t('common.roleModal.saveChanges')}</span>
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </>
               )}

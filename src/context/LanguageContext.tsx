@@ -9,7 +9,7 @@ type Language = 'en' | 'am';
 interface LanguageContextType {
     language: Language;
     setLanguage: (lang: Language) => Promise<void>;
-    t: (key: string) => string;
+    t: (path: string, replacements?: Record<string, string>) => string;
 }
 
 const translations: Record<Language, any> = {
@@ -30,7 +30,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             setLanguageState(profile.language as Language);
             localStorage.setItem('guenet-language', profile.language);
         }
-    }, [profile?.language]);
+    }, [profile?.language, language]);
 
     const setLanguage = async (lang: Language) => {
         setLanguageState(lang);
@@ -40,7 +40,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
     };
 
-    const t = useCallback((path: string): string => {
+    const t = useCallback((path: string, replacements?: Record<string, string>): string => {
         const keys = path.split('.');
         let result = translations[language];
 
@@ -52,7 +52,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             result = result[key];
         }
 
-        return result as string;
+        let translated = result as string;
+        if (replacements && translated) {
+            Object.entries(replacements).forEach(([key, value]) => {
+                translated = translated.replace(`{{${key}}}`, value);
+            });
+        }
+
+        return translated;
     }, [language]);
 
     return (

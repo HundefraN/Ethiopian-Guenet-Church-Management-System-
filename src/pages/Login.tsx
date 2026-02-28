@@ -64,11 +64,11 @@ export default function Login() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      toast.error("Please enter your email address first.");
+      toast.error(t('login.emailPlaceholder') || "Please enter your email address first."); // Note: adding a fallback just in case, but should add to locales
       return;
     }
     setLoading(true);
-    const loadingToast = toast.loading("Sending reset link...");
+    const loadingToast = toast.loading(t('login.sending'));
 
     // Make sure to set up your redirect URL in the Supabase Dashboard:
     // Authentication -> URL Configuration -> Site URL & Redirect URLs
@@ -79,7 +79,7 @@ export default function Login() {
     if (error) {
       toast.error(error.message, { id: loadingToast });
     } else {
-      toast.success("Check your email for the reset link!", { id: loadingToast });
+      toast.success(t('login.checkEmail') || "Check your email for the reset link!", { id: loadingToast });
       setResetSent(true);
       setEmail("");
     }
@@ -169,7 +169,7 @@ export default function Login() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all dark:text-gray-200 sm:text-sm"
-                        placeholder="email@gmail.com"
+                        placeholder="email@gmail.com" // This is a generic placeholder, but could be translated if needed
                       />
                     </div>
                   </motion.div>
@@ -279,12 +279,12 @@ export default function Login() {
                   </motion.button>
 
                   <p className="text-sm text-gray-500 dark:text-gray-400 pt-4">
-                    Didn't receive an email?{" "}
+                    {t("login.didntReceive")}{" "}
                     <button
                       onClick={() => setResetSent(false)}
                       className="text-[#4B9BDC] font-semibold hover:underline"
                     >
-                      Try again
+                      {t("login.tryAgain")}
                     </button>
                   </p>
                 </div>

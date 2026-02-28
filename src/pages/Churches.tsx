@@ -6,6 +6,7 @@ import { Church } from "../types";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import { logActivity, getObjectDiff } from "../utils/activityLogger";
 import { ds } from "../utils/darkStyles";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -15,6 +16,7 @@ interface ChurchWithCount extends Church {
 }
 
 export default function Churches() {
+  const { t } = useLanguage();
   const { profile } = useAuth();
   const { isDark } = useTheme();
   const d = ds(isDark);
@@ -68,7 +70,7 @@ export default function Churches() {
       setChurches((data as any) || []);
     } catch (error) {
       console.error("Error fetching churches:", error);
-      toast.error("Failed to load churches");
+      toast.error(t('churches.messages.loadError'));
     } finally {
       setLoading(false);
     }
@@ -114,7 +116,7 @@ export default function Churches() {
       });
     } catch (e) {
       console.error(e);
-      toast.error("Failed to load details");
+      toast.error(t('churches.messages.loadDetailsError'));
     } finally {
       setLoadingStats(false);
     }
@@ -123,7 +125,7 @@ export default function Churches() {
   const handleAddChurch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newChurch.name) {
-      toast.error("Church name is required");
+      toast.error(t('churches.messages.nameRequired'));
       return;
     }
 
@@ -140,7 +142,7 @@ export default function Churches() {
       await logActivity(
         "CREATE",
         "CHURCH",
-        `Added new church "${newChurch.name}" at ${newChurch.location || "unspecified location"}`,
+        t('activity.actions.CREATE') + ` ${t('churches.management').toLowerCase()} "${newChurch.name}" ` + t('common.at') + ` ${newChurch.location || t('churches.details.noLocation')}`,
         data.id,
         { name: newChurch.name, location: newChurch.location, map_link: newChurch.map_link }
       );
@@ -149,10 +151,10 @@ export default function Churches() {
       setChurches([...churches, newChurchWithCount]);
       setNewChurch({ name: "", location: "", map_link: "" });
       setIsModalOpen(false);
-      toast.success("Church added successfully");
+      toast.success(t('churches.messages.addSuccess'));
     } catch (error: any) {
       console.error("Error adding church:", error);
-      toast.error(error.message || "Failed to add church");
+      toast.error(error.message || t('churches.messages.addError'));
     } finally {
       setSubmitting(false);
     }
@@ -160,7 +162,7 @@ export default function Churches() {
   const handleEditChurch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newChurch.name || !editingChurch) {
-      toast.error("Church name is required");
+      toast.error(t('churches.messages.nameRequired'));
       return;
     }
 
@@ -173,7 +175,7 @@ export default function Churches() {
       );
 
       if (!diff) {
-        toast.error("No changes detected");
+        toast.error(t('common.noChanges'));
         setSubmitting(false);
         return;
       }
@@ -189,7 +191,7 @@ export default function Churches() {
       await logActivity(
         "UPDATE",
         "CHURCH",
-        `Updated church "${editingChurch.name}" (Changed: ${changedFields})`,
+        t('activity.actions.UPDATE') + ` ${t('churches.management').toLowerCase()} "${editingChurch.name}" (Changed: ${changedFields})`,
         editingChurch.id,
         diff
       );
@@ -202,25 +204,25 @@ export default function Churches() {
       setNewChurch({ name: "", location: "", map_link: "" });
       setEditingChurch(null);
       setIsEditModalOpen(false);
-      toast.success("Church updated successfully");
+      toast.success(t('churches.messages.updateSuccess'));
     } catch (error: any) {
       console.error("Error updating church:", error);
-      toast.error(error.message || "Failed to update church");
+      toast.error(error.message || t('churches.messages.updateError'));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteChurchClick = (church: ChurchWithCount) => {
-    setConfirmTitle("Delete Church");
-    setConfirmMessage(`Are you sure you want to delete "${church.name}"? This action cannot be undone and may affect associated users. `);
+    setConfirmTitle(t('churches.deleteChurch'));
+    setConfirmMessage(`${t('churches.messages.deleteConfirm').replace('{{name}}', church.name)}`);
     setConfirmType("danger");
     setConfirmAction(() => () => deleteChurch(church));
     setConfirmOpen(true);
   };
 
   const deleteChurch = async (church: ChurchWithCount) => {
-    const loadingToast = toast.loading("Deleting church...");
+    const loadingToast = toast.loading(t('common.loading'));
     try {
       const { error } = await supabase.from("churches").delete().eq("id", church.id);
       if (error) throw error;
@@ -228,17 +230,17 @@ export default function Churches() {
       await logActivity(
         "DELETE",
         "CHURCH",
-        `Deleted church "${church.name}"`,
+        t('activity.actions.DELETE') + ` ${t('churches.management').toLowerCase()} "${church.name}"`,
         church.id,
         { name: church.name, location: church.location }
       );
 
       setChurches(churches.filter(c => c.id !== church.id));
       if (selectedChurch?.id === church.id) setSelectedChurch(null);
-      toast.success("Church deleted successfully", { id: loadingToast });
+      toast.success(t('churches.messages.deleteSuccess'), { id: loadingToast });
     } catch (error: any) {
       console.error("Error deleting church:", error);
-      toast.error(error.message || "Failed to delete church", { id: loadingToast });
+      toast.error(error.message || t('churches.messages.deleteError'), { id: loadingToast });
     } finally {
       setConfirmOpen(false);
     }
@@ -295,7 +297,7 @@ export default function Churches() {
                 <Building size={24} className="text-blue-200" />
               </div>
               <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#93c5fd' }}>
-                <Sparkles size={10} className="inline mr-1" /> Church Management
+                <Sparkles size={10} className="inline mr-1" /> {t('dashboard.churchTitle')}
               </div>
             </motion.div>
             <motion.h1
@@ -305,7 +307,7 @@ export default function Churches() {
               className="text-4xl md:text-5xl font-black tracking-tight mb-3"
               style={{ background: 'linear-gradient(135deg, #ffffff 0%, #93c5fd 50%, #c4b5fd 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
             >
-              Churches Directory
+              {t('churches.title')}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 10 }}
@@ -313,7 +315,7 @@ export default function Churches() {
               transition={{ delay: 0.2 }}
               className="text-blue-200/70 max-w-lg text-sm md:text-base font-medium"
             >
-              Manage all church branches, locations, and detailed statistics in one place.
+              {t('churches.subtitle')}
             </motion.p>
           </div>
 
@@ -330,7 +332,7 @@ export default function Churches() {
               </div>
               <div>
                 <p className="text-2xl font-black text-white leading-none">{churches.length}</p>
-                <p className="text-[10px] font-bold text-blue-300/60 uppercase tracking-wider">Branches</p>
+                <p className="text-[10px] font-bold text-blue-300/60 uppercase tracking-wider">{t('dashboard.stats.churches')}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 px-5 py-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
@@ -339,7 +341,7 @@ export default function Churches() {
               </div>
               <div>
                 <p className="text-2xl font-black text-white leading-none">{totalMembers}</p>
-                <p className="text-[10px] font-bold text-blue-300/60 uppercase tracking-wider">Total Members</p>
+                <p className="text-[10px] font-bold text-blue-300/60 uppercase tracking-wider">{t('dashboard.stats.totalMembers')}</p>
               </div>
             </div>
 
@@ -352,7 +354,7 @@ export default function Churches() {
                 style={{ background: 'linear-gradient(135deg, #ffffff, #e0e7ff)', color: '#3b82f6', boxShadow: '0 8px 32px rgba(59,130,246,0.3), inset 0 1px 0 rgba(255,255,255,0.8)' }}
               >
                 <Plus size={18} />
-                <span>Add Church</span>
+                <span>{t('churches.addChurch')}</span>
               </motion.button>
             )}
           </motion.div>
@@ -388,14 +390,14 @@ export default function Churches() {
                           setIsEditModalOpen(true);
                         }}
                         className="p-2.5 rounded-xl transition-all duration-200 text-blue-400 hover:text-blue-600" style={d.editButton}
-                        title="Edit Church"
+                        title={t('churches.editChurch')}
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => handleDeleteChurchClick(selectedChurch)}
                         className="p-2.5 rounded-xl transition-all duration-200 text-red-400 hover:text-red-600" style={d.deleteButton}
-                        title="Delete Church"
+                        title={t('churches.deleteChurch')}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -404,6 +406,7 @@ export default function Churches() {
                   <button
                     onClick={() => setSelectedChurch(null)}
                     className="p-2.5 rounded-xl transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-600" style={d.subtleButton}
+                    title={t('common.cancel')}
                   >
                     <X size={18} />
                   </button>
@@ -418,7 +421,7 @@ export default function Churches() {
                 </h2>
                 <div className="flex items-center gap-2 text-gray-500 text-sm mb-6 font-semibold rounded-xl inline-flex px-3.5 py-2" style={d.locationBadge}>
                   <MapPin size={15} className="text-blue-500" />
-                  <span>{selectedChurch.location || "No location specified"}</span>
+                  <span>{selectedChurch.location || t('churches.details.noLocation')}</span>
                 </div>
 
                 {selectedChurch.map_link && (
@@ -432,7 +435,7 @@ export default function Churches() {
                     style={d.mapsButton}
                   >
                     <Map size={18} className="group-hover:rotate-12 transition-transform" />
-                    <span>View on Google Maps</span>
+                    <span>{t('churches.details.viewOnMap')}</span>
                     <ExternalLink size={14} className="opacity-40" />
                   </motion.a>
                 )}
@@ -457,7 +460,7 @@ export default function Churches() {
                         <div className="absolute -right-3 -top-3 text-blue-200/40 transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
                           <Users size={56} />
                         </div>
-                        <h3 className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-[0.15em] mb-1">Members</h3>
+                        <h3 className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-[0.15em] mb-1">{t('sidebar.members')}</h3>
                         <p className="text-3xl font-black text-blue-950 dark:text-blue-50 relative z-10">
                           {selectedChurch.members && selectedChurch.members[0] ? selectedChurch.members[0].count : 0}
                         </p>
@@ -473,7 +476,7 @@ export default function Churches() {
                         <div className="absolute -right-3 -top-3 text-purple-200/40 transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
                           <Shield size={56} />
                         </div>
-                        <h3 className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-[0.15em] mb-1">Departments</h3>
+                        <h3 className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-[0.15em] mb-1">{t('sidebar.departments')}</h3>
                         <p className="text-3xl font-black text-purple-950 dark:text-purple-50 relative z-10">
                           {churchStats.deptCount}
                         </p>
@@ -491,7 +494,7 @@ export default function Churches() {
                         </div>
                         <div className="flex items-center gap-2 mb-1">
                           <TrendingUp size={14} className="text-indigo-500" />
-                          <h3 className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.15em]">Total Servants</h3>
+                          <h3 className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.15em]">{t('dashboard.stats.totalServants')}</h3>
                         </div>
                         <p className="text-3xl font-black text-indigo-950 dark:text-indigo-50 relative z-10">
                           {churchStats.departments.reduce((acc, curr) => acc + curr.servantCount, 0)}
@@ -503,11 +506,11 @@ export default function Churches() {
                     <div>
                       <h3 className="text-[11px] font-bold text-gray-900 mb-4 px-1 uppercase tracking-[0.15em] flex items-center gap-2">
                         <Shield size={14} className="text-blue-500" />
-                        Ministry Breakdown
+                        {t('dashboard.analytics.ministryBreakdown')}
                       </h3>
                       {churchStats.departments.length === 0 ? (
                         <div className="text-center py-8 rounded-2xl text-gray-500 dark:text-gray-400 text-sm font-medium" style={d.emptyInner}>
-                          No departments found.
+                          {t('churches.details.noDepts')}
                         </div>
                       ) : (
                         <div className="space-y-2.5">
@@ -524,7 +527,7 @@ export default function Churches() {
                                 {dept.name}
                               </span>
                               <span className="text-blue-600 px-3 py-1 rounded-lg text-xs font-bold" style={{ background: 'rgba(59,130,246,0.08)' }}>
-                                {dept.servantCount} Servants
+                                {dept.servantCount} {t('churches.details.servants')}
                               </span>
                             </motion.div>
                           ))}
@@ -534,7 +537,7 @@ export default function Churches() {
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500">
-                    Failed to load data.
+                    {t('common.error')}
                   </div>
                 )}
               </div>
@@ -560,7 +563,7 @@ export default function Churches() {
               </div>
               <input
                 type="text"
-                placeholder="Search branches by name or location..."
+                placeholder={t('churches.details.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
@@ -571,7 +574,7 @@ export default function Churches() {
                 <button
                   onClick={() => setSearchQuery("")}
                   className="p-2 mr-2 text-gray-500 dark:text-gray-400 hover:text-blue-500 rounded-xl hover:bg-blue-50 transition-colors"
-                  title="Clear search"
+                  title={t('common.clearSearch')}
                 >
                   <X size={16} />
                 </button>
@@ -598,9 +601,9 @@ export default function Churches() {
               <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5" style={d.emptyIcon}>
                 <Building className="h-10 w-10 text-gray-500 dark:text-gray-400" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">No churches found</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('churches.details.noResults')}</h3>
               <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-                We couldn't find any churches matching your search. Try adjusting your query.
+                {t('churches.details.noResultsSub')}
               </p>
             </motion.div>
           ) : (
@@ -680,9 +683,9 @@ export default function Churches() {
                       </h3>
                       <div className="flex items-center gap-1.5 text-sm text-gray-500 font-medium">
                         <MapPin size={12} className="shrink-0 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors" />
-                        <span className="truncate max-w-[200px]">{church.location || "No location specified"}</span>
+                        <span className="truncate max-w-[200px]">{church.location || t('churches.details.noLocation')}</span>
                         {church.map_link && (
-                          <div className="flex items-center justify-center w-5 h-5 rounded-md shrink-0 ml-1" style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981' }} title="Map link available">
+                          <div className="flex items-center justify-center w-5 h-5 rounded-md shrink-0 ml-1" style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981' }} title={t('churches.details.mapLinkAvailable')}>
                             <Map size={10} />
                           </div>
                         )}
@@ -695,7 +698,7 @@ export default function Churches() {
                         <span className="text-xl font-black text-gray-900 dark:text-gray-100 tabular-nums leading-none">
                           {church.members && church.members[0] ? church.members[0].count : 0}
                         </span>
-                        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Members</span>
+                        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('sidebar.members')}</span>
                       </div>
                     </div>
 
@@ -706,7 +709,7 @@ export default function Churches() {
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
                       ) : (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
                       )}
                     </div>
                   </motion.div>
@@ -740,8 +743,8 @@ export default function Churches() {
 
                 <div className="flex items-center justify-between mb-8">
                   <div>
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">Add Church</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Register a new branch location</p>
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">{editingChurch ? t('churches.editChurch') : t('churches.addChurch')}</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">{t('churches.subtitle')}</p>
                   </div>
                   <button
                     onClick={() => setIsModalOpen(false)}
@@ -751,9 +754,9 @@ export default function Churches() {
                   </button>
                 </div>
 
-                <form onSubmit={handleAddChurch} className="space-y-5">
+                <form onSubmit={editingChurch ? handleEditChurch : handleAddChurch} className="space-y-5">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Church Name</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.name')}</label>
                     <input
                       type="text"
                       required
@@ -761,24 +764,24 @@ export default function Churches() {
                       onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
                       className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                       style={d.formInput}
-                      placeholder="e.g. Guenet Addis Ababa"
+                      placeholder={t('churches.form.namePlaceholder')}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Location</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.location')}</label>
                     <input
                       type="text"
                       value={newChurch.location}
                       onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
                       className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                       style={d.formInput}
-                      placeholder="e.g. Bole, Addis Ababa"
+                      placeholder={t('churches.form.locationPlaceholder')}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Map Link (Google Maps URL)</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.mapLink')}</label>
                     <div className="relative group">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 dark:text-gray-400 group-focus-within:text-blue-500 transition-colors">
                         <Map size={18} />
@@ -793,7 +796,7 @@ export default function Churches() {
                       />
                     </div>
                     <p className="mt-2 ml-1 text-[11px] text-gray-500 font-medium">
-                      Paste a map link to help people find this church.
+                      {t('churches.details.mapLinkDesc')}
                     </p>
                   </div>
 
@@ -803,7 +806,7 @@ export default function Churches() {
                       onClick={() => setIsModalOpen(false)}
                       className="px-6 py-3 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                     <motion.button
                       whileHover={{ scale: 1.03 }}
@@ -816,10 +819,10 @@ export default function Churches() {
                       {submitting ? (
                         <>
                           <Loader2 size={18} className="animate-spin" />
-                          <span>Saving...</span>
+                          <span>{t('common.saving')}</span>
                         </>
                       ) : (
-                        <span>Add Church</span>
+                        <span>{t('churches.addChurch')}</span>
                       )}
                     </motion.button>
                   </div>
@@ -853,8 +856,8 @@ export default function Churches() {
 
                 <div className="flex items-center justify-between mb-8">
                   <div>
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">Edit Church</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Update details for this branch</p>
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">{t('churches.editChurch')}</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">{t('churches.subtitle')}</p>
                   </div>
                   <button
                     onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "", map_link: "" }); }}
@@ -866,7 +869,7 @@ export default function Churches() {
 
                 <form onSubmit={handleEditChurch} className="space-y-5">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Church Name</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.name')}</label>
                     <input
                       type="text"
                       required
@@ -874,24 +877,24 @@ export default function Churches() {
                       onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
                       className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                       style={d.formInput}
-                      placeholder="e.g. Guenet Addis Ababa"
+                      placeholder={t('churches.form.namePlaceholder')}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Location</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.location')}</label>
                     <input
                       type="text"
                       value={newChurch.location}
                       onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
                       className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                       style={d.formInput}
-                      placeholder="e.g. Bole, Addis Ababa"
+                      placeholder={t('churches.form.locationPlaceholder')}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">Map Link (Google Maps URL)</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 ml-1">{t('churches.details.mapLink')}</label>
                     <div className="relative group">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 dark:text-gray-400 group-focus-within:text-blue-500 transition-colors">
                         <Map size={18} />
@@ -913,7 +916,7 @@ export default function Churches() {
                       onClick={() => { setIsEditModalOpen(false); setEditingChurch(null); setNewChurch({ name: "", location: "", map_link: "" }); }}
                       className="px-6 py-3 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                     <motion.button
                       whileHover={{ scale: 1.03 }}
@@ -926,10 +929,10 @@ export default function Churches() {
                       {submitting ? (
                         <>
                           <Loader2 size={18} className="animate-spin" />
-                          <span>Updating...</span>
+                          <span>{t('common.updating')}</span>
                         </>
                       ) : (
-                        <span>Update Church</span>
+                        <span>{t('churches.editChurch')}</span>
                       )}
                     </motion.button>
                   </div>

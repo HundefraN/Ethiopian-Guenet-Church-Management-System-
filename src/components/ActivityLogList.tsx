@@ -3,9 +3,11 @@ import { Activity, Clock, ChevronRight, User, Plus, Edit2, Trash2, Lock, Unlock,
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { timeAgo } from "../utils/timeAgo";
-import { getActionLabel, getActionColor, getEntityLabel } from "../utils/activityLogger";
+import { getActionColor } from "../utils/activityLogger";
 import { useAuth } from "../context/AuthContext";
 import { formatDisplayDateTime } from "../utils/dateFormatter";
+import { useLanguage } from "../context/LanguageContext";
+import { Skeleton } from "./common/Skeleton";
 
 // Icon mapper for action types
 const getActionIcon = (action: string) => {
@@ -36,6 +38,7 @@ export default function ActivityLogList({
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     if (profile) {
@@ -66,7 +69,7 @@ export default function ActivityLogList({
     try {
       const role = profile?.role;
 
-      // Servant: only their own activities
+      // Servant: ONLY their own activities
       if (role === "servant") {
         const { data, error } = await supabase
           .from("activity_logs")
@@ -79,7 +82,7 @@ export default function ActivityLogList({
               church_id
             )
           `)
-          .eq("user_id", profile?.id)
+          .eq("user_id", profile.id)
           .order("created_at", { ascending: false })
           .limit(limit);
 
@@ -138,9 +141,21 @@ export default function ActivityLogList({
 
   if (loading) {
     return (
-      <div className="animate-pulse space-y-4">
+      <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+          <div key={i} className="flex items-start gap-3 p-3">
+            <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-12 rounded" />
+              </div>
+              <Skeleton className="h-3 w-full" />
+              <div className="flex items-center gap-2 mt-1">
+                <Skeleton className="h-2.5 w-16" />
+              </div>
+            </div>
+          </div>
         ))}
       </div>
     );
@@ -150,8 +165,8 @@ export default function ActivityLogList({
     return (
       <div className="text-center py-8 text-gray-500 dark:text-gray-400">
         <Activity className="mx-auto h-8 w-8 text-gray-500 dark:text-gray-400 mb-2" />
-        <p className="font-medium">No recent activity</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Actions will appear here as they occur</p>
+        <p className="font-medium">{t('dashboard.activity.noActivity')}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('dashboard.activity.activityHint')}</p>
       </div>
     );
   }
@@ -194,10 +209,10 @@ export default function ActivityLogList({
                   {log.profiles?.full_name || "System"}
                 </span>
                 <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${colors.bg} ${colors.text} ${colors.border}`}>
-                  {getActionLabel(log.action_type)}
+                  {t(`activity.actions.${log.action_type}`)}
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                  {getEntityLabel(log.entity_type)}
+                  {t(`activity.entities.${log.entity_type}`)}
                 </span>
               </div>
 
@@ -211,15 +226,15 @@ export default function ActivityLogList({
                 <Clock size={11} className="text-gray-500 dark:text-gray-400" />
                 <span
                   className="text-[11px] text-gray-500 dark:text-gray-400 font-medium"
-                  title={formatDisplayDateTime(log.created_at, calendarType)}
+                  title={formatDisplayDateTime(log.created_at, calendarType, language)}
                 >
-                  {timeAgo(log.created_at)}
+                  {timeAgo(log.created_at, language)}
                 </span>
                 {log.profiles?.role && (
                   <>
                     <span className="text-gray-300 dark:text-gray-700">•</span>
                     <span className="text-[10px] text-gray-500 dark:text-gray-400 capitalize font-medium">
-                      {log.profiles.role.replace("_", " ")}
+                      {t(`common.roles.${log.profiles.role.toLowerCase()}`)}
                     </span>
                   </>
                 )}
@@ -233,7 +248,7 @@ export default function ActivityLogList({
         onClick={() => navigate("/activities")}
         className="w-full py-2.5 text-sm text-[#4B9BDC] font-bold hover:bg-[#4B9BDC]/5 dark:hover:bg-[#4B9BDC]/10 rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-transparent hover:border-[#4B9BDC]/10 dark:hover:border-[#4B9BDC]/20"
       >
-        <span>View All Activity</span>
+        <span>{t('dashboard.activity.viewAll')}</span>
         <ChevronRight size={16} />
       </button>
     </div>

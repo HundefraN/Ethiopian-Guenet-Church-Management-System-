@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
 import { supabase } from "../supabaseClient";
 import logo from "../assets/logo.png";
@@ -13,6 +14,7 @@ interface MobileHeaderProps {
 
 export default function MobileHeader({ onMenuClick, containerRef }: MobileHeaderProps) {
     const { profile } = useAuth();
+    const { t } = useLanguage();
     const { isDark } = useTheme();
     const [churchName, setChurchName] = useState<string>("");
     const [isVisible, setIsVisible] = useState(true);
@@ -73,10 +75,10 @@ export default function MobileHeader({ onMenuClick, containerRef }: MobileHeader
                 </div>
                 <div className="flex flex-col min-w-0">
                     <h1 className="text-sm font-black text-gray-900 dark:text-gray-100 truncate tracking-tight">
-                        {churchName || (profile?.role === "super_admin" ? "Guenet HQ" : "Guenet Church")}
+                        {churchName || (profile?.role === "super_admin" ? t("common.hq") : t("login.title"))}
                     </h1>
                     <p className="text-[10px] font-bold text-[#4B9BDC] uppercase tracking-wider opacity-80">
-                        {profile?.role?.replace("_", " ")}
+                        {profile?.role ? t(`common.roles.${profile.role}`) : ""}
                     </p>
                 </div>
             </div>

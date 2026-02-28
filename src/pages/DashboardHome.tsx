@@ -4,10 +4,12 @@ import SuperAdminDashboard from "./SuperAdminDashboard";
 import PastorDashboard from "./PastorDashboard";
 import ServantDashboard from "./ServantDashboard";
 import logo from "../assets/logo.png";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function DashboardHome() {
   const { profile } = useAuth();
 
+  const { t } = useLanguage();
   if (!profile)
     return (
       <div className="flex items-center justify-center h-full">
@@ -30,11 +32,10 @@ export default function DashboardHome() {
               <img src={logo} alt="Logo" className="w-full h-full object-contain grayscale" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Unauthorized Access
+              {t('common.unauthorized')}
             </h2>
             <p className="text-gray-500 dark:text-gray-400">
-              Your account does not have an assigned role. Please contact an
-              administrator.
+              {t('common.unauthorizedMsg')}
             </p>
           </div>
         </div>
