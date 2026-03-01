@@ -1,7 +1,7 @@
 import { EthDateTime } from 'ethiopian-calendar-date-converter';
 
 export type CalendarType = 'gregorian' | 'ethiopian';
-export type LanguageCode = 'en' | 'am';
+export type LanguageCode = 'en' | 'am' | 'om' | 'ti';
 
 const AM_MONTHS_ETH = [
     'መስከረም', 'ጥቅምት', 'ኅዳር', 'ታኅሣሥ', 'ጥር', 'የካቲት', 'መጋቢት', 'ሚያዝያ', 'ግንቦት', 'ሰኔ', 'ሐምሌ', 'ነሐሴ', 'ጳጉሜ'

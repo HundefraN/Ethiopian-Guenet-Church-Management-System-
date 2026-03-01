@@ -20,6 +20,8 @@ export interface ActivityLog {
   entity_id: string | null;
   details: string | null;
   changes: any | null;
+  ip_address: string | null;
+  user_agent: string | null;
   created_at: string;
 }
 
@@ -102,4 +104,5 @@ export interface Member {
   zone_rep_signature?: string;
   middle_sector_rep_signature?: string;
   status?: string;
+  created_at?: string;
 }

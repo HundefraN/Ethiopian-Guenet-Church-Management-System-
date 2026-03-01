@@ -126,40 +126,40 @@ export default function ServantDashboard() {
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-7 max-w-7xl mx-auto pb-10">
 
       {/* ═══════════ Hero Banner ═══════════ */}
-      <motion.div variants={itemVariants} className="relative overflow-hidden rounded-[2rem] p-8 md:p-10 shadow-2xl"
+      <motion.div variants={itemVariants} className="relative overflow-hidden rounded-xl sm:rounded-[1.5rem] md:rounded-[2rem] p-4 sm:p-8 shadow-xl"
         style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
 
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-radial from-blue-300/15 to-transparent rounded-full blur-3xl -mt-16 -mr-16" />
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl" />
         <div className="absolute top-1/3 right-1/4 w-2 h-2 bg-blue-300 rounded-full animate-pulse" />
 
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 px-3 py-1.5 rounded-full">
-                <Sparkles size={12} className="text-blue-100" />
-                <span className="text-blue-50 text-xs font-bold uppercase tracking-wider">{t('dashboard.ministryTitle')}</span>
+            <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+              <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm border border-white/15 px-2.5 py-1 rounded-full">
+                <Sparkles size={10} className="text-blue-100" />
+                <span className="text-blue-50 text-[10px] font-bold uppercase tracking-wider">{t('dashboard.ministryTitle')}</span>
               </div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight mb-1 sm:mb-1.5">
               {t('dashboard.servantTitle')}
             </h1>
-            <p className="text-blue-100/70 font-medium max-w-lg text-sm">
+            <p className="text-blue-100/70 font-medium max-w-lg text-xs sm:text-sm">
               {t('dashboard.servantSubtitle')}
             </p>
           </div>
           <button
             onClick={() => navigate("/members/add")}
-            className="flex items-center gap-3 px-6 py-3.5 bg-white/15 backdrop-blur-sm border border-white/20 text-white rounded-2xl hover:bg-white/25 active:scale-95 font-bold transition-all shadow-lg shrink-0"
+            className="flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-5 py-2 sm:py-3 bg-white/15 backdrop-blur-sm border border-white/20 text-white rounded-xl sm:rounded-2xl hover:bg-white/25 active:scale-95 font-bold transition-all shadow-lg shrink-0"
           >
-            <UserPlus size={20} />
-            {t('dashboard.actions.registerMember')}
+            <UserPlus size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="text-xs sm:text-sm">{t('dashboard.actions.registerMember')}</span>
           </button>
         </div>
       </motion.div>
 
       {/* ═══════════ Stats Row ═══════════ */}
-      <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: t('dashboard.stats.total'), value: members.length, icon: Users, gradient: "from-blue-600 to-blue-400" },
           { label: t('dashboard.stats.active'), value: activeCount, icon: BarChart3, gradient: "from-blue-500 to-cyan-500" },
@@ -167,7 +167,7 @@ export default function ServantDashboard() {
           { label: t('dashboard.stats.filtered'), value: filteredMembers.length, icon: Filter, gradient: "from-amber-500 to-orange-500" },
         ].map((card, i) => (
           <motion.div key={i} variants={itemVariants}
-            className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] relative overflow-hidden group hover:-translate-y-0.5 transition-all"
+            className="bg-white rounded-2xl p-3 sm:p-4 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] relative overflow-hidden group hover:-translate-y-0.5 transition-all"
             style={d.card}
           >
             {loading ? (
@@ -180,12 +180,12 @@ export default function ServantDashboard() {
               </div>
             ) : (
               <>
-                <div className="absolute -top-4 -right-4 opacity-[0.04]"><card.icon size={70} /></div>
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white mb-3 shadow-md`}>
-                  <card.icon size={18} />
+                <div className="absolute -top-4 -right-4 opacity-[0.04]"><card.icon size={50} /></div>
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white mb-2 sm:mb-3 shadow-md`}>
+                  <card.icon size={16} className="sm:w-[18px] sm:h-[18px]" />
                 </div>
-                <h3 className="text-3xl font-black text-gray-900 dark:text-gray-100 tabular-nums"><AnimatedNumber value={card.value} /></h3>
-                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-0.5">{card.label}</p>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100 tabular-nums"><AnimatedNumber value={card.value} /></h3>
+                <p className="text-[9px] sm:text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-0.5">{card.label}</p>
               </>
             )}
           </motion.div>

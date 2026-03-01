@@ -316,17 +316,34 @@ textarea.form-input:focus {
 }
 
 .layout-sidebar-wrapper {
-  position: fixed;
-  inset: 0 auto 0 0;
-  z-index: 50;
   width: 272px;
-  transition: transform 0.2s cubic-bezier(0.32, 0, 0.67, 0);
+  flex-shrink: 0;
+}
+
+/* Desktop sidebar: static, always visible on lg+ */
+.layout-sidebar-desktop {
+  display: none;
+  position: static;
 }
 
 @media (min-width: 1024px) {
-  .layout-sidebar-wrapper {
-    position: static;
-    transition: none;
+  .layout-sidebar-desktop {
+    display: block;
+  }
+}
+
+/* Mobile sidebar: fixed drawer, animated via framer-motion */
+.layout-sidebar-mobile {
+  display: block;
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+  width: 290px;
+}
+
+@media (min-width: 1024px) {
+  .layout-sidebar-mobile {
+    display: none !important;
   }
 }
 
@@ -343,9 +360,23 @@ textarea.form-input:focus {
 .layout-main-content {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem 1.95rem;
-  padding-top: 7rem;
+  padding: 0.75rem 1rem;
+  padding-top: 5.5rem;
   scroll-behavior: smooth;
+}
+
+@media (min-width: 400px) {
+  .layout-main-content {
+    padding: 1rem 1.5rem;
+    padding-top: 6rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .layout-main-content {
+    padding: 1rem 1.95rem;
+    padding-top: 7rem;
+  }
 }
 
 @media (min-width: 768px) {
@@ -904,7 +935,7 @@ textarea.form-input:focus {
   }
 
   .space-y-6>*+* {
-    margin-top: rem !important;
+    margin-top: 0.75rem !important;
   }
 
   .space-y-4>*+* {
@@ -2243,4 +2274,56 @@ html.dark .placeholder-gray-400::placeholder {
 
 html.dark .placeholder-gray-500::placeholder {
   color: #64748b !important;
+}
+
+/* ─────────────── Premium Leaflet Popup ─────────────── */
+.custom-popup-premium .leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dark .custom-popup-premium .leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.85);
+  box-shadow: 0 12px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+.custom-popup-premium .leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.dark .custom-popup-premium .leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.custom-popup-premium .leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+}
+
+/* Pulse animation for church marker */
+@keyframes churchMarkerPulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 15px rgba(59, 130, 246, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.marker-pulse-ring {
+  animation: churchMarkerPulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
 }

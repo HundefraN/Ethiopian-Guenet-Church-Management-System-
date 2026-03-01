@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
     Users,
     Shield,
@@ -33,6 +34,7 @@ export default function DepartmentDetails({ department }: DepartmentDetailsProps
     const { t } = useLanguage();
     const { profile } = useAuth();
     const { isDark } = useTheme();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [members, setMembers] = useState<CombinedMember[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -208,7 +210,8 @@ export default function DepartmentDetails({ department }: DepartmentDetailsProps
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                    className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-white dark:bg-gray-900 rounded-xl md:rounded-2xl border border-gray-100 dark:border-gray-800 hover:shadow-md group transition-all"
+                                    className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-white dark:bg-gray-900 rounded-xl md:rounded-2xl border border-gray-100 dark:border-gray-800 hover:shadow-md group transition-all cursor-pointer"
+                                    onClick={() => navigate(`/members/${member.id}`)}
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.borderColor = colors.accent;
                                         const iconBox = e.currentTarget.querySelector('.icon-box') as HTMLElement;

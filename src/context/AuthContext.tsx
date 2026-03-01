@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../supabaseClient";
 import { Profile, GlobalSettings } from "../types";
@@ -47,6 +47,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       localStorage.setItem('guenet-calendar', profile.calendar_type);
     }
   }, [profile]);
+
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Only track activity if user is logged in
+    if (!user) return;
+
+    const resetTimer = () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(async () => {
+        toast.error("Logged out due to inactivity");
+        await signOut();
+      }, 3 * 60 * 1000); // 3 minutes
+    };
+
+    const events = ['mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+    resetTimer();
+
+    return () => {
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [user]);
 
   useEffect(() => {
     const fetchSettings = async () => {

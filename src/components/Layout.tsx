@@ -21,21 +21,32 @@ export default function Layout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className={`fixed inset-0 z-40 backdrop-blur-xl lg:hidden ${isDark ? 'bg-black/50' : 'bg-white/5'}`}
             onClick={() => setSidebarOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          initial={false}
-          animate={{ x: sidebarOpen ? 0 : 0 }}
-          className={`layout-sidebar-wrapper ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
-        >
-          <Sidebar onClose={() => setSidebarOpen(false)} />
-        </motion.div>
+      {/* Sidebar — desktop: static, mobile: animated slide drawer */}
+      {/* Desktop sidebar (always visible) */}
+      <div className="layout-sidebar-wrapper layout-sidebar-desktop">
+        <Sidebar onClose={() => setSidebarOpen(false)} />
+      </div>
+
+      {/* Mobile sidebar (animated drawer) */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", stiffness: 350, damping: 35, mass: 0.8 }}
+            className="layout-sidebar-wrapper layout-sidebar-mobile"
+          >
+            <Sidebar onClose={() => setSidebarOpen(false)} />
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Main content */}

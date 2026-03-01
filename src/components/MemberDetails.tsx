@@ -13,6 +13,7 @@ import {
   Building,
   ExternalLink,
   Map,
+  BookOpen
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -25,7 +26,7 @@ interface MemberDetailsProps {
 }
 
 export default function MemberDetails({ member }: MemberDetailsProps) {
-  const { calendarType } = useAuth();
+  const { calendarType, profile } = useAuth();
   const { t, language } = useLanguage();
   const { isDark } = useTheme();
 
@@ -197,26 +198,44 @@ export default function MemberDetails({ member }: MemberDetailsProps) {
                 </a>
               )}
             </div>
-            <InfoItem label={t('common.roleModal.deptAssignment')} value={member.departments?.name} icon={Shield} />
+            {profile?.role !== "servant" && (
+              <InfoItem label={t('common.roleModal.deptAssignment')} value={member.departments?.name} icon={Shield} />
+            )}
             <div className="h-px bg-gray-50 my-2"></div>
 
             {/* Additional spiritual info fields can go here */}
             <InfoItem label={t('members.form.salvationInfo')} value={formatDate(member.salvation_date)} icon={Calendar} />
+            <InfoItem label={t('members.form.baptismStatus')} value={member.baptism_status ? t(`members.form.baptismOptions.${member.baptism_status}`) : null} />
           </div>
         </motion.div>
 
-        {/* Education & Work */}
+        {/* Education Info */}
         <motion.div variants={cardVariants} className="bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl p-5 md:p-6 border border-gray-100 dark:border-gray-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all"
           style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}
           onMouseEnter={(e: any) => e.currentTarget.style.boxShadow = `0 8px 30px ${colors.border}`}
           onMouseLeave={(e: any) => e.currentTarget.style.boxShadow = ''}
         >
-          <SectionHeader icon={Briefcase} title={t('members.form.sections.education')} />
+          <SectionHeader icon={BookOpen} title={t('members.form.sections.education')} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 md:gap-y-4 gap-x-6">
-            <InfoItem label={t('members.form.educationalLevel')} value={member.education_level} />
+            <InfoItem label={t('members.form.schoolName')} value={member.school_name} />
+            <InfoItem label={t('members.form.educationalLevel')} value={member.educational_level} />
             <InfoItem label={t('members.form.fieldOfStudy')} value={member.field_of_study} />
+            <InfoItem label={t('members.form.grade')} value={member.grade} />
+            <InfoItem label={t('members.form.universityYear')} value={member.university_year} />
+          </div>
+        </motion.div>
+
+        {/* Work Info */}
+        <motion.div variants={cardVariants} className="bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl p-5 md:p-6 border border-gray-100 dark:border-gray-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all"
+          style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}
+          onMouseEnter={(e: any) => e.currentTarget.style.boxShadow = `0 8px 30px ${colors.border}`}
+          onMouseLeave={(e: any) => e.currentTarget.style.boxShadow = ''}
+        >
+          <SectionHeader icon={Briefcase} title={t('members.form.sections.work')} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 md:gap-y-4 gap-x-6">
             <InfoItem label={t('members.form.employmentStatus')} value={member.employment_status} />
-            <InfoItem label={t('members.form.workplaceAddress')} value={member.employer} />
+            <InfoItem label={t('members.form.workplaceAddress')} value={member.workplace_address} />
+            <InfoItem label={t('members.form.monthlyIncome')} value={member.income_amount ? `${t('members.form.currency')} ${member.income_amount}` : null} />
           </div>
         </motion.div>
 

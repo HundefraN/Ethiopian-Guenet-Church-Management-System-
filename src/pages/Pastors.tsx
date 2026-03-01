@@ -339,22 +339,22 @@ export default function Pastors() {
       className="space-y-8 pb-10"
     >
       {/* ═══════════════ ULTRA HERO HEADER ═══════════════ */}
-      <div className="relative overflow-hidden rounded-[2rem] p-8 md:p-10 shadow-lg" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
+      <div className="relative overflow-hidden rounded-xl sm:rounded-[1.5rem] md:rounded-[2rem] p-4 sm:p-8 md:p-10 shadow-lg" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-25 blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
         <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full opacity-20 blur-[60px]" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
         <div className="absolute top-1/2 left-1/3 w-72 h-72 rounded-full opacity-10 blur-[100px]" style={{ background: 'radial-gradient(circle, #3178B5, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-6 lg:gap-8">
           <div className="text-white">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="flex items-center gap-3 mb-4"
+              className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-4"
             >
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                <Crown size={24} className="text-blue-100" />
+                <Crown size={20} className="text-blue-100 sm:w-6 sm:h-6" />
               </div>
               <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
                 <Sparkles size={10} className="inline mr-1" /> {t('pastors.labels.leadership')}
@@ -364,7 +364,7 @@ export default function Pastors() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="text-4xl md:text-5xl font-black tracking-tight mb-3"
+              className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight mb-1 sm:mb-3"
               style={{ background: 'linear-gradient(135deg, #ffffff 0%, #7EC8F2 50%, #4B9BDC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
             >
               {t('pastors.title')}
@@ -373,7 +373,7 @@ export default function Pastors() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-blue-100/70 max-w-lg text-sm md:text-base font-medium"
+              className="text-blue-100/70 max-w-lg text-[10px] sm:text-sm md:text-base font-medium"
             >
               {t('pastors.subtitle')}
             </motion.p>
@@ -385,13 +385,13 @@ export default function Pastors() {
             transition={{ delay: 0.25 }}
             className="flex flex-wrap items-center gap-4"
           >
-            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)' }}>
-                <Crown size={18} className="text-white" />
+            <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl flex-1 sm:flex-initial" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)' }}>
+                <Crown size={14} className="text-white sm:w-[18px] sm:h-[18px]" />
               </div>
-              <div>
-                <p className="text-2xl font-black text-white leading-none">{pastors.length}</p>
-                <p className="text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">{t('sidebar.pastors')}</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-black text-white leading-none">{pastors.length}</p>
+                <p className="text-[7px] sm:text-[10px] font-bold text-blue-200/70 uppercase tracking-wider truncate">{t('sidebar.pastors')}</p>
               </div>
             </div>
 
@@ -470,7 +470,7 @@ export default function Pastors() {
           </div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('pastors.messages.noPastors')}</h3>
           <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-            {t('pastors.messages.noPastorsSub')}
+            {searchQuery ? t('pastors.messages.noPastorsSub') : t('pastors.subtitle')}
           </p>
         </motion.div>
       ) : (

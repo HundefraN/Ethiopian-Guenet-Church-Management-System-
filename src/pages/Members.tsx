@@ -17,7 +17,6 @@ import {
   X,
   Sparkles,
   Heart,
-  TrendingUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../supabaseClient";
@@ -32,6 +31,7 @@ import MasterDetailLayout from "../components/common/MasterDetailLayout";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { logActivity } from "../utils/activityLogger";
 import { getMemberColors } from "../utils/memberColors";
+import { calculateProfileCompletion } from "../utils/memberCompletion";
 
 interface MemberWithDetails extends Member {
   departments: {
@@ -204,10 +204,10 @@ export default function Members() {
     if (!query) return members;
     return members.filter(
       (member) =>
-        member.full_name.toLowerCase().includes(query) ||
+        (member.full_name && member.full_name.toLowerCase().includes(query)) ||
         (member.email && member.email.toLowerCase().includes(query)) ||
         (member.phone && member.phone.includes(query)) ||
-        (member.departments?.name &&
+        (profile?.role !== "servant" && member.departments?.name &&
           member.departments.name.toLowerCase().includes(query)) ||
         (member.churches?.name &&
           member.churches.name.toLowerCase().includes(query))
@@ -262,26 +262,27 @@ export default function Members() {
         className="space-y-8 pb-10"
       >
         {/* ═══════════════ ULTRA HERO HEADER ═══════════════ */}
-        <div className="relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem] p-4 sm:p-6 md:p-10 shadow-lg" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
+        <div className="relative overflow-hidden rounded-xl sm:rounded-[1.5rem] md:rounded-[2rem] p-4 sm:p-8 md:p-10 shadow-lg" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
           {/* Animated mesh orbs */}
-          <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-25 blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
-          <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full opacity-20 blur-[60px]" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
-          <div className="absolute top-1/2 left-1/3 w-72 h-72 rounded-full opacity-10 blur-[100px]" style={{ background: 'radial-gradient(circle, #3178B5, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
+          <div className="absolute top-0 right-0 w-40 sm:w-80 h-40 sm:h-80 rounded-full opacity-25 blur-[50px] sm:blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
+          <div className="absolute bottom-0 left-0 w-32 sm:w-60 h-32 sm:h-60 rounded-full opacity-20 blur-[40px] sm:blur-[60px]" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
+          <div className="absolute top-1/2 left-1/3 w-36 sm:w-72 h-36 sm:h-72 rounded-full opacity-10 blur-[60px] sm:blur-[100px]" style={{ background: 'radial-gradient(circle, #3178B5, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
 
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
-          <div className="relative z-10 flex flex-col xl:flex-row xl:items-end justify-between gap-4 sm:gap-6 md:gap-8">
-            <div className="text-white">
+          <div className="relative z-10 flex flex-col gap-4 sm:gap-6 xl:flex-row xl:items-end xl:justify-between">
+            {/* Title Section */}
+            <div className="text-white flex-1 min-w-0">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="flex items-center gap-3 mb-3 md:mb-4"
+                className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-4 flex-wrap"
               >
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                  <Heart size={20} className="text-blue-100 md:w-6 md:h-6" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                  <Heart size={18} className="text-blue-100 sm:w-6 sm:h-6" />
                 </div>
-                <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
+                <div className="px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
                   <Sparkles size={10} className="inline mr-1" /> {t("members.subtitle")}
                 </div>
               </motion.div>
@@ -289,7 +290,7 @@ export default function Members() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="text-3xl md:text-5xl font-black tracking-tight mb-2 md:mb-3"
+                className="text-xl sm:text-4xl md:text-5xl font-black tracking-tight mb-1 sm:mb-3"
                 style={{ background: 'linear-gradient(135deg, #ffffff 0%, #7EC8F2 50%, #4B9BDC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
               >
                 {t("members.title")}
@@ -298,25 +299,26 @@ export default function Members() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-blue-100/70 max-w-lg text-sm md:text-base font-medium hidden xl:block"
+                className="text-blue-100/70 max-w-lg text-[10px] sm:text-sm md:text-base font-medium hidden sm:block"
               >
                 {t("members.description")}
               </motion.p>
             </div>
 
+            {/* Stats + Add Button */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
-              className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 md:gap-4 w-full xl:w-auto"
+              className="flex flex-row items-center gap-2 sm:gap-4 w-full xl:w-auto flex-wrap xl:flex-nowrap"
             >
-              <div className="flex items-center gap-3 px-4 py-3 md:px-5 md:py-3 rounded-2xl flex-1 sm:flex-initial min-w-[140px]" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)' }}>
-                  <Users size={16} className="text-white md:w-[18px] md:h-[18px]" />
+              <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl flex-1 xl:flex-initial min-w-[100px]" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)' }}>
+                  <Users size={14} className="text-white sm:w-[18px] sm:h-[18px]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xl md:text-2xl font-black text-white leading-none truncate">{members.length}</p>
-                  <p className="text-[9px] md:text-[10px] font-bold text-blue-200/70 uppercase tracking-wider truncate">{t("members.title")}</p>
+                  <p className="text-lg sm:text-2xl font-black text-white leading-none truncate">{members.length}</p>
+                  <p className="text-[7px] sm:text-[10px] font-bold text-blue-200/70 uppercase tracking-wider truncate">{t("members.title")}</p>
                 </div>
               </div>
 
@@ -325,10 +327,10 @@ export default function Members() {
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleAddMember}
-                  className="flex items-center justify-center gap-2 px-5 py-3.5 md:px-6 md:py-3.5 rounded-2xl font-bold text-xs md:text-sm shrink-0 w-full sm:w-auto sm:ml-auto md:ml-0 mt-1 sm:mt-0"
+                  className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-5 md:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-bold text-xs md:text-sm shrink-0 flex-1 xl:flex-initial"
                   style={{ background: 'linear-gradient(135deg, #ffffff, #e8f1fa)', color: '#3178B5', boxShadow: '0 8px 32px rgba(49,120,181,0.3), inset 0 1px 0 rgba(255,255,255,0.8)' }}
                 >
-                  <Plus size={16} className="md:w-[18px] md:h-[18px]" />
+                  <Plus size={14} className="sm:w-4 sm:h-4 md:w-[18px] md:h-[18px]" />
                   <span>{t("members.addBtn")}</span>
                 </motion.button>
               )}
@@ -343,7 +345,7 @@ export default function Members() {
           transition={{ delay: 0.3 }}
         >
           <div
-            className="p-1.5 rounded-2xl flex items-center transition-all duration-300 max-w-3xl"
+            className="p-1 sm:p-1.5 rounded-xl sm:rounded-2xl flex items-center transition-all duration-300 w-full max-w-3xl"
             style={{
               background: searchFocused ? (isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.95)') : (isDark ? 'rgba(15,23,42,0.55)' : 'rgba(255,255,255,0.8)'),
               backdropFilter: 'blur(20px)',
@@ -351,8 +353,8 @@ export default function Members() {
               boxShadow: searchFocused ? (isDark ? '0 8px 32px rgba(0,0,0,0.3), 0 0 0 4px rgba(75,155,220,0.08)' : '0 8px 32px rgba(75,155,220,0.15), 0 0 0 4px rgba(75,155,220,0.05)') : (isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 4px 20px rgba(0,0,0,0.03)'),
             }}
           >
-            <div className="pl-4 pr-2">
-              <Search size={20} className={`transition-colors duration-200 ${searchFocused ? 'text-[#4B9BDC]' : 'text-gray-500 dark:text-gray-400'}`} />
+            <div className="pl-3 sm:pl-4 pr-1.5 sm:pr-2">
+              <Search size={18} className={`transition-colors duration-200 sm:w-5 sm:h-5 ${searchFocused ? 'text-[#4B9BDC]' : 'text-gray-500 dark:text-gray-400'}`} />
             </div>
             <input
               type="text"
@@ -361,15 +363,15 @@ export default function Members() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
-              className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
+              className="w-full py-2.5 sm:py-3 pr-3 sm:pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-sm sm:text-base text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="p-2 mr-2 text-gray-500 dark:text-gray-400 hover:text-[#4B9BDC] rounded-xl hover:bg-blue-50 transition-colors"
+                className="p-1.5 sm:p-2 mr-1.5 sm:mr-2 text-gray-500 dark:text-gray-400 hover:text-[#4B9BDC] rounded-lg sm:rounded-xl hover:bg-blue-50 transition-colors"
                 title="Clear search"
               >
-                <X size={16} />
+                <X size={14} className="sm:w-4 sm:h-4" />
               </button>
             )}
           </div>
@@ -397,17 +399,18 @@ export default function Members() {
             </div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t("members.noMembers")}</h3>
             <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-              {t("members.noResults")}
+              {searchQuery ? t("members.noResults") : t("members.description")}
             </p>
           </motion.div>
         ) : (
           <motion.div
             layout
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-2 sm:gap-3"
           >
             <AnimatePresence>
               {filteredMembers.map((member, index) => {
                 const colors = getMemberColors(member.full_name);
+                const completion = calculateProfileCompletion(member);
                 return (
                   <motion.div
                     layout
@@ -431,7 +434,7 @@ export default function Members() {
                     key={member.id}
                     onClick={() => navigate(`/members/${member.id}`)}
                     whileHover={{ scale: 1.005, backgroundColor: isDark ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.9)' }}
-                    className={`group relative overflow-hidden rounded-xl md:rounded-2xl flex items-center p-3 md:p-4 gap-3 md:gap-4 cursor-pointer transition-all border border-transparent shadow-sm hover:shadow-lg ${member.id === id ? 'ring-2' : ''}`}
+                    className={`group relative overflow-hidden rounded-lg sm:rounded-xl md:rounded-2xl flex items-center p-2.5 sm:p-3 md:p-4 gap-2.5 sm:gap-3 md:gap-4 cursor-pointer transition-all border border-transparent shadow-sm hover:shadow-lg ${member.id === id ? 'ring-2' : ''}`}
                     style={{
                       ...d.card,
                       borderColor: member.id === id ? colors.accent : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'),
@@ -441,54 +444,70 @@ export default function Members() {
                     } as React.CSSProperties}
                   >
                     {/* Left accent bar */}
-                    <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: `linear-gradient(to bottom, ${colors.gradient[0]}, ${colors.gradient[1]})` }}></div>
+                    <div className="absolute left-0 top-0 bottom-0 w-1 sm:w-1.5" style={{ background: `linear-gradient(to bottom, ${colors.gradient[0]}, ${colors.gradient[1]})` }}></div>
 
                     {/* Avatar */}
-                    <div className="shrink-0 pl-1 md:pl-2">
+                    <div className="shrink-0 pl-1 sm:pl-1.5 md:pl-2">
                       {member.photo ? (
                         <img
                           src={member.photo}
                           alt={member.full_name}
-                          className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover shadow-sm ring-2 ring-offset-2 ring-transparent group-hover:ring-blue-100/50 transition-all"
+                          className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl object-cover shadow-sm ring-2 ring-offset-2 ring-transparent group-hover:ring-blue-100/50 transition-all"
                         />
                       ) : (
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shadow-inner text-white font-bold text-base md:text-lg"
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shadow-inner text-white font-bold text-sm sm:text-base md:text-lg"
                           style={{ background: `linear-gradient(135deg, ${colors.gradient[0]}, ${colors.gradient[1]})` }}
                         >
-                          {member.full_name.charAt(0)}
+                          {(member.full_name || "?").charAt(0)}
                         </div>
                       )}
                     </div>
 
                     {/* Main Info */}
-                    <div className="flex-1 min-w-0 flex flex-col gap-0.5 md:gap-1">
+                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-[#3178B5] transition-colors">
-                          {member.full_name}
+                        <h3 className="text-xs sm:text-sm md:text-base font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-[#3178B5] transition-colors">
+                          {member.full_name || t('common.unknown')}
                         </h3>
-
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 font-medium">
-                        {member.email && (
-                          <div className="flex items-center gap-1.5 truncate">
-                            <Mail size={12} className="shrink-0 opacity-70" />
-                            <span className="truncate max-w-[150px]">{member.email}</span>
-                          </div>
-                        )}
-                        {member.phone && (
-                          <div className="flex items-center gap-1.5 truncate hidden sm:flex">
-                            <Phone size={12} className="shrink-0 opacity-70" />
-                            <span>{member.phone}</span>
-                          </div>
+                      <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        {profile?.role === 'super_admin' ? (
+                          member.churches?.name && (
+                            <div className="flex items-center gap-1 sm:gap-1.5 truncate">
+                              <Building size={10} className="shrink-0 opacity-70 sm:w-3 sm:h-3" />
+                              <span className="truncate max-w-[200px]">{member.churches.name}</span>
+                            </div>
+                          )
+                        ) : (
+                          <>
+                            {member.email && (
+                              <div className="flex items-center gap-1 sm:gap-1.5 truncate">
+                                <Mail size={10} className="shrink-0 opacity-70 sm:w-3 sm:h-3" />
+                                <span className="truncate max-w-[100px] sm:max-w-[150px] md:max-w-[200px]">{member.email}</span>
+                              </div>
+                            )}
+                            {member.phone && (
+                              <div className="hidden sm:flex items-center gap-1.5 truncate">
+                                <Phone size={12} className="shrink-0 opacity-70" />
+                                <span>{member.phone}</span>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
+                    
+                    {/* Completion Badge */}
+                    <div className="hidden sm:flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-lg border border-gray-100 dark:border-gray-700/50">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: completion >= 80 ? '#10b981' : completion >= 50 ? '#f59e0b' : '#ef4444' }}></div>
+                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400">{completion}%</span>
+                    </div>
 
-                    {/* Actions - MOVED TO TOP BAR */}
-                    <div className="flex items-center gap-1 pl-1 md:pl-2">
-                      <div className="text-gray-500 dark:text-gray-400 group-hover:text-[#4B9BDC] transition-colors">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                    {/* Chevron */}
+                    <div className="flex items-center pl-1.5 sm:pl-2">
+                      <div className="text-gray-400 dark:text-gray-500 group-hover:text-[#4B9BDC] transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5"><path d="m9 18 6-6-6-6" /></svg>
                       </div>
                     </div>
                   </motion.div>

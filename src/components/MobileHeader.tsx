@@ -67,7 +67,7 @@ export default function MobileHeader({ onMenuClick, containerRef }: MobileHeader
                     : isDark ? "1px solid rgba(75, 155, 220, 0.08)" : "1px solid rgba(255, 255, 255, 0.3)"
             }}
             transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="lg:hidden fixed top-0 left-0 right-0 z-30 h-20 flex items-center px-6 transition-all"
+            className="lg:hidden fixed top-0 left-0 right-0 z-30 h-14 sm:h-16 flex items-center px-3 sm:px-6 transition-all"
         >
             <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center p-0.5 shadow-sm border border-[#4B9BDC]/10 dark:border-gray-700">

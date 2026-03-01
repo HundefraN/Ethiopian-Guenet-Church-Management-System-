@@ -124,12 +124,6 @@ export const getObjectDiff = (oldData: any, newData: any) => {
 
     // Standard compare
     if (oldVal !== newVal) {
-      // Avoid false positives with null vs empty string or undefined
-      if ((oldVal === null || oldVal === undefined || oldVal === "") &&
-        (newVal === null || newVal === undefined || newVal === "")) {
-        continue;
-      }
-
       diff.old[key] = oldVal ?? null;
       diff.new[key] = newVal ?? null;
       hasChanges = true;

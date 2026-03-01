@@ -3,7 +3,8 @@ import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle } from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
+import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle, Globe, Sun, Moon, Quote } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { springPresets, interactivePresets } from "../utils/animations";
@@ -18,7 +19,8 @@ export default function Login() {
   const [resetSent, setResetSent] = useState(false);
   const navigate = useNavigate();
   const { session, profile, loading: authLoading } = useAuth();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
+  const { theme, toggleTheme, isDark } = useTheme();
 
   React.useEffect(() => {
     if (session && profile) {
@@ -108,7 +110,44 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white overflow-hidden">
+    <div className="min-h-screen flex bg-white dark:bg-gray-950 overflow-hidden relative">
+      <div className="absolute top-6 right-6 lg:right-12 z-50 flex items-center gap-4">
+        {/* Language Selector */}
+        <div className="relative group">
+          <div className="flex items-center gap-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-gray-200/50 dark:border-gray-800/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
+            <Globe size={18} className="text-[#4B9BDC] dark:text-[#7EC8F2]" />
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as any)}
+              className="bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 outline-none cursor-pointer appearance-none pr-5 hover:text-[#4B9BDC] dark:hover:text-[#7EC8F2] transition-colors"
+            >
+              <option value="en">English</option>
+              <option value="am">አማርኛ</option>
+              <option value="om">Afaan Oromoo</option>
+              <option value="ti">ትግርኛ</option>
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500">
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="p-2.5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl border border-gray-200/50 dark:border-gray-800/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group"
+          aria-label="Toggle theme"
+        >
+          {isDark ? (
+            <Moon size={20} className="text-[#7EC8F2] group-hover:scale-110 transition-transform" />
+          ) : (
+            <Sun size={20} className="text-amber-500 group-hover:rotate-45 transition-transform" />
+          )}
+        </button>
+      </div>
+
       {/* Left side - Form */}
       <motion.div
         initial={{ opacity: 0, x: -60 }}
@@ -394,25 +433,43 @@ export default function Login() {
           >
             <img src={logo} alt="Ethiopian Guenet Church Logo" className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(126,200,242,0.4)]" />
           </motion.div>
+
           <motion.h2
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.05, duration: 0.15 }}
-            className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#7EC8F2] mb-6 tracking-tight leading-tight"
+            className="text-4xl md:text-5xl font-extrabold text-white mb-8 tracking-tight leading-tight drop-shadow-sm"
           >
             {t("login.empoweringMinistry")}
           </motion.h2>
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
+
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.05, duration: 0.15 }}
-            className="text-lg text-blue-100 max-w-md leading-relaxed font-light"
+            transition={{ delay: 0.1, duration: 0.2 }}
+            className="relative max-w-lg p-8 rounded-3xl bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl"
           >
-            {t("login.description")}
-          </motion.p>
+            <Quote className="absolute -top-4 -left-4 text-[#7EC8F2]/40 w-12 h-12 -rotate-12" />
+            <Quote className="absolute -bottom-4 -right-4 text-[#7EC8F2]/40 w-12 h-12" style={{ transform: 'rotate(180deg)' }} />
+
+            <p className="text-xl md:text-2xl text-blue-50 font-serif italic leading-relaxed mb-6">
+              "{(() => {
+                const desc = t("login.description");
+                const match = desc.match(/(Revelation|ራእይ|Mul'ata)\s+\d+:\d+$/);
+                return match ? desc.substring(0, match.index).trim() : desc;
+              })()}"
+            </p>
+
+            <div className="flex items-center justify-center gap-3">
+              <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#7EC8F2]/50" />
+              <span className="text-[#7EC8F2] font-bold tracking-widest uppercase text-sm">
+                {t("login.description").match(/(Revelation|ራእይ|Mul'ata)\s+\d+:\d+$/)?.[0] || ""}
+              </span>
+              <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#7EC8F2]/50" />
+            </div>
+          </motion.div>
         </div>
       </motion.div>
     </div>
   );
 }
-

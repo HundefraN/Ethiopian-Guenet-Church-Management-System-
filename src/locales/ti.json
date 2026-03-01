@@ -198,8 +198,8 @@
         "didntReceive": "ኢሜይል ኣይበጽሓካን?",
         "tryAgain": "እንደገና ፈትን",
         "establishingSession": "ርክብ ብምፍጣር ላይ...",
-        "empoweringMinistry": "ኣገልግሎት ብቴክኖሎጂ ምሕያል",
-        "description": "ንቤተ ክርስቲያን ምሕደራ ንምቅላል፡ ኣባላት ንምርኻብን መንፈሳዊ ዕብየት ንምድጋፍን ዝተዳለወ ምሉእ ናይ ምሕደራ ስርዓት።"
+        "empoweringMinistry": "ቤተ ክርስቲያን ገነት ዞባ ኣዲስ ኣበባ",
+        "description": "ነቲ ዚሰዓር ካብታ ኣብ ገነት ኣምላኽ ዘላ ኦም ህይወት ከብልዖ እየ። ራእይ 2:7"
     },
     "dashboard": {
         "title": "ማእከል ቁጽጽር",
@@ -518,12 +518,18 @@
         "form": {
             "sections": {
                 "personal": "ብሕታዊ ሓበሬታ",
-                "spiritual": "መንፈሳዊ ህይወት",
-                "education": "ትምህርትን ስራሕን",
+                "education": "ሓበሬታ ትምህርቲ",
+                "work": "ሓበሬታ ስራሕ",
                 "family": "ኩነታት ስድራቤት",
                 "service": "ታሪኽ ኣገልግሎት",
                 "fellowship": "ሕብረት",
                 "signatures": "ክለሳን واታን"
+            },
+            "baptismStatus": "ኩነታት ጥምቀት",
+            "baptismOptions": {
+                "pending": "ኣብ ጸሎት/ምጽባይ",
+                "done": "ተጠሚቑ",
+                "notYet": "ገና ኣይተጠመቐን"
             },
             "photo": "ስእሊ",
             "fullName": "ምሉእ ስም",
@@ -536,7 +542,7 @@
             "salvationPlacePlaceholder": "ከተማ/ቤተ ክርስቲያን",
             "previousChurch": "ቅድሚ ሕጂ ዝነበሩሉ ቤተ ክርስቲያን",
             "prevChurchPlaceholder": "ስም ናይ ቀደም ቤተ ክርስቲያን",
-            "reasonForComing": "ናብ ገ.ቤ.ክ ዝመጹሉ ምኽንያት",
+            "reasonForComing": "ናብ ዚ ቤ.ክ ዝመጹሉ ምኽንያት",
             "reasonPlaceholder": "ንኣብነት፡ ዝውውር፡ ሓድሽ ኣማኒ",
             "fieldOfStudy": "ዓይነት ትምህርቲ",
             "fieldOfStudyPlaceholder": "ንኣብነት፡ ኢንጂነሪንግ",
@@ -544,6 +550,9 @@
             "employmentStatus": "ኩነታት ስራሕ",
             "workplaceAddress": "ኣድራሻ ቦታ ስራሕ",
             "workplacePlaceholder": "ትካል/ቤት ጽሕፈት",
+            "schoolName": "ስም ቤት ትምህርቲ/ዩኒቨርሲቲ",
+            "grade": "ክፍሊ (Grade)",
+            "universityYear": "ዓመት ዩኒቨርሲቲ",
             "phoneNumber": "ቁጽሪ ስልኪ",
             "phonePlaceholder": "+251...",
             "maritalStatus": {
@@ -590,6 +599,7 @@
             "bachelors": "ቀዳማይ ዲግሪ",
             "masters": "ካልኣይ ዲግሪ",
             "phd": "ፒ-ኤች-ዲ",
+            "kgPreSchool": "ኬጂን ቅድመ-ትምህርትን (KG & Pre-school)",
             "selectStatus": "ኩነታት ምረጽ",
             "employed": "ተቆጣሪ",
             "selfEmployed": "ናይ ብሕቲ ስራሕ",
@@ -710,16 +720,16 @@
         "generate": "ጸብጻብ ፍጠር",
         "exportPdf": "PDF ኣውጽእ",
         "exportExcel": "Excel ኣውጽእ",
-        "forecasting": "ትንቢት ዕብየት",
+        "forecasting": "ጸብጻብ ዕብየት ኣባላት",
         "demographics": "ስርጭት ኣባላት",
         "finances": "ኩነታት ፋይናንስ",
-        "branchDensity": "ስርጭት ጨንፈራት",
+        "branchDensity": "መረብ ጨንፈራት",
         "dateRange": "ናይ ግዜ ገደብ",
         "selectChurch": "ቤተ ክርስቲያን ምረጽ",
         "allChurches": "ኹለን ኣብያተ ክርስቲያናት",
         "brandLogo": "ሎጎ ይካተት",
         "projections": "ትንቢታት",
-        "distribution": "ጽቕጥቐጥ ኣባላት",
+        "distribution": "ሓፈሻዊ ትርኢት ካርታ",
         "totalIncome": "ጠቕላላ እቶት",
         "totalExpense": "ጠቕላላ ወጻኢ",
         "netGrowth": "ዕብየት ኣባላት",
@@ -727,7 +737,7 @@
         "historicalData": "ናይ ቀደም ሓበሬታ",
         "aiForecast": "ትንቢት AI",
         "branches": "ጨንፈራት",
-        "noMapLink": "ሊንክ ካርታ የብሎምን",
+        "noMapLink": "ቦታ ዘይተረጋገጹ ጨንፈራት",
         "memberInsights": "ግንዛቤታት ኣባላት",
         "ageDistribution": "ስርጭት ዕድመ",
         "maritalStatus": "ኩነታት መውስቦ",
@@ -770,7 +780,8 @@
             "generatedBy": "ብናይ ኢትዮጵያ ገነት ቤተ ክርስቲያን ምሕደራ ስርዓት ዝተዳለወ",
             "totalMembers": "ጠቕላላ ኣባላት",
             "totalBranches": "ጠቕላላ ጨንፈራት",
-            "currentScope": "ናይ ሕጂ ወሰን"
+            "currentScope": "ናይ ሕጂ ወሰን",
+            "exportSuccess": "PDF ብዓወት ተላኢኹ!"
         },
         "excel": {
             "allChurches": "ኹለን_ኣብያተ_ክርስቲያናት",

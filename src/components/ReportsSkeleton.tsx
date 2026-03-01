@@ -29,68 +29,11 @@ export const ReportsSkeleton = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                {/* Left Column Skeletons */}
-                <div className="xl:col-span-2 space-y-8">
-                    {/* Analytics Overview Skeleton */}
-                    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 space-y-6">
-                        <div className="flex justify-between items-center">
-                            <div className="flex gap-4">
-                                <Skeleton className="w-12 h-12 rounded-2xl" />
-                                <div className="space-y-2">
-                                    <Skeleton className="h-6 w-32" />
-                                    <Skeleton className="h-3 w-20" />
-                                </div>
-                            </div>
-                            <div className="text-right space-y-2">
-                                <Skeleton className="h-8 w-16 ml-auto" />
-                                <Skeleton className="h-3 w-24 ml-auto" />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <Skeleton className="h-48 rounded-2xl" />
-                            <div className="space-y-4">
-                                {[1, 2, 3, 4, 5].map((i) => (
-                                    <Skeleton key={i} className="h-12 w-full rounded-2xl" />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Growth Forecasting Skeleton */}
-                    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 space-y-6">
-                        <div className="flex justify-between items-center">
-                            <div className="flex gap-4">
-                                <Skeleton className="w-12 h-12 rounded-2xl" />
-                                <div className="space-y-2">
-                                    <Skeleton className="h-6 w-32" />
-                                    <Skeleton className="h-3 w-20" />
-                                </div>
-                            </div>
-                            <Skeleton className="h-8 w-32 rounded-xl" />
-                        </div>
-                        <Skeleton className="h-64 rounded-2xl w-full" />
-                    </div>
-                </div>
-
-                {/* Right Column Skeletons */}
-                <div className="space-y-8">
-                    {/* Map Skeleton */}
-                    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 overflow-hidden">
-                        <div className="p-8 space-y-4">
-                            <div className="flex gap-4">
-                                <Skeleton className="w-12 h-12 rounded-2xl" />
-                                <div className="space-y-2">
-                                    <Skeleton className="h-6 w-32" />
-                                    <Skeleton className="h-3 w-20" />
-                                </div>
-                            </div>
-                        </div>
-                        <Skeleton className="h-96 w-full" />
-                    </div>
-
-                    {/* Demographics Skeleton */}
-                    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 space-y-8">
+            {/* Top row analytics grid */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                {/* Analytics Overview Skeleton */}
+                <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 space-y-6">
+                    <div className="flex justify-between items-center">
                         <div className="flex gap-4">
                             <Skeleton className="w-12 h-12 rounded-2xl" />
                             <div className="space-y-2">
@@ -98,17 +41,75 @@ export const ReportsSkeleton = () => {
                                 <Skeleton className="h-3 w-20" />
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                                <Skeleton key={i} className="h-32 rounded-[2rem]" />
-                            ))}
-                        </div>
-                        <div className="space-y-4">
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-5/6" />
-                            <Skeleton className="h-4 w-4/6" />
+                        <div className="text-right space-y-2">
+                            <Skeleton className="h-8 w-16 ml-auto" />
+                            <Skeleton className="h-3 w-24 ml-auto" />
                         </div>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <Skeleton className="h-48 rounded-2xl" />
+                        <div className="space-y-4">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <Skeleton key={i} className="h-12 w-full rounded-2xl" />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Growth History Skeleton */}
+                <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 space-y-6">
+                    <div className="flex justify-between items-center">
+                        <div className="flex gap-4">
+                            <Skeleton className="w-12 h-12 rounded-2xl" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-6 w-32" />
+                                <Skeleton className="h-3 w-20" />
+                            </div>
+                        </div>
+                        <Skeleton className="h-8 w-32 rounded-xl" />
+                    </div>
+                    <Skeleton className="h-64 rounded-2xl w-full" />
+                </div>
+            </div>
+
+            {/* Map Skeleton (Full Width) */}
+            <div className="bg-white dark:bg-gray-900 rounded-[3rem] border border-gray-100 dark:border-gray-800 overflow-hidden">
+                <div className="p-10 space-y-4">
+                    <div className="flex gap-4">
+                        <Skeleton className="w-16 h-16 rounded-3xl" />
+                        <div className="space-y-2">
+                            <Skeleton className="h-8 w-48" />
+                            <Skeleton className="h-4 w-32" />
+                        </div>
+                    </div>
+                </div>
+                <Skeleton className="h-[600px] w-full" />
+            </div>
+
+            {/* Demographics Section Skeleton */}
+            <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 space-y-8">
+                <div className="flex gap-4">
+                    <Skeleton className="w-12 h-12 rounded-2xl" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-6 w-32" />
+                        <Skeleton className="h-3 w-20" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="space-y-6">
+                            <Skeleton className="h-4 w-1/2" />
+                            <div className="grid grid-cols-2 gap-4">
+                                {[1, 2, 4].map((j) => (
+                                    <Skeleton key={j} className="h-24 rounded-2xl" />
+                                ))}
+                            </div>
+                            <div className="space-y-4">
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-3/4" />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

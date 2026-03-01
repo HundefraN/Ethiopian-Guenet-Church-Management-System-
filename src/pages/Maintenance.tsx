@@ -1,11 +1,13 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext";
 import { Navigate } from "react-router-dom";
-import { Wrench } from "lucide-react";
+import { Wrench, LogOut } from "lucide-react";
 import logo from "../assets/logo.png";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function Maintenance() {
-  const { profile, settings } = useAuth();
+  const { profile, settings, signOut } = useAuth();
+  const { t } = useLanguage();
 
   if (profile?.role === "super_admin" || !settings?.is_maintenance_mode) {
     return <Navigate to="/" />;
@@ -38,11 +40,19 @@ export default function Maintenance() {
           scheduled maintenance to improve our services.
         </p>
 
-        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-6">
           <p className="text-sm text-gray-600 font-medium">
             Please check back later. We apologize for any inconvenience.
           </p>
         </div>
+
+        <button
+          onClick={() => signOut()}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500/50"
+        >
+          <LogOut size={20} />
+          {t('common.logout') || "Sign Out"}
+        </button>
       </div>
     </div>
   );

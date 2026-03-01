@@ -34,6 +34,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
 import { parseGoogleMapsUrl, DEFAULT_ETHIOPIA_CENTER } from "../utils/mapUtils";
+import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
 import toast from "react-hot-toast";
 import { ReportsSkeleton } from "../components/ReportsSkeleton";
@@ -54,10 +55,18 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 // For custom church marker
 const createChurchIcon = (color: string) => L.divIcon({
-    html: `<div style="background-color: ${color}; width: 40px; height: 40px; border-radius: 50%; border: 4px solid white; display: flex; items-center; justify-center; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg></div>`,
-    className: 'custom-church-icon',
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
+    html: `
+        <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+            <div class="marker-pulse-ring" style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background-color: ${color};"></div>
+            <div style="background-color: ${color}; width: 34px; height: 34px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.4); z-index: 10;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10l-10-8-10 8"/><path d="M6 10v12h12V10"/><path d="M12 16v6"/></svg>
+            </div>
+        </div>
+    `,
+    className: 'custom-church-icon-premium',
+    iconSize: [44, 44],
+    iconAnchor: [22, 44],
+    popupAnchor: [0, -44],
 });
 
 // Component to handle map view updates
@@ -95,6 +104,7 @@ const itemVariants: Variants = {
 export default function Reports() {
     const { isDark } = useTheme();
     const { t } = useLanguage();
+    const { profile } = useAuth();
     const d = ds(isDark);
 
     const [churches, setChurches] = useState<any[]>([]);
@@ -281,28 +291,6 @@ export default function Reports() {
             return { month, members: runningTotal };
         });
 
-        if (growthArr.length >= 2) {
-            const last = growthArr[growthArr.length - 1].members;
-            const prev = growthArr[growthArr.length - 2].members;
-            const diff = Math.max(0, last - prev);
-
-            const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-            const nextRawMonth = monthsNames[nextMonthDate.getMonth()];
-            growthArr.push({
-                month: `${t(`common.months.${nextRawMonth}`)} ${nextMonthDate.getFullYear() % 100}`,
-                members: last + diff,
-                isProjected: true,
-            });
-
-            const secondMonthDate = new Date(now.getFullYear(), now.getMonth() + 2, 1);
-            const secondRawMonth = monthsNames[secondMonthDate.getMonth()];
-            growthArr.push({
-                month: `${t(`common.months.${secondRawMonth}`)} ${secondMonthDate.getFullYear() % 100}`,
-                members: last + diff * 2,
-                isProjected: true,
-            });
-        }
-
         setGrowthData(growthArr);
 
         // --- 2. Distribution Calculation ---
@@ -313,7 +301,7 @@ export default function Reports() {
             { category: t("sidebar.members"), amount: members.length, color: "#10b981" },
             { category: t("sidebar.pastors"), amount: pastorsCount, color: "#3b82f6" },
             { category: t("sidebar.servants"), amount: servantsCount, color: "#f59e0b" },
-            { category: t("sidebar.departments"), amount: departments.length, color: "#8b5cf6" },
+            ...(profile?.role !== "servant" ? [{ category: t("sidebar.departments"), amount: departments.length, color: "#8b5cf6" }] : []),
             { category: t("sidebar.activities"), amount: activities.length, color: "#ec4899" },
         ]);
 
@@ -415,336 +403,604 @@ export default function Reports() {
 
     const handleExportPDF = () => {
         const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 15;
+        const contentWidth = pageWidth - margin * 2;
+        const isSpecificChurch = selectedChurchId !== "all";
         const churchName =
-            selectedChurchId === "all" ? t("reports.allChurches") : churches.find((c) => c.id === selectedChurchId)?.name;
+            isSpecificChurch ? churches.find((c) => c.id === selectedChurchId)?.name || "Church" : t("reports.allChurches");
 
+        // ─── Amharic Text Rendering Utilities ───
         const renderAmharicText = (text: string, size: number, color: string = "#000000", isBold: boolean = false) => {
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
             if (!ctx) return { data: "", width: 0, height: 0 };
-
-            // Hi-res scaling for crispiness
             const scale = 4;
-            // Clean up text if it's a translation key by mistake
             const cleanText = text.includes('.') && text.split('.').length > 2 ? t(text) : text;
-
             ctx.font = `${isBold ? "bold " : ""}${size * scale}px "Noto Sans Ethiopic", "Abyssinica SIL", sans-serif`;
             const metrics = ctx.measureText(cleanText);
-
             canvas.width = metrics.width + (12 * scale);
             canvas.height = (size * 1.6) * scale;
-
             ctx.font = `${isBold ? "bold " : ""}${size * scale}px "Noto Sans Ethiopic", "Abyssinica SIL", sans-serif`;
             ctx.fillStyle = color;
             ctx.textBaseline = "middle";
             ctx.fillText(cleanText, 6 * scale, canvas.height / 2);
-
             return {
                 data: canvas.toDataURL("image/png"),
-                width: (canvas.width / scale) * (72 / 96), // Convert px to pt approx
-                height: (canvas.height / scale) * (72 / 96)
+                width: (canvas.width / scale) * (25.4 / 96), // Convert px to mm (jsPDF default unit)
+                height: (canvas.height / scale) * (25.4 / 96) // Convert px to mm (jsPDF default unit)
             };
         };
 
         const drawAmharic = (text: string, x: number, y: number, size: number, color: string = "#000000", isBold: boolean = false) => {
             const { data, width, height } = renderAmharicText(text, size, color, isBold);
             if (data) {
-                // Adjust y to match baseline (approx)
                 doc.addImage(data, "PNG", x, y - (height / 2), width, height);
             }
         };
 
-        // Header
-        doc.addImage(logo, "PNG", 15, 10, 25, 25);
+        const isEthiopic = (text: any) => typeof text === 'string' && /[\u1200-\u139F\u2D80-\u2DDF\uAB00-\uAB2F]/.test(text);
 
-        // Use standard text for English, but check if we need Amharic
-        const titleText = t("reports.pdf.title") || "ETHIOPIAN GUENET CHURCH";
-        drawAmharic(titleText, 45, 20, 18, "#1E3A8A", true);
+        const smartText = (text: string, x: number, y: number, size: number, color: string = "#000000", isBold: boolean = false) => {
+            if (isEthiopic(text)) {
+                drawAmharic(text, x, y, size * 0.9, color, isBold); // Slight size reduction for taller Ethiopic chars
+            } else {
+                doc.setFontSize(size);
+                doc.setTextColor(color);
+                if (isBold) doc.setFont("helvetica", "bold");
+                else doc.setFont("helvetica", "normal");
+                doc.text(text, x, y);
+            }
+        };
 
-        const subtitleText = t("reports.title");
-        drawAmharic(subtitleText, 45, 30, 12, "#64748B", false);
+        // ─── Page Break Helper ───
+        const checkPageBreak = (currentY: number, requiredSpace: number = 60): number => {
+            if (currentY + requiredSpace > pageHeight - 30) {
+                doc.addPage();
+                return 25;
+            }
+            return currentY;
+        };
 
-        doc.setDrawColor(200, 200, 200);
-        doc.line(15, 40, 195, 40);
+        // ─── Draw Section Header with Modern Accent ───
+        const drawSectionHeader = (title: string, yPos: number, accentColor: [number, number, number]): number => {
+            yPos = checkPageBreak(yPos, 50);
+            // Accent bar
+            doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+            doc.roundedRect(margin, yPos, 4, 14, 2, 2, "F");
+            // Section title
+            smartText(title, margin + 8, yPos + 9, 13, `rgb(${accentColor.join(",")})`, true);
+            // Subtle line
+            doc.setDrawColor(accentColor[0], accentColor[1], accentColor[2]);
+            doc.setLineWidth(0.3);
+            doc.line(margin, yPos + 17, pageWidth - margin, yPos + 17);
+            return yPos + 22;
+        };
 
-        // Report metadata
-        doc.setFontSize(10);
-        doc.setTextColor(80, 80, 80);
-
-        const scopeLabel = t("reports.pdf.scope") || "Report Scope";
-        drawAmharic(`${scopeLabel}: ${churchName}`, 15, 52, 9, "#505050");
-
-        const rangeLabel = t("reports.pdf.dateRange") || "Date Range";
-        const rangeVal = t(`reports.dateRanges.${dateRange}`) || dateRange.replace(/_/g, " ");
-        drawAmharic(`${rangeLabel}: ${rangeVal}`, 15, 59, 9, "#505050");
-
-        const generatedLabel = t("reports.pdf.generated") || "Generated";
-        drawAmharic(`${generatedLabel}: ${new Date().toLocaleString()}`, 130, 52, 9, "#505050");
-
-        const recordsLabel = t("reports.pdf.totalRecords") || "Total Records";
-        drawAmharic(`${recordsLabel}: ${stats.members.length} ${t("sidebar.members")}`, 130, 59, 9, "#505050");
-
-        // Summary Snapshot (Dashboard-like section)
-        doc.setFillColor(240, 249, 255); // Light blue background
-        doc.roundedRect(15, 68, 180, 28, 4, 4, "F"); // Increased height to 28 for padding
-
-        doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
-        drawAmharic(t("reports.pdf.totalMembers"), 25, 76, 8, "#64748B", true);
-        drawAmharic(t("reports.pdf.totalBranches"), 85, 76, 8, "#64748B", true);
-        drawAmharic(t("reports.pdf.currentScope"), 145, 76, 8, "#64748B", true);
-
-        doc.setFontSize(12);
-        doc.setTextColor(30, 58, 138);
-        doc.text(stats.members.length.toLocaleString(), 25, 86);
-        doc.text(churches.length.toLocaleString(), 85, 86);
-
-        const displayChurchName = churchName.length > 30 ? churchName.substring(0, 28) + "..." : churchName;
-        // Check if churchName is Amharic
-        const isAmharicName = /[\u1200-\u137F]/.test(displayChurchName);
-        if (isAmharicName) {
-            drawAmharic(displayChurchName, 145, 86, 10, "#1E3A8A", true);
-        } else {
-            doc.setFontSize(10);
-            doc.setTextColor(30, 58, 138);
-            doc.text(displayChurchName, 145, 86);
-        }
-
-        let y = 108;
-
-        const isAmharic = (text: any) => typeof text === 'string' && /[\u1200-\u137F]/.test(text);
-
+        // ─── Amharic-aware autoTable hooks ───
         const willDrawCell = (data: any) => {
-            if (isAmharic(data.cell.raw)) {
-                data.cell.text = [""]; // Prevent original text from drawing
+            if (isEthiopic(data.cell.raw)) {
+                data.cell.text = [""];
             }
         };
 
         const didDrawCell = (data: any) => {
             if (data.section === 'body' || data.section === 'head') {
                 const text = data.cell.raw;
-                if (isAmharic(text)) {
+                if (isEthiopic(text)) {
                     const { data: imgData, width, height } = renderAmharicText(
                         text,
-                        data.section === 'head' ? 10 : 9,
-                        data.section === 'head' ? "#FFFFFF" : "#000000",
+                        data.section === 'head' ? 9 * 0.9 : 8 * 0.9,
+                        data.section === 'head' ? "#FFFFFF" : "#334155",
                         data.section === 'head'
                     );
                     if (imgData) {
                         const x = data.cell.x + (data.cell.width - width) / 2;
-                        const y = data.cell.y + (data.cell.height) / 2;
-                        doc.addImage(imgData, "PNG", x, y - (height / 2), width, height);
+                        const cellY = data.cell.y + (data.cell.height) / 2;
+                        doc.addImage(imgData, "PNG", x, cellY - (height / 2), width, height);
                     }
                 }
             }
         };
 
-        // 1. Analytics Overview
-        doc.setFontSize(14);
-        drawAmharic(t("reports.pdf.overview") || "1. Analytics Overview", 15, y, 14, "#000000", true);
-        y += 8;
-        autoTable(doc, {
-            startY: y,
-            head: [[t("reports.pdf.category") || "Category", t("reports.pdf.count") || "Count", t("reports.pdf.percentage") || "Percentage"]],
-            body: distributionData.map((f) => [
-                f.category,
-                f.amount.toLocaleString(),
-                totalStats > 0 ? `${((f.amount / totalStats) * 100).toFixed(1)}%` : "0%",
-            ]),
-            theme: "striped",
-            headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 4 },
-            bodyStyles: { fontSize: 9, cellPadding: 4 },
-            columnStyles: {
-                1: { halign: 'center' },
-                2: { halign: 'center' }
-            },
-            alternateRowStyles: { fillColor: [245, 247, 250] },
-            margin: { left: 15, right: 15 },
-            willDrawCell: willDrawCell,
-            didDrawCell: didDrawCell
-        });
-        y = (doc as any).lastAutoTable.finalY + 15;
+        // ─── Visual Percentage Bar in Tables ───
+        const didDrawCellWithBar = (barColor: [number, number, number]) => (data: any) => {
+            // First handle Amharic text
+            didDrawCell(data);
+            // Draw percentage bar for the last column in body rows
+            if (data.section === 'body' && data.column.index === 3) {
+                const pctText = String(data.cell.raw).replace('%', '');
+                const pct = parseFloat(pctText) || 0;
+                const barWidth = (data.cell.width - 8) * (pct / 100);
+                const barX = data.cell.x + 4;
+                const barY = data.cell.y + data.cell.height - 5;
+                // Background track
+                doc.setFillColor(230, 230, 235);
+                doc.roundedRect(barX, barY, data.cell.width - 8, 3, 1.5, 1.5, "F");
+                // Fill bar
+                if (barWidth > 0) {
+                    doc.setFillColor(barColor[0], barColor[1], barColor[2]);
+                    doc.roundedRect(barX, barY, Math.max(barWidth, 3), 3, 1.5, 1.5, "F");
+                }
+            }
+        };
 
-        // Check if we need a new page
-        if (y > 230) {
-            doc.addPage();
-            y = 20;
+        // ═══════════════════════════════════════════════════════════════
+        // ░░░ PAGE 1: COVER / HEADER ░░░
+        // ═══════════════════════════════════════════════════════════════
+
+        // ── Gradient Header Background ──
+        const gradSteps = 40;
+        const headerHeight = 52;
+        for (let i = 0; i < gradSteps; i++) {
+            const ratio = i / gradSteps;
+            const r = Math.round(15 + ratio * 30);
+            const g = Math.round(23 + ratio * 58);
+            const b = Math.round(42 + ratio * 100);
+            doc.setFillColor(r, g, b);
+            doc.rect(0, (headerHeight / gradSteps) * i, pageWidth, headerHeight / gradSteps + 0.5, "F");
         }
 
-        // 2. Growth Forecasting
-        doc.setFontSize(14);
-        drawAmharic(t("reports.pdf.growth") || "2. Growth Forecasting", 15, y, 14, "#000000", true);
-        y += 8;
+        // ── Decorative Circle Accents ──
+        doc.setFillColor(59, 130, 246);
+        doc.setGState(new (doc as any).GState({ opacity: 0.08 }));
+        doc.circle(pageWidth - 25, 15, 30, "F");
+        doc.circle(pageWidth - 55, 40, 18, "F");
+        doc.setGState(new (doc as any).GState({ opacity: 1.0 }));
+
+        // ── Logo ──
+        doc.addImage(logo, "PNG", margin, 8, 22, 22);
+
+        // ── Header Text ──
+        const titleText = t("reports.pdf.title") || "ETHIOPIAN GUENET CHURCH";
+        doc.setFontSize(20);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        if (isEthiopic(titleText)) {
+            drawAmharic(titleText, margin + 28, 18, 18 * 0.9, "#FFFFFF", true);
+        } else {
+            doc.text(titleText, margin + 28, 20);
+        }
+
+        const subtitleText = t("reports.title") || "Report Generator";
+        doc.setFontSize(10);
+        doc.setTextColor(180, 200, 255);
+        doc.setFont("helvetica", "normal");
+        if (isEthiopic(subtitleText)) {
+            drawAmharic(subtitleText, margin + 28, 28, 10 * 0.9, "#B4C8FF", false);
+        } else {
+            doc.text(subtitleText, margin + 28, 28);
+        }
+
+        // ── Report meta badge ──
+        const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        doc.setFillColor(255, 255, 255);
+        doc.setGState(new (doc as any).GState({ opacity: 0.15 }));
+        doc.roundedRect(margin, 36, contentWidth, 11, 3, 3, "F");
+        doc.setGState(new (doc as any).GState({ opacity: 1.0 }));
+        doc.setFontSize(7.5);
+        doc.setTextColor(200, 215, 255);
+        doc.setFont("helvetica", "normal");
+        const rangeVal = t(`reports.dateRanges.${dateRange}`) || dateRange.replace(/_/g, " ");
+        const fullMeta = `${churchName}  |  ${rangeVal}  |  ${dateStr}`;
+        smartText(fullMeta, margin + 4, 43, 7.5, "#C8D7FF", false);
+
+        // ── Thin accent line under header ──
+        doc.setFillColor(59, 130, 246);
+        doc.rect(0, headerHeight, pageWidth, 1.5, "F");
+        doc.setFillColor(16, 185, 129);
+        doc.rect(0, headerHeight + 1.5, pageWidth * 0.4, 0.8, "F");
+
+        let y = headerHeight + 10;
+
+        // ═══════════════════════════════════════════════════════════════
+        // ░░░ KPI SUMMARY CARDS ░░░
+        // ═══════════════════════════════════════════════════════════════
+
+        const pastorsCount = stats.profiles.filter((p: any) => p.role === "pastor").length;
+        const servantsCount = stats.profiles.filter((p: any) => p.role === "servant").length;
+
+        // Build KPI items based on context
+        const kpiItems: { label: string; value: string; color: [number, number, number]; icon: string }[] = [
+            { label: t("reports.pdf.totalMembers"), value: stats.members.length.toLocaleString(), color: [16, 185, 129], icon: "" },
+        ];
+
+        // Only show branch count when viewing ALL churches
+        if (!isSpecificChurch) {
+            kpiItems.push({ label: t("reports.pdf.totalBranches"), value: churches.length.toLocaleString(), color: [59, 130, 246], icon: "" });
+        }
+
+        kpiItems.push(
+            { label: t("sidebar.pastors"), value: pastorsCount.toLocaleString(), color: [139, 92, 246], icon: "" },
+            { label: t("sidebar.servants"), value: servantsCount.toLocaleString(), color: [245, 158, 11], icon: "" },
+        );
+
+        if (profile?.role !== "servant") {
+            kpiItems.push({ label: t("sidebar.departments"), value: stats.departments.length.toLocaleString(), color: [236, 72, 153], icon: "" });
+        }
+
+        const cardCount = kpiItems.length;
+        const cardGap = 4;
+        const cardW = (contentWidth - (cardCount - 1) * cardGap) / cardCount;
+        const cardH = 26;
+
+        kpiItems.forEach((kpi, i) => {
+            const cx = margin + i * (cardW + cardGap);
+            // Card background
+            doc.setFillColor(248, 250, 252);
+            doc.roundedRect(cx, y, cardW, cardH, 3, 3, "F");
+            // Left accent bar
+            doc.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2]);
+            doc.roundedRect(cx, y, 3, cardH, 1.5, 1.5, "F");
+            // Icon
+            doc.setFontSize(10);
+            doc.text(kpi.icon, cx + 6, y + 10);
+            // Value
+            doc.setFontSize(14);
+            doc.setTextColor(15, 23, 42);
+            doc.setFont("helvetica", "bold");
+            doc.text(kpi.value, cx + 6, y + 20);
+            // Label
+            if (isEthiopic(kpi.label)) {
+                drawAmharic(kpi.label, cx + 6 + doc.getTextWidth(kpi.value) + 2, y + 20, 6 * 0.9, "#94A3B8", false);
+            } else {
+                doc.setFontSize(6);
+                doc.setTextColor(148, 163, 184);
+                doc.setFont("helvetica", "normal");
+                doc.text(kpi.label, cx + 6 + doc.getTextWidth(kpi.value) + 3, y + 20);
+            }
+        });
+
+        y += cardH + 10;
+
+        // ── Scope badge ──
+        doc.setFillColor(isSpecificChurch ? 239 : 240, isSpecificChurch ? 246 : 249, isSpecificChurch ? 255 : 255);
+        doc.roundedRect(margin, y, contentWidth, 10, 3, 3, "F");
+        doc.setFillColor(isSpecificChurch ? 59 : 16, isSpecificChurch ? 130 : 185, isSpecificChurch ? 246 : 129);
+        doc.roundedRect(margin, y, 3, 10, 1.5, 1.5, "F");
+        // Removed scope icons contextually
+        const scopeText = isSpecificChurch
+            ? `${t("reports.pdf.scope")}: ${churchName}`
+            : `${t("reports.pdf.scope")}: ${t("reports.allChurches")} (${churches.length} ${t("reports.branches")})`;
+        smartText(scopeText, margin + 8, y + 7, 8, "#1E3A8A", true);
+
+        y += 16;
+
+        // ═══════════════════════════════════════════════════════════════
+        // ░░░ SECTION 1: ANALYTICS OVERVIEW ░░░
+        // ═══════════════════════════════════════════════════════════════
+
+        y = drawSectionHeader(t("reports.pdf.overview") || "1. Analytics Overview", y, [30, 58, 138]);
+
         autoTable(doc, {
             startY: y,
-            head: [[t("reports.pdf.month") || "Month", t("sidebar.members") || "Members", t("reports.pdf.status") || "Status"]],
-            body: growthData.map((g) => [g.month, g.members, g.isProjected ? (t("reports.pdf.projected") || "Projected") : (t("reports.pdf.actual") || "Actual")]),
-            theme: "striped",
-            headStyles: { fillColor: [16, 185, 129], textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 4 },
-            bodyStyles: { fontSize: 9, cellPadding: 4 },
+            head: [[t("reports.pdf.category"), t("reports.pdf.count"), t("reports.pdf.percentage"), ""]],
+            body: distributionData.map((f) => {
+                const pct = totalStats > 0 ? ((f.amount / totalStats) * 100).toFixed(1) : "0.0";
+                return [f.category, f.amount.toLocaleString(), `${pct}%`, `${pct}%`];
+            }),
+            theme: "plain",
+            headStyles: {
+                fillColor: [30, 58, 138], textColor: 255,
+                fontStyle: "bold", fontSize: 8.5, cellPadding: { top: 4, bottom: 4, left: 6, right: 6 },
+                lineWidth: 0
+            },
+            bodyStyles: {
+                fontSize: 8.5, cellPadding: { top: 5, bottom: 5, left: 6, right: 6 },
+                textColor: [51, 65, 85], lineColor: [241, 245, 249], lineWidth: { bottom: 0.3 }
+            },
             columnStyles: {
-                1: { halign: 'center' },
-                2: { halign: 'center' }
+                0: { cellWidth: 55 },
+                1: { halign: 'center', cellWidth: 30 },
+                2: { halign: 'center', cellWidth: 30 },
+                3: { halign: 'center', cellWidth: 'auto', textColor: [255, 255, 255], fontSize: 1 }
+            },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            margin: { left: margin, right: margin },
+            willDrawCell: (data: any) => {
+                willDrawCell(data);
+                if (data.section === 'head' && data.column.index === 3) {
+                    data.cell.text = [""];
+                }
+            },
+            didDrawCell: didDrawCellWithBar([30, 58, 138])
+        });
+        y = (doc as any).lastAutoTable.finalY + 12;
+
+        // ═══════════════════════════════════════════════════════════════
+        // ░░░ SECTION 2: GROWTH HISTORY ░░░
+        // ═══════════════════════════════════════════════════════════════
+
+        y = drawSectionHeader(t("reports.pdf.growth") || "2. Member Growth History", y, [16, 185, 129]);
+
+        // Draw a mini chart area
+        const chartH = 35;
+        const chartW = contentWidth;
+        y = checkPageBreak(y, chartH + 40);
+
+        // Chart background
+        doc.setFillColor(240, 253, 244);
+        doc.roundedRect(margin, y, chartW, chartH, 3, 3, "F");
+
+        // Draw simplified sparkline
+        if (growthData.length > 1) {
+            const maxVal = Math.max(...growthData.map(g => g.members), 1);
+            const minVal = Math.min(...growthData.map(g => g.members));
+            const range = maxVal - minVal || 1;
+            const stepX = (chartW - 20) / (growthData.length - 1);
+
+            // Grid lines
+            doc.setDrawColor(200, 230, 210);
+            doc.setLineWidth(0.2);
+            for (let i = 0; i < 4; i++) {
+                const gy = y + 5 + (chartH - 10) * (i / 3);
+                doc.line(margin + 10, gy, margin + chartW - 10, gy);
+            }
+
+            // Sparkline
+            doc.setDrawColor(16, 185, 129);
+            doc.setLineWidth(1.2);
+            for (let i = 0; i < growthData.length - 1; i++) {
+                const x1 = margin + 10 + i * stepX;
+                const x2 = margin + 10 + (i + 1) * stepX;
+                const y1 = y + chartH - 5 - ((growthData[i].members - minVal) / range) * (chartH - 15);
+                const y2 = y + chartH - 5 - ((growthData[i + 1].members - minVal) / range) * (chartH - 15);
+                doc.line(x1, y1, x2, y2);
+            }
+
+            // Data point dots
+            doc.setFillColor(16, 185, 129);
+            growthData.forEach((g, i) => {
+                const px = margin + 10 + i * stepX;
+                const py = y + chartH - 5 - ((g.members - minVal) / range) * (chartH - 15);
+                doc.circle(px, py, 1.5, "F");
+                // Value label
+                doc.setFontSize(5.5);
+                doc.setTextColor(15, 23, 42);
+                doc.setFont("helvetica", "bold");
+                doc.text(g.members.toString(), px, py - 4, { align: "center" });
+            });
+        }
+
+        y += chartH + 5;
+
+        // Growth data table
+        autoTable(doc, {
+            startY: y,
+            head: [[t("reports.pdf.month"), t("sidebar.members")]],
+            body: growthData.map((g) => [g.month, g.members.toLocaleString()]),
+            theme: "plain",
+            headStyles: {
+                fillColor: [16, 185, 129], textColor: 255,
+                fontStyle: "bold", fontSize: 8.5, cellPadding: { top: 3, bottom: 3, left: 6, right: 6 }
+            },
+            bodyStyles: {
+                fontSize: 8.5, cellPadding: { top: 4, bottom: 4, left: 6, right: 6 },
+                textColor: [51, 65, 85], lineColor: [241, 245, 249], lineWidth: { bottom: 0.3 }
+            },
+            columnStyles: {
+                0: { cellWidth: contentWidth * 0.6 },
+                1: { halign: 'center' }
             },
             alternateRowStyles: { fillColor: [240, 253, 244] },
-            margin: { left: 15, right: 15 },
-            willDrawCell: willDrawCell,
-            didDrawCell: didDrawCell
+            margin: { left: margin, right: margin },
+            willDrawCell, didDrawCell
         });
-        y = (doc as any).lastAutoTable.finalY + 15;
+        y = (doc as any).lastAutoTable.finalY + 12;
 
-        if (y > 230) {
-            doc.addPage();
-            y = 20;
-        }
+        // ═══════════════════════════════════════════════════════════════
+        // ░░░ SECTION 3: AGE DEMOGRAPHICS ░░░
+        // ═══════════════════════════════════════════════════════════════
 
-        // 3. Age Demographics
-        doc.setFontSize(14);
-        drawAmharic(t("reports.pdf.age"), 15, y, 14, "#000000", true);
-        y += 8;
+        y = drawSectionHeader(t("reports.pdf.age") || "3. Age Distribution", y, [139, 92, 246]);
+
         autoTable(doc, {
             startY: y,
-            head: [[t("reports.pdf.ageGroup"), t("reports.pdf.count"), t("reports.pdf.percentage")]],
+            head: [[t("reports.pdf.ageGroup"), t("reports.pdf.count"), t("reports.pdf.percentage"), ""]],
             body: demographicData.map((g) => {
                 const total = demographicData.reduce((a, b) => a + b.count, 0);
-                return [g.age + " " + t("reports.yrs"), g.count, total > 0 ? `${((g.count / total) * 100).toFixed(1)}%` : "0%"];
+                const pct = total > 0 ? ((g.count / total) * 100).toFixed(1) : "0.0";
+                return [g.age + " " + t("reports.yrs"), g.count.toLocaleString(), `${pct}%`, `${pct}%`];
             }),
-            theme: "striped",
-            headStyles: { fillColor: [139, 92, 246], textColor: 255, fontStyle: "bold", cellPadding: 5 },
-            bodyStyles: { cellPadding: 5 },
+            theme: "plain",
+            headStyles: {
+                fillColor: [139, 92, 246], textColor: 255,
+                fontStyle: "bold", fontSize: 8.5, cellPadding: { top: 4, bottom: 4, left: 6, right: 6 }
+            },
+            bodyStyles: {
+                fontSize: 8.5, cellPadding: { top: 5, bottom: 5, left: 6, right: 6 },
+                textColor: [51, 65, 85], lineColor: [241, 245, 249], lineWidth: { bottom: 0.3 }
+            },
             columnStyles: {
-                1: { halign: 'center' },
-                2: { halign: 'center' }
+                0: { cellWidth: 50 },
+                1: { halign: 'center', cellWidth: 30 },
+                2: { halign: 'center', cellWidth: 30 },
+                3: { halign: 'center', textColor: [255, 255, 255], fontSize: 1 }
             },
             alternateRowStyles: { fillColor: [245, 243, 255] },
-            margin: { left: 15, right: 15 },
-            willDrawCell: willDrawCell,
-            didDrawCell: didDrawCell
+            margin: { left: margin, right: margin },
+            willDrawCell: (data: any) => {
+                willDrawCell(data);
+                if (data.section === 'head' && data.column.index === 3) data.cell.text = [""];
+            },
+            didDrawCell: didDrawCellWithBar([139, 92, 246])
         });
-        y = (doc as any).lastAutoTable.finalY + 15;
+        y = (doc as any).lastAutoTable.finalY + 12;
 
-        if (y > 230) {
-            doc.addPage();
-            y = 20;
-        }
+        // ═══════════════════════════════════════════════════════════════
+        // ░░░ SECTION 4: MARITAL STATUS ░░░
+        // ═══════════════════════════════════════════════════════════════
 
-        // 4. Marital Status
-        doc.setFontSize(14);
-        drawAmharic(t("reports.pdf.marital"), 15, y, 14, "#000000", true);
-        y += 8;
+        y = drawSectionHeader(t("reports.pdf.marital") || "4. Marital Status", y, [236, 72, 153]);
+
         autoTable(doc, {
             startY: y,
-            head: [[t("reports.pdf.status"), t("reports.pdf.count"), t("reports.pdf.percentage")]],
+            head: [[t("reports.pdf.status"), t("reports.pdf.count"), t("reports.pdf.percentage"), ""]],
             body: demographicMarital.map((g) => {
                 const total = demographicMarital.reduce((a, b) => a + b.count, 0);
                 const nameLabel = g.name === "Unknown" ? t("common.unknown") : (t(`members.form.maritalStatus.${g.name.toLowerCase()}`) || g.name);
-                return [nameLabel, g.count, total > 0 ? `${((g.count / total) * 100).toFixed(1)}%` : "0%"];
+                const pct = total > 0 ? ((g.count / total) * 100).toFixed(1) : "0.0";
+                return [nameLabel, g.count.toLocaleString(), `${pct}%`, `${pct}%`];
             }),
-            theme: "striped",
-            headStyles: { fillColor: [236, 72, 153], textColor: 255, fontStyle: "bold", cellPadding: 4 },
-            bodyStyles: { cellPadding: 4 },
+            theme: "plain",
+            headStyles: {
+                fillColor: [236, 72, 153], textColor: 255,
+                fontStyle: "bold", fontSize: 8.5, cellPadding: { top: 4, bottom: 4, left: 6, right: 6 }
+            },
+            bodyStyles: {
+                fontSize: 8.5, cellPadding: { top: 5, bottom: 5, left: 6, right: 6 },
+                textColor: [51, 65, 85], lineColor: [241, 245, 249], lineWidth: { bottom: 0.3 }
+            },
             columnStyles: {
-                1: { halign: 'center' },
-                2: { halign: 'center' }
+                0: { cellWidth: 50 },
+                1: { halign: 'center', cellWidth: 30 },
+                2: { halign: 'center', cellWidth: 30 },
+                3: { halign: 'center', textColor: [255, 255, 255], fontSize: 1 }
             },
             alternateRowStyles: { fillColor: [253, 242, 248] },
-            margin: { left: 15, right: 15 },
-            willDrawCell: willDrawCell,
-            didDrawCell: didDrawCell
+            margin: { left: margin, right: margin },
+            willDrawCell: (data: any) => {
+                willDrawCell(data);
+                if (data.section === 'head' && data.column.index === 3) data.cell.text = [""];
+            },
+            didDrawCell: didDrawCellWithBar([236, 72, 153])
         });
-        y = (doc as any).lastAutoTable.finalY + 15;
+        y = (doc as any).lastAutoTable.finalY + 12;
 
-        if (y > 230) {
-            doc.addPage();
-            y = 20;
-        }
+        // ═══════════════════════════════════════════════════════════════
+        // ░░░ SECTION 5: EDUCATION LEVEL ░░░
+        // ═══════════════════════════════════════════════════════════════
 
-        // 5. Education Level
-        doc.setFontSize(14);
-        drawAmharic(t("reports.pdf.education"), 15, y, 14, "#000000", true);
-        y += 8;
+        y = drawSectionHeader(t("reports.pdf.education") || "5. Education Level", y, [59, 130, 246]);
+
+        const eduKeyMap: Record<string, string> = {
+            "High School": "highSchool", "Diploma": "diploma",
+            "Bachelor's": "bachelors", "Master's": "masters", "PhD": "phd"
+        };
+
         autoTable(doc, {
             startY: y,
-            head: [[t("reports.pdf.level"), t("reports.pdf.count"), t("reports.pdf.percentage")]],
+            head: [[t("reports.pdf.level"), t("reports.pdf.count"), t("reports.pdf.percentage"), ""]],
             body: demographicEducation.map((g) => {
                 const total = demographicEducation.reduce((a, b) => a + b.count, 0);
-                // Map names to translation keys
-                const eduKeyMap: Record<string, string> = {
-                    "High School": "highSchool",
-                    "Diploma": "diploma",
-                    "Bachelor's": "bachelors",
-                    "Master's": "masters",
-                    "PhD": "phd"
-                };
                 const translatedName = g.name !== "Unknown" ? t(`members.form.${eduKeyMap[g.name] || g.name}`) : t("common.unknown");
-                return [translatedName, g.count, total > 0 ? `${((g.count / total) * 100).toFixed(1)}%` : "0%"];
+                const pct = total > 0 ? ((g.count / total) * 100).toFixed(1) : "0.0";
+                return [translatedName, g.count.toLocaleString(), `${pct}%`, `${pct}%`];
             }),
-            theme: "striped",
-            headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: "bold", cellPadding: 4 },
-            bodyStyles: { cellPadding: 4 },
+            theme: "plain",
+            headStyles: {
+                fillColor: [59, 130, 246], textColor: 255,
+                fontStyle: "bold", fontSize: 8.5, cellPadding: { top: 4, bottom: 4, left: 6, right: 6 }
+            },
+            bodyStyles: {
+                fontSize: 8.5, cellPadding: { top: 5, bottom: 5, left: 6, right: 6 },
+                textColor: [51, 65, 85], lineColor: [241, 245, 249], lineWidth: { bottom: 0.3 }
+            },
             columnStyles: {
-                1: { halign: 'center' },
-                2: { halign: 'center' }
+                0: { cellWidth: 50 },
+                1: { halign: 'center', cellWidth: 30 },
+                2: { halign: 'center', cellWidth: 30 },
+                3: { halign: 'center', textColor: [255, 255, 255], fontSize: 1 }
             },
             alternateRowStyles: { fillColor: [239, 246, 255] },
-            margin: { left: 15, right: 15 },
-            willDrawCell: willDrawCell,
-            didDrawCell: didDrawCell
+            margin: { left: margin, right: margin },
+            willDrawCell: (data: any) => {
+                willDrawCell(data);
+                if (data.section === 'head' && data.column.index === 3) data.cell.text = [""];
+            },
+            didDrawCell: didDrawCellWithBar([59, 130, 246])
         });
-        y = (doc as any).lastAutoTable.finalY + 15;
+        y = (doc as any).lastAutoTable.finalY + 12;
 
-        if (y > 230) {
-            doc.addPage();
-            y = 20;
-        }
+        // ═══════════════════════════════════════════════════════════════
+        // ░░░ SECTION 6: EMPLOYMENT STATUS ░░░
+        // ═══════════════════════════════════════════════════════════════
 
-        // 6. Employment Status
-        doc.setFontSize(14);
-        drawAmharic(t("reports.pdf.employment"), 15, y, 14, "#000000", true);
-        y += 8;
+        y = drawSectionHeader(t("reports.pdf.employment") || "6. Employment Status", y, [245, 158, 11]);
+
+        const empKeyMap: Record<string, string> = {
+            "Employed": "employed", "Self-Employed": "selfEmployed",
+            "Unemployed": "unemployed", "Student": "student", "Retired": "retired"
+        };
+
         autoTable(doc, {
             startY: y,
-            head: [[t("reports.pdf.status"), t("reports.pdf.count"), t("reports.pdf.percentage")]],
+            head: [[t("reports.pdf.status"), t("reports.pdf.count"), t("reports.pdf.percentage"), ""]],
             body: demographicEmployment.map((g) => {
                 const total = demographicEmployment.reduce((a, b) => a + b.count, 0);
-                // Map names to translation keys
-                const empKeyMap: Record<string, string> = {
-                    "Employed": "employed",
-                    "Self-Employed": "selfEmployed",
-                    "Unemployed": "unemployed",
-                    "Student": "student",
-                    "Retired": "retired"
-                };
                 const translatedName = g.name !== "Unknown" ? t(`members.form.${empKeyMap[g.name] || g.name}`) : t("common.unknown");
-                return [translatedName, g.count, total > 0 ? `${((g.count / total) * 100).toFixed(1)}%` : "0%"];
+                const pct = total > 0 ? ((g.count / total) * 100).toFixed(1) : "0.0";
+                return [translatedName, g.count.toLocaleString(), `${pct}%`, `${pct}%`];
             }),
-            theme: "striped",
-            headStyles: { fillColor: [245, 158, 11], textColor: 255, fontStyle: "bold", cellPadding: 4 },
-            bodyStyles: { cellPadding: 4 },
+            theme: "plain",
+            headStyles: {
+                fillColor: [245, 158, 11], textColor: 255,
+                fontStyle: "bold", fontSize: 8.5, cellPadding: { top: 4, bottom: 4, left: 6, right: 6 }
+            },
+            bodyStyles: {
+                fontSize: 8.5, cellPadding: { top: 5, bottom: 5, left: 6, right: 6 },
+                textColor: [51, 65, 85], lineColor: [241, 245, 249], lineWidth: { bottom: 0.3 }
+            },
             columnStyles: {
-                1: { halign: 'center' },
-                2: { halign: 'center' }
+                0: { cellWidth: 50 },
+                1: { halign: 'center', cellWidth: 30 },
+                2: { halign: 'center', cellWidth: 30 },
+                3: { halign: 'center', textColor: [255, 255, 255], fontSize: 1 }
             },
             alternateRowStyles: { fillColor: [255, 251, 235] },
-            margin: { left: 15, right: 15 },
-            willDrawCell: willDrawCell,
-            didDrawCell: didDrawCell
+            margin: { left: margin, right: margin },
+            willDrawCell: (data: any) => {
+                willDrawCell(data);
+                if (data.section === 'head' && data.column.index === 3) data.cell.text = [""];
+            },
+            didDrawCell: didDrawCellWithBar([245, 158, 11])
         });
 
-        // Footer for all pages
+        // ═══════════════════════════════════════════════════════════════
+        // ░░░ FOOTER ON ALL PAGES ░░░
+        // ═══════════════════════════════════════════════════════════════
+
         const pageCount = (doc as any).internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
-            doc.setFontSize(8);
-            doc.setTextColor(150);
-            doc.text(`${t("reports.pdf.pageOf", { page: String(i), total: String(pageCount) })}`, 105, 285, { align: "center" });
 
+            // Footer gradient bar
+            doc.setFillColor(15, 23, 42);
+            doc.rect(0, pageHeight - 16, pageWidth, 16, "F");
+            doc.setFillColor(59, 130, 246);
+            doc.rect(0, pageHeight - 16, pageWidth, 0.8, "F");
+
+            // Left: branding
+            doc.setFontSize(6.5);
+            doc.setTextColor(148, 163, 184);
+            doc.setFont("helvetica", "normal");
             const footerNote = t("reports.pdf.generatedBy");
-            doc.text(footerNote, 105, 290, { align: "center" });
+            if (isEthiopic(footerNote)) {
+                drawAmharic(footerNote, margin, pageHeight - 8, 6 * 0.9, "#94A3B8", false);
+            } else {
+                doc.text(footerNote, margin, pageHeight - 8);
+            }
+
+            // Right: page number
+            doc.setFontSize(7);
+            doc.setTextColor(148, 163, 184);
+            doc.setFont("helvetica", "bold");
+            const pageText = t("reports.pdf.pageOf", { page: String(i), total: String(pageCount) });
+            if (isEthiopic(pageText)) {
+                drawAmharic(pageText, pageWidth - margin - 30, pageHeight - 8, 6.5 * 0.9, "#94A3B8", true);
+            } else {
+                doc.text(pageText, pageWidth - margin, pageHeight - 8, { align: "right" });
+            }
+
+            // Center: decorative dot
+            doc.setFillColor(59, 130, 246);
+            doc.circle(pageWidth / 2, pageHeight - 8, 1.5, "F");
         }
 
+        // ── Save ──
         doc.save(`Guenet_Report_${churchName.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`);
-        toast.success("PDF Exported successfully!");
+        toast.success(t("reports.pdf.exportSuccess") || "PDF Exported successfully!");
     };
 
     const handleExportExcel = () => {
@@ -764,7 +1020,7 @@ export default function Reports() {
         XLSX.utils.book_append_sheet(
             wb,
             XLSX.utils.json_to_sheet(
-                growthData.map((g) => ({ [t("reports.excel.month")]: g.month, [t("reports.excel.members")]: g.members, [t("reports.excel.status")]: g.isProjected ? t("reports.pdf.projected") : t("reports.pdf.actual") }))
+                growthData.map((g) => ({ [t("reports.excel.month")]: g.month, [t("reports.excel.members")]: g.members }))
             ),
             t("reports.excel.growth")
         );
@@ -870,51 +1126,75 @@ export default function Reports() {
             animate="visible"
             className="space-y-6 sm:space-y-8 pb-20 px-2 sm:px-4"
         >
-            {/* --- HERO HEADER --- */}
+            {/* ═══════════════ ULTRA HERO HEADER ═══════════════ */}
             <motion.div
                 variants={itemVariants}
-                className="relative overflow-hidden rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 md:p-12 shadow-2xl"
+                className="relative overflow-hidden rounded-xl sm:rounded-[1.5rem] md:rounded-[2rem] p-3.5 sm:p-6 md:p-10 shadow-2xl"
                 style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3b82f6 100%)" }}
-                whileHover={{ scale: 1.01 }}
-                transition={{ type: "spring", bounce: 0.5 }}
             >
-                <div className="absolute top-0 right-0 w-64 sm:w-96 h-64 sm:h-96 bg-blue-400/20 blur-[80px] sm:blur-[100px] rounded-full -mr-16 sm:-mr-20 -mt-16 sm:-mt-20 animate-pulse" />
-                <div className="absolute bottom-0 left-0 w-48 sm:w-64 h-48 sm:h-64 bg-emerald-400/10 blur-[60px] sm:blur-[80px] rounded-full -ml-16 sm:-ml-20 -mb-16 sm:-mb-20" />
+                {/* Animated mesh orbs */}
+                <div className="absolute top-0 right-0 w-40 sm:w-80 h-40 sm:h-80 rounded-full opacity-25 blur-[50px] sm:blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
+                <div className="absolute bottom-0 left-0 w-32 sm:w-60 h-32 sm:h-60 rounded-full opacity-20 blur-[40px] sm:blur-[60px]" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
+                <div className="absolute top-1/2 left-1/3 w-36 sm:w-72 h-36 sm:h-72 rounded-full opacity-10 blur-[60px] sm:blur-[100px]" style={{ background: 'radial-gradient(circle, #3178B5, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
 
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 sm:gap-8">
-                    <div className="space-y-3 sm:space-y-4">
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
-                            <Sparkles size={14} className="text-blue-300" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-100">
-                                {t("reports.title")}
-                            </span>
-                        </div>
-                        <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-                            {t("reports.headerChurch")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-emerald-300">{t("reports.intelligent")}</span> {t("reports.headerReports")}
-                        </h1>
-                        <p className="text-blue-100/70 max-w-xl font-medium text-xs sm:text-sm md:text-base">
+                <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+
+                <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    {/* Title Section */}
+                    <div className="text-white flex-1 min-w-0">
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="flex items-center gap-2 sm:gap-3 mb-2 md:mb-5 flex-wrap"
+                        >
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                                <TrendingUp size={18} className="text-blue-100 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                            </div>
+                            <div className="px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
+                                <Sparkles size={10} className="inline mr-1" /> {t("reports.title")}
+                            </div>
+                        </motion.div>
+                        <motion.h1
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.15 }}
+                            className="text-xl sm:text-3xl md:text-5xl font-black tracking-tight mb-1 md:mb-4"
+                            style={{ background: 'linear-gradient(135deg, #ffffff 0%, #7EC8F2 50%, #4B9BDC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+                        >
+                            {t("reports.headerChurch")} <span>{t("reports.intelligent")}</span> {t("reports.headerReports")}
+                        </motion.h1>
+                        <motion.p
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="text-blue-100/70 max-w-xl text-[10px] sm:text-sm md:text-base font-medium hidden sm:block"
+                        >
                             {t("reports.subtitle")}
-                        </p>
+                        </motion.p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                    {/* Actions Group */}
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 shrink-0">
                         <motion.button
                             whileHover={{ scale: 1.03, y: -2 }}
                             whileTap={{ scale: 0.97 }}
                             onClick={handleExportPDF}
-                            className="flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-white text-blue-600 font-bold text-xs sm:text-sm shadow-xl"
+                            className="flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-white text-blue-600 font-black text-xs sm:text-sm shadow-xl hover:shadow-2xl transition-all"
+                            style={{ boxShadow: '0 12px 24px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.8)' }}
                         >
                             <Download size={18} />
-                            {t("reports.exportPdf")}
+                            <span>{t("reports.exportPdf")}</span>
                         </motion.button>
                         <motion.button
                             whileHover={{ scale: 1.03, y: -2 }}
                             whileTap={{ scale: 0.97 }}
                             onClick={handleExportExcel}
-                            className="flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-xl"
+                            className="flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-[#10B981] text-white font-black text-xs sm:text-sm shadow-lg hover:shadow-xl transition-all"
+                            style={{ boxShadow: '0 12px 24px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.2)' }}
                         >
                             <FileText size={18} />
-                            {t("reports.exportExcel")}
+                            <span>{t("reports.exportExcel")}</span>
                         </motion.button>
                     </div>
                 </div>
@@ -990,509 +1270,371 @@ export default function Reports() {
             </motion.div>
 
             {/* --- DASHBOARD CONTENT --- */}
-            <motion.div variants={containerVariants} className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
-                {/* --- LEFT COLUMN --- */}
-                <div className="xl:col-span-2 space-y-6 sm:space-y-8">
-                    {/* Analytics Overview */}
-                    <motion.div
-                        variants={itemVariants}
-                        whileHover={{ y: -6, scale: 1.01 }}
-                        className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl overflow-hidden relative"
-                        style={d.card}
-                    >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
-                                    <DollarSign size={22} className="sm:w-6 sm:h-6" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100">
-                                        {t("reports.overview")}
-                                    </h2>
-                                    <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-widest">
-                                        {t("dashboard.analytics.globalMetrics")}
-                                    </p>
-                                </div>
+            <motion.div variants={containerVariants} className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">
+                {/* Analytics Overview */}
+                <motion.div
+                    variants={itemVariants}
+                    whileHover={{ y: -6, scale: 1.01 }}
+                    className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl overflow-hidden relative"
+                    style={d.card}
+                >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                                <BarChart3 size={22} className="sm:w-6 sm:h-6" />
                             </div>
-                            <div className="text-left sm:text-right">
-                                <p className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-gray-100">
-                                    {totalStats.toLocaleString()}
+                            <div>
+                                <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100">
+                                    {t("reports.overview")}
+                                </h2>
+                                <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-widest">
+                                    {t("dashboard.analytics.globalMetrics")}
                                 </p>
-                                <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold">
-                                    <ArrowUpRight size={14} />
-                                    <span>{t("dashboard.activity.liveActivity")}</span>
-                                </div>
                             </div>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-center">
-                            <div className="h-[220px] sm:h-[250px] min-h-[200px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={distributionData} layout="vertical" margin={{ left: 20, right: 20 }}>
-                                        <XAxis type="number" hide />
-                                        <YAxis dataKey="category" type="category" hide />
-                                        <Tooltip
-                                            cursor={{ fill: "transparent" }}
-                                            contentStyle={{
-                                                borderRadius: "16px",
-                                                border: "none",
-                                                boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-                                            }}
-                                        />
-                                        <Bar dataKey="amount" radius={[0, 10, 10, 0]}>
-                                            {distributionData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <div className="space-y-3 sm:space-y-4">
-                                {distributionData.map((item, idx) => (
-                                    <motion.div
-                                        key={idx}
-                                        initial={{ opacity: 0, x: 20 }}
-                                        whileInView={{ opacity: 1, x: 0 }}
-                                        viewport={{ once: true }}
-                                        transition={{ delay: idx * 0.1, type: "spring", stiffness: 100 }}
-                                        whileHover={{ scale: 1.02, x: -5 }}
-                                        className="flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                                            <span className="text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-300 truncate">
-                                                {item.category}
-                                            </span>
-                                        </div>
-                                        <span className="text-sm font-black text-gray-900 dark:text-gray-100 shrink-0 ml-2">
-                                            {item.amount.toLocaleString()}
-                                        </span>
-                                    </motion.div>
-                                ))}
+                        <div className="text-left sm:text-right">
+                            <p className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-gray-100">
+                                {totalStats.toLocaleString()}
+                            </p>
+                            <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold">
+                                <ArrowUpRight size={14} />
+                                <span>{t("dashboard.activity.liveActivity")}</span>
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
 
-                    {/* Growth Forecasting */}
-                    <motion.div
-                        variants={itemVariants}
-                        whileHover={{ y: -6, scale: 1.01 }}
-                        className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl relative overflow-hidden"
-                        style={d.card}
-                    >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-                            <div className="flex items-center gap-3">
-                                <motion.div
-                                    whileHover={{ rotate: 15, scale: 1.1 }}
-                                    className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600"
-                                >
-                                    <TrendingUp size={22} className="sm:w-6 sm:h-6" />
-                                </motion.div>
-                                <div>
-                                    <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100">
-                                        {t("reports.forecasting")}
-                                    </h2>
-                                    <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-widest">
-                                        {t("reports.projections")}
-                                    </p>
-                                </div>
-                            </div>
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: 0.5 }}
-                                className="bg-emerald-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black shadow-lg shadow-emerald-500/20"
-                            >
-                                {t("reports.predictiveAiEnabled")}
-                            </motion.div>
-                        </div>
-
-                        <div className="h-[260px] sm:h-[300px] min-h-[240px]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-center">
+                        <div className="h-[220px] sm:h-[250px] min-h-[200px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={growthData}>
-                                    <defs>
-                                        <linearGradient id="colorMembers" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid
-                                        strokeDasharray="3 3"
-                                        vertical={false}
-                                        stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
-                                    />
-                                    <XAxis
-                                        dataKey="month"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 9, fontWeight: 600, fill: "#94a3b8" }}
-                                    />
-                                    <YAxis
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 10, fontWeight: 600, fill: "#94a3b8" }}
-                                    />
+                                <BarChart data={distributionData} layout="vertical" margin={{ left: 20, right: 20 }}>
+                                    <XAxis type="number" hide />
+                                    <YAxis dataKey="category" type="category" hide />
                                     <Tooltip
+                                        cursor={{ fill: "transparent" }}
                                         contentStyle={{
                                             borderRadius: "16px",
                                             border: "none",
                                             boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
                                         }}
                                     />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="members"
-                                        stroke="#10b981"
-                                        strokeWidth={4}
-                                        fillOpacity={1}
-                                        fill="url(#colorMembers)"
-                                        dot={{ r: 5, fill: "#fff", stroke: "#10b981", strokeWidth: 2 }}
-                                        activeDot={{ r: 7, strokeWidth: 0 }}
-                                        animationDuration={1500}
-                                        animationEasing="ease-in-out"
-                                    />
-                                </AreaChart>
+                                    <Bar dataKey="amount" radius={[0, 10, 10, 0]}>
+                                        {distributionData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
                             </ResponsiveContainer>
                         </div>
-
-                        <div className="mt-4 sm:mt-6 flex flex-wrap justify-center gap-4 sm:gap-8">
-                            <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                    {t("reports.historicalData")}
-                                </span>
-                            </motion.div>
-                            <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-blue-500" />
-                                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                    {t("reports.aiForecast")}
-                                </span>
-                            </motion.div>
-                        </div>
-                    </motion.div>
-                </div>
-
-                {/* --- RIGHT COLUMN: Map & Demographics --- */}
-                <div className="space-y-6 sm:space-y-8">
-                    {/* Branch Distribution Map */}
-                    <motion.div
-                        variants={itemVariants}
-                        whileHover={{ y: -6, scale: 1.01 }}
-                        className="rounded-2xl sm:rounded-[2.5rem] border border-transparent shadow-xl overflow-hidden relative"
-                        style={d.card}
-                    >
-                        <div className="p-4 sm:p-6 md:p-8">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
-                                    <MapIcon size={22} className="sm:w-6 sm:h-6" />
-                                </div>
-                                <div className="min-w-0">
-                                    <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100 truncate">
-                                        {t("reports.branchDensity")}
-                                    </h2>
-                                    <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-widest">
-                                        {t("reports.distribution")}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="h-[320px] sm:h-[380px] md:h-[400px] relative">
-                            <div className="h-full w-full z-0">
-                                <MapContainer
-                                    center={[viewState.latitude, viewState.longitude]}
-                                    zoom={viewState.zoom}
-                                    style={{ width: "100%", height: "100%" }}
-                                    scrollWheelZoom={false}
+                        <div className="space-y-3 sm:space-y-4">
+                            {distributionData.map((item, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    initial={{ opacity: 0, x: 20 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: idx * 0.1, type: "spring", stiffness: 100 }}
+                                    whileHover={{ scale: 1.02, x: -5 }}
+                                    className="flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50"
                                 >
-                                    <TileLayer
-                                        url={isDark ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
-                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                                    />
-                                    <MapUpdater center={[viewState.latitude, viewState.longitude]} zoom={viewState.zoom} />
-
-                                    {churchesWithCoords.map((church) => (
-                                        <LeafletMarker
-                                            key={church.id}
-                                            position={[church.lat, church.lng]}
-                                            icon={createChurchIcon('#3b82f6')}
-                                        >
-                                            <Popup>
-                                                <div className="p-1">
-                                                    <p className="text-sm font-black text-gray-900">{church.name}</p>
-                                                    <p className="text-xs text-gray-500">{church.location || t("reports.noLocation")}</p>
-                                                    {church.map_link && (
-                                                        <a
-                                                            href={church.map_link}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="mt-2 inline-flex items-center gap-1 text-[10px] text-blue-500 font-bold hover:underline"
-                                                        >
-                                                            <ExternalLink size={10} />
-                                                            {t("reports.openInMaps")}
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            </Popup>
-                                        </LeafletMarker>
-                                    ))}
-
-                                    {churchesWithoutCoords.map((church, idx) => (
-                                        <LeafletMarker
-                                            key={church.id}
-                                            position={[
-                                                DEFAULT_ETHIOPIA_CENTER.lat + (idx + 1) * 0.01,
-                                                DEFAULT_ETHIOPIA_CENTER.lng + (idx + 1) * 0.02
-                                            ]}
-                                            icon={createChurchIcon('#f59e0b')}
-                                        >
-                                            <Popup>
-                                                <div className="p-1">
-                                                    <p className="text-sm font-black text-gray-900">{church.name}</p>
-                                                    <p className="text-xs text-amber-600">{t("reports.noMapLink")}</p>
-                                                </div>
-                                            </Popup>
-                                        </LeafletMarker>
-                                    ))}
-                                </MapContainer>
-                            </div>
-
-                            <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
-                                <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xl border border-white/20">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-blue-500" />
-                                            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                                                {t("reports.branches")} ({mapChurches.length})
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-amber-500" />
-                                            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                                                {t("reports.noMapLink")}
-                                            </span>
-                                        </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                                        <span className="text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-300 truncate">
+                                            {item.category}
+                                        </span>
                                     </div>
-                                </div>
-                            </div>
+                                    <span className="text-sm font-black text-gray-900 dark:text-gray-100 shrink-0 ml-2">
+                                        {item.amount.toLocaleString()}
+                                    </span>
+                                </motion.div>
+                            ))}
                         </div>
-                    </motion.div>
+                    </div>
+                </motion.div>
 
-                    {/* Demographic Heatmap - Ultra Professional */}
-                    <motion.div
-                        variants={itemVariants}
-                        whileHover={{ y: -6, scale: 1.01 }}
-                        className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl relative overflow-hidden"
-                        style={d.card}
-                    >
-                        <div className="flex items-center gap-3 mb-6 sm:mb-8">
+                {/* Growth Forecasting */}
+                <motion.div
+                    variants={itemVariants}
+                    whileHover={{ y: -6, scale: 1.01 }}
+                    className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl relative overflow-hidden"
+                    style={d.card}
+                >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                        <div className="flex items-center gap-3">
                             <motion.div
                                 whileHover={{ rotate: 15, scale: 1.1 }}
-                                className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/25"
+                                className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600"
                             >
-                                <Users size={22} className="sm:w-6 sm:h-6" />
+                                <TrendingUp size={22} className="sm:w-6 sm:h-6" />
                             </motion.div>
                             <div>
                                 <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100">
-                                    {t("reports.demographics")}
+                                    {t("reports.forecasting")}
                                 </h2>
                                 <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-widest">
-                                    {t("reports.memberInsights")}
+                                    {t("reports.projections")}
                                 </p>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="space-y-6 sm:space-y-8">
-                            {/* Age Distribution - Heatmap style */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-6">
-                                    <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                                        <Users size={14} className="text-violet-600" />
-                                    </div>
-                                    <h3 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                                        {t("reports.ageDistribution")}
-                                    </h3>
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
-                                    <AnimatePresence>
-                                        {demographicData.map((item, idx) => {
-                                            const maxVal = Math.max(...demographicData.map((d) => d.count), 1);
-                                            const intensity = item.count / maxVal;
-                                            const bgOpacity = 0.2 + intensity * 0.8;
-                                            return (
-                                                <motion.div
-                                                    key={idx + '-' + item.age}
-                                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
-                                                    viewport={{ once: true }}
-                                                    transition={{ delay: idx * 0.05, type: 'spring' }}
-                                                    className="relative group flex flex-col items-center justify-center p-6 rounded-[2.5rem] border border-violet-200/50 dark:border-violet-500/20 shadow-xl transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 overflow-hidden min-h-[160px]"
-                                                    style={{
-                                                        background: isDark
-                                                            ? `linear-gradient(180deg, rgba(139, 92, 246, ${bgOpacity * 0.4}) 0%, rgba(99, 102, 241, ${bgOpacity * 0.3}) 100%)`
-                                                            : `linear-gradient(180deg, rgba(139, 92, 246, ${bgOpacity}) 0%, rgba(99, 102, 241, ${bgOpacity * 0.8}) 100%)`,
-                                                    }}
-                                                >
-                                                    {/* Internal Glass Shine */}
-                                                    <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/10 blur-xl -translate-y-1/2 rounded-full" />
+                    <div className="h-[260px] sm:h-[300px] min-h-[240px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={growthData}>
+                                <defs>
+                                    <linearGradient id="colorMembers" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    vertical={false}
+                                    stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
+                                />
+                                <XAxis
+                                    dataKey="month"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 9, fontWeight: 600, fill: "#94a3b8" }}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 10, fontWeight: 600, fill: "#94a3b8" }}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        borderRadius: "16px",
+                                        border: "none",
+                                        boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                                    }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="members"
+                                    stroke="#10b981"
+                                    strokeWidth={4}
+                                    fillOpacity={1}
+                                    fill="url(#colorMembers)"
+                                    dot={{ r: 5, fill: "#fff", stroke: "#10b981", strokeWidth: 2 }}
+                                    activeDot={{ r: 7, strokeWidth: 0 }}
+                                    animationDuration={1500}
+                                    animationEasing="ease-in-out"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </motion.div>
+            </motion.div>
 
-                                                    <div className="relative z-10 flex flex-col items-center gap-1.5 text-center">
-                                                        <p className={`text-[10px] font-black uppercase tracking-[0.15em] ${isDark ? "text-violet-300" : "text-white/80"}`}>
-                                                            {item.age} {t("reports.yrs")}
-                                                        </p>
-                                                        <motion.p
-                                                            initial={{ scale: 0.5 }}
-                                                            whileInView={{ scale: 1 }}
-                                                            viewport={{ once: true }}
-                                                            transition={{ type: "spring", stiffness: 200, delay: 0.2 + idx * 0.05 }}
-                                                            className={`text-4xl sm:text-5xl font-black leading-none ${isDark ? "text-white" : "text-white"}`}
-                                                        >
-                                                            {item.count}
-                                                        </motion.p>
-                                                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-black ${isDark ? "bg-violet-900/50 text-violet-200" : "bg-white/20 text-white"}`}>
-                                                            {item.percentage.toFixed(0)}%
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Bottom Scale - Horizontal Progress */}
-                                                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 dark:bg-white/5">
-                                                        <motion.div
-                                                            initial={{ width: 0 }}
-                                                            whileInView={{ width: `${(item.count / maxVal) * 100}%` }}
-                                                            viewport={{ once: true }}
-                                                            transition={{ duration: 1, ease: "easeOut", delay: 0.3 + idx * 0.05 }}
-                                                            className="h-full bg-white/60 dark:bg-white/40 shadow-[0_0_15px_rgba(255,255,255,0.5)]"
-                                                        />
-                                                    </div>
-                                                </motion.div>
-                                            );
-                                        })}
-                                    </AnimatePresence>
-                                </div>
+            {/* --- BRANCH DISTRIBUTION MAP (Full Width) --- */}
+            <motion.div
+                variants={itemVariants}
+                className="rounded-2xl sm:rounded-[3rem] border border-transparent shadow-2xl overflow-hidden relative"
+                style={d.card}
+            >
+                <div className="p-6 sm:p-10 md:p-12">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 sm:w-16 h-12 sm:h-16 rounded-2xl sm:rounded-3xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 shadow-lg shadow-amber-500/10">
+                                <MapIcon size={28} className="sm:w-8 sm:h-8" />
                             </div>
-
-                            {/* Marital Status */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center">
-                                        <Heart size={14} className="text-pink-600" />
-                                    </div>
-                                    <h3 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                                        {t("reports.maritalStatus")}
-                                    </h3>
-                                </div>
-                                <div className="space-y-2 sm:space-y-3">
-                                    {demographicMarital.map((item, idx) => {
-                                        const total = demographicMarital.reduce((a, b) => a + b.count, 0);
-                                        const pct = total > 0 ? (item.count / total) * 100 : 0;
-                                        return (
-                                            <div key={idx} className="space-y-1.5">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-300">
-                                                        {item.name === "Unknown" ? t("common.unknown") : (t(`members.form.maritalStatus.${item.name.toLowerCase()}`) || item.name)}
-                                                    </span>
-                                                    <span className="text-xs sm:text-sm font-black text-gray-900 dark:text-gray-100">
-                                                        {item.count} ({pct.toFixed(1)}%)
-                                                    </span>
-                                                </div>
-                                                <div className="h-2 sm:h-2.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        whileInView={{ width: `${pct}%` }}
-                                                        viewport={{ once: true }}
-                                                        transition={{ duration: 1, ease: "easeOut", delay: idx * 0.1 }}
-                                                        className="h-full rounded-full"
-                                                        style={{ backgroundColor: item.fill }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Education & Employment - Compact grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                                            <GraduationCap size={14} className="text-blue-600" />
-                                        </div>
-                                        <h3 className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                                            {t("reports.education")}
-                                        </h3>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        {demographicEducation.slice(0, 4).map((item, idx) => (
-                                            <motion.div
-                                                key={idx}
-                                                initial={{ opacity: 0, x: -10 }}
-                                                whileInView={{ opacity: 1, x: 0 }}
-                                                viewport={{ once: true }}
-                                                transition={{ delay: idx * 0.1 }}
-                                                className="flex justify-between text-[10px] sm:text-xs"
-                                            >
-                                                <span className="font-medium text-gray-600 dark:text-gray-400 truncate mr-2">
-                                                    {(() => {
-                                                        const eduKeyMap: Record<string, string> = {
-                                                            "High School": "highSchool",
-                                                            "Diploma": "diploma",
-                                                            "Bachelor's": "bachelors",
-                                                            "Master's": "masters",
-                                                            "PhD": "phd"
-                                                        };
-                                                        return item.name !== "Unknown" ? t(`members.form.${eduKeyMap[item.name] || item.name}`) : t("common.unknown");
-                                                    })()}
-                                                </span>
-                                                <span className="font-black text-gray-900 dark:text-gray-100 shrink-0">
-                                                    {item.count}
-                                                </span>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                                            <Briefcase size={14} className="text-emerald-600" />
-                                        </div>
-                                        <h3 className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                                            {t("reports.employment")}
-                                        </h3>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        {demographicEmployment.slice(0, 4).map((item, idx) => (
-                                            <motion.div
-                                                key={idx}
-                                                initial={{ opacity: 0, x: -10 }}
-                                                whileInView={{ opacity: 1, x: 0 }}
-                                                viewport={{ once: true }}
-                                                transition={{ delay: idx * 0.1 }}
-                                                className="flex justify-between text-[10px] sm:text-xs"
-                                            >
-                                                <span className="font-medium text-gray-600 dark:text-gray-400 truncate mr-2">
-                                                    {(() => {
-                                                        const empKeyMap: Record<string, string> = {
-                                                            "Employed": "employed",
-                                                            "Self-Employed": "selfEmployed",
-                                                            "Unemployed": "unemployed",
-                                                            "Student": "student",
-                                                            "Retired": "retired"
-                                                        };
-                                                        return item.name !== "Unknown" ? t(`members.form.${empKeyMap[item.name] || item.name}`) : t("common.unknown");
-                                                    })()}
-                                                </span>
-                                                <span className="font-black text-gray-900 dark:text-gray-100 shrink-0">
-                                                    {item.count}
-                                                </span>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                </div>
+                            <div className="min-w-0">
+                                <h2 className="text-xl sm:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
+                                    {t("reports.branchDensity")}
+                                </h2>
+                                <p className="text-xs sm:text-sm text-gray-500 font-bold uppercase tracking-[0.2em]">
+                                    {t("reports.distribution")}
+                                </p>
                             </div>
                         </div>
-                    </motion.div>
+                        <div className="flex flex-wrap items-center gap-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-[2rem] border border-gray-100 dark:border-gray-700/50">
+                            <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-gray-900 rounded-full shadow-sm">
+                                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                                <span className="text-[11px] font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                    {t("reports.branches")} ({mapChurches.length})
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-gray-900 rounded-full shadow-sm">
+                                <div className="w-3 h-3 rounded-full bg-amber-500" />
+                                <span className="text-[11px] font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                    {t("reports.noMapLink")} ({churchesWithoutCoords.length})
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <div className="h-[600px] sm:h-[800px] md:h-[900px] w-full relative">
+                    <div className="h-full w-full z-0 overflow-hidden rounded-b-[2rem] sm:rounded-b-[2.5rem]">
+                        <MapContainer
+                            center={[viewState.latitude, viewState.longitude]}
+                            zoom={viewState.zoom}
+                            style={{ width: "100%", height: "100%" }}
+                            scrollWheelZoom={false}
+                        >
+                            <TileLayer
+                                url={isDark ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                            />
+                            <MapUpdater center={[viewState.latitude, viewState.longitude]} zoom={viewState.zoom} />
+
+                            {churchesWithCoords.map((church) => (
+                                <LeafletMarker
+                                    key={church.id}
+                                    position={[church.lat, church.lng]}
+                                    icon={createChurchIcon('#3b82f6')}
+                                >
+                                    <Popup className="custom-popup-premium">
+                                        <div className="p-3 min-w-[200px]">
+                                            <p className="text-lg font-black text-gray-900 border-b border-gray-100 pb-2 mb-2">{church.name}</p>
+                                            <div className="space-y-2">
+                                                <div className="flex items-start gap-2">
+                                                    <Building size={14} className="text-gray-400 mt-1 shrink-0" />
+                                                    <p className="text-sm text-gray-600 leading-tight">{church.location || t("reports.noLocation")}</p>
+                                                </div>
+                                                {church.map_link && (
+                                                    <a
+                                                        href={church.map_link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="mt-3 flex items-center justify-center gap-2 w-full py-2 bg-blue-500 text-white rounded-xl text-xs font-black hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
+                                                    >
+                                                        <ExternalLink size={14} />
+                                                        {t("reports.openInMaps")}
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </Popup>
+                                </LeafletMarker>
+                            ))}
+
+                            {churchesWithoutCoords.map((church, idx) => (
+                                <LeafletMarker
+                                    key={church.id}
+                                    position={[
+                                        DEFAULT_ETHIOPIA_CENTER.lat + (idx + 1) * 0.05,
+                                        DEFAULT_ETHIOPIA_CENTER.lng + (idx + 1) * 0.05
+                                    ]}
+                                    icon={createChurchIcon('#f59e0b')}
+                                >
+                                    <Popup className="custom-popup-premium">
+                                        <div className="p-3">
+                                            <p className="text-lg font-black text-gray-900 mb-1">{church.name}</p>
+                                            <p className="text-xs font-bold text-amber-600 uppercase tracking-widest bg-amber-50 px-2 py-1 rounded-md inline-block">
+                                                {t("reports.noMapLink")}
+                                            </p>
+                                        </div>
+                                    </Popup>
+                                </LeafletMarker>
+                            ))}
+                        </MapContainer>
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* --- DEMOGRAPHICS SECTION --- */}
+            <motion.div variants={containerVariants} className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
+                {/* Demographic Heatmap */}
+                <motion.div
+                    variants={itemVariants}
+                    whileHover={{ y: -6, scale: 1.01 }}
+                    className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl relative overflow-hidden"
+                    style={d.card}
+                >
+                    <div className="flex items-center gap-3 mb-6 sm:mb-8">
+                        <motion.div
+                            whileHover={{ rotate: 15, scale: 1.1 }}
+                            className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/25"
+                        >
+                            <Users size={22} className="sm:w-6 sm:h-6" />
+                        </motion.div>
+                        <div>
+                            <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100">
+                                {t("reports.demographics")}
+                            </h2>
+                            <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-widest">
+                                {t("reports.memberInsights")}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6 sm:space-y-8">
+                        {/* Age Distribution */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-6">
+                                <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                                    <Users size={14} className="text-violet-600" />
+                                </div>
+                                <h3 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                                    {t("reports.ageDistribution")}
+                                </h3>
+                            </div>
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                                {demographicData.map((item, idx) => {
+                                    const maxVal = Math.max(...demographicData.map((d) => d.count), 1);
+                                    const intensity = item.count / maxVal;
+                                    const bgOpacity = 0.2 + intensity * 0.8;
+                                    return (
+                                        <motion.div
+                                            key={idx}
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            whileInView={{ opacity: 1, scale: 1 }}
+                                            viewport={{ once: true }}
+                                            className="relative p-4 rounded-2xl border border-violet-100 dark:border-violet-900/30 flex flex-col items-center justify-center text-center overflow-hidden"
+                                            style={{
+                                                background: isDark
+                                                    ? `rgba(139, 92, 246, ${bgOpacity * 0.4})`
+                                                    : `rgba(139, 92, 246, ${bgOpacity * 0.2})`,
+                                            }}
+                                        >
+                                            <p className="text-[10px] font-black text-violet-700 dark:text-violet-300 uppercase mb-1">{item.age} {t("reports.yrs")}</p>
+                                            <p className="text-xl font-black text-gray-900 dark:text-white leading-none mb-1">{item.count}</p>
+                                            <span className="text-[10px] font-bold text-gray-500">{item.percentage.toFixed(0)}%</span>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Marital Status */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center">
+                                    <Heart size={14} className="text-pink-600" />
+                                </div>
+                                <h3 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                                    {t("reports.maritalStatus")}
+                                </h3>
+                            </div>
+                            <div className="space-y-4">
+                                {demographicMarital.map((item, idx) => {
+                                    const total = demographicMarital.reduce((a, b) => a + b.count, 0);
+                                    const pct = total > 0 ? (item.count / total) * 100 : 0;
+                                    return (
+                                        <div key={idx} className="space-y-1.5">
+                                            <div className="flex justify-between text-xs font-bold">
+                                                <span className="text-gray-600 dark:text-gray-400">
+                                                    {item.name === "Unknown" ? t("common.unknown") : (t(`members.form.maritalStatus.${item.name.toLowerCase()}`) || item.name)}
+                                                </span>
+                                                <span className="text-gray-900 dark:text-gray-100 font-black">{item.count} ({pct.toFixed(0)}%)</span>
+                                            </div>
+                                            <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    whileInView={{ width: `${pct}%` }}
+                                                    className="h-full rounded-full"
+                                                    style={{ backgroundColor: item.fill }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
             </motion.div>
         </motion.div>
     );

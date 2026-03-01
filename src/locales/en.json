@@ -198,8 +198,8 @@
         "didntReceive": "Didn't receive the email?",
         "tryAgain": "Try again",
         "establishingSession": "Establishing secure session...",
-        "empoweringMinistry": "Empowering Ministry through Technology",
-        "description": "A comprehensive management system designed to streamline church administration, connect members, and support spiritual growth."
+        "empoweringMinistry": "Addis Abeba Region Guenet Church",
+        "description": "To him that overcometh will I give to eat of the tree of life, which is in the midst of the paradise of God. Revelation 2:7"
     },
     "dashboard": {
         "title": "Control Center",
@@ -520,11 +520,18 @@
             "sections": {
                 "personal": "Personal Info",
                 "spiritual": "Spiritual Life",
-                "education": "Education & Work",
+                "education": "Education Info",
+                "work": "Work Info",
                 "family": "Family Status",
                 "service": "Service History",
                 "fellowship": "Fellowship",
                 "signatures": "Review & Sign"
+            },
+            "baptismStatus": "Baptism Status",
+            "baptismOptions": {
+                "pending": "Pending",
+                "done": "Done",
+                "notYet": "Not Yet"
             },
             "photo": "Photo",
             "fullName": "Full Name",
@@ -537,7 +544,7 @@
             "salvationPlacePlaceholder": "City/Church",
             "previousChurch": "Previous church/ministry (if any)",
             "prevChurchPlaceholder": "Name of previous church",
-            "reasonForComing": "Reason for coming to G.G.B.C",
+            "reasonForComing": "Reason for coming to this church",
             "reasonPlaceholder": "e.g. Transfer, New Believer",
             "fieldOfStudy": "Type of Education",
             "fieldOfStudyPlaceholder": "e.g. Engineering",
@@ -545,6 +552,9 @@
             "employmentStatus": "Employment Status",
             "workplaceAddress": "Workplace Address",
             "workplacePlaceholder": "Company/Organization",
+            "schoolName": "School/University Name",
+            "grade": "Grade",
+            "universityYear": "University Year",
             "phoneNumber": "Phone Number",
             "phonePlaceholder": "+251...",
             "maritalStatus": {
@@ -591,6 +601,7 @@
             "bachelors": "Bachelor's Degree",
             "masters": "Master's Degree",
             "phd": "PhD",
+            "kgPreSchool": "KG & Pre-school",
             "selectStatus": "Select Status",
             "employed": "Employed",
             "selfEmployed": "Self-Employed",
@@ -642,7 +653,8 @@
             "thisChurch": "This Church",
             "promoteSuccess": "Member successfully promoted to Servant!",
             "promoteError": "Failed to create servant account",
-            "updateRecords": "Update Records"
+            "updateRecords": "Update Records",
+            "updateSuccess": "Member updated successfully"
         }
     },
     "activity": {
@@ -707,28 +719,25 @@
         "headerChurch": "Church",
         "headerReports": "Reports",
         "overview": "Analytics Overview",
-        "subtitle": "Board-ready professional reports with growth forecasting and geographic insights.",
+        "subtitle": "Board-ready professional reports with growth history and geographic insights.",
         "generate": "Generate Report",
         "exportPdf": "Export PDF",
         "exportExcel": "Export Excel",
-        "forecasting": "Growth Forecasting",
+        "forecasting": "Growth Analytics",
         "demographics": "Demographic Heatmap",
         "finances": "Financial Snapshot",
-        "branchDensity": "Branch Distribution",
+        "branchDensity": "Branch Network",
         "dateRange": "Date Range",
         "selectChurch": "Select Church",
         "allChurches": "All Churches",
         "brandLogo": "Include Branding",
-        "projections": "Projections",
-        "distribution": "Member Density",
+        "projections": "Member trends history",
+        "distribution": "Geographic Overview",
         "totalIncome": "Total Income",
         "totalExpense": "Total Expenses",
         "netGrowth": "Net Member Growth",
-        "predictiveAi": "PREDICTIVE AI ENABLED",
-        "historicalData": "Historical Data",
-        "aiForecast": "AI Forecast",
         "branches": "Branches",
-        "noMapLink": "No map link",
+        "noMapLink": "Unmapped Branches",
         "memberInsights": "Member insights",
         "ageDistribution": "Age Distribution",
         "maritalStatus": "Marital Status",
@@ -745,7 +754,6 @@
             "all_time": "All Time"
         },
         "intelligent": "Intelligent",
-        "predictiveAiEnabled": "PREDICTIVE AI ENABLED",
         "pdf": {
             "title": "ETHIOPIAN GUENET CHURCH",
             "scope": "Report Scope",
@@ -753,7 +761,7 @@
             "generated": "Generated",
             "totalRecords": "Total Records",
             "overview": "1. Analytics Overview",
-            "growth": "2. Growth Forecasting",
+            "growth": "2. Member Growth History",
             "age": "3. Age Distribution",
             "marital": "4. Marital Status",
             "education": "5. Education Level",
@@ -771,7 +779,8 @@
             "generatedBy": "Generated by Ethiopian Guenet Church Management System",
             "totalMembers": "TOTAL MEMBERS",
             "totalBranches": "TOTAL BRANCHES",
-            "currentScope": "CURRENT SCOPE"
+            "currentScope": "CURRENT SCOPE",
+            "exportSuccess": "PDF Exported successfully!"
         },
         "excel": {
             "allChurches": "All_Churches",

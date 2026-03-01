@@ -36,8 +36,12 @@ const memberSchema = z.object({
   previous_church: z.string().optional().nullable(),
   reason_for_coming: z.string().optional().nullable(),
   faith: z.string().optional().nullable(),
+  baptism_status: z.string().optional().nullable(),
   field_of_study: z.string().optional().nullable(),
   educational_level: z.string().optional().nullable(),
+  grade: z.string().optional().nullable(),
+  university_year: z.string().optional().nullable(),
+  school_name: z.string().optional().nullable(),
   employment_status: z.string().optional().nullable(),
   workplace_address: z.string().optional().nullable(),
   income_amount: z.string().optional().nullable(),
@@ -81,9 +85,10 @@ export default function AddMember() {
   const SECTIONS = React.useMemo(() => [
     { id: 'personal', title: t('members.form.sections.personal'), icon: User, color: 'from-blue-500 to-cyan-400' },
     { id: 'spiritual', title: t('members.form.sections.spiritual'), icon: Heart, color: 'from-purple-500 to-pink-400' },
-    { id: 'education', title: t('members.form.sections.education'), icon: Briefcase, color: 'from-amber-500 to-orange-400' },
+    { id: 'education', title: t('members.form.sections.education'), icon: BookOpen, color: 'from-teal-500 to-emerald-400' },
+    { id: 'work', title: t('members.form.sections.work'), icon: Briefcase, color: 'from-amber-500 to-orange-400' },
     { id: 'family', title: t('members.form.sections.family'), icon: Users, color: 'from-rose-500 to-pink-400' },
-    { id: 'service', title: t('members.form.sections.service'), icon: BookOpen, color: 'from-teal-500 to-emerald-400' },
+    { id: 'service', title: t('members.form.sections.service'), icon: Shield, color: 'from-blue-600 to-indigo-500' },
     { id: 'fellowship', title: t('members.form.sections.fellowship'), icon: Globe, color: 'from-indigo-500 to-blue-400' },
     { id: 'signatures', title: t('members.form.sections.signatures'), icon: CheckCircle, color: 'from-slate-600 to-slate-400' },
   ], [t]);
@@ -176,7 +181,7 @@ export default function AddMember() {
         try {
           const parsed = JSON.parse(draft);
           reset(parsed);
-          toast.success(t('members.draftRestored'), { icon: "📝" });
+          // toast.success(t('members.draftRestored'), { icon: "📝" });
         }
         catch (e) { console.error("Failed to parse draft", e); }
       } else if (profile?.department_id) {
@@ -275,8 +280,12 @@ export default function AddMember() {
         photoUrl = publicUrl;
       } else if (typeof data.photo === 'string') { photoUrl = data.photo; }
 
+      // Include all data, but be aware that if columns don't exist in DB, Supabase will return an error.
+      // We've provided a migration file to add these missing columns.
+      const dataToSave = { ...data };
+
       const payload = {
-        ...data, photo: photoUrl,
+        ...dataToSave, photo: photoUrl,
         church_id: profile?.church_id,
         department_id: data.department_id || null,
         income_amount: data.income_amount && !isNaN(parseFloat(data.income_amount)) ? parseFloat(data.income_amount) : null,
@@ -306,7 +315,7 @@ export default function AddMember() {
           "MEMBER",
           t('members.messages.addedNewMemberLog').replace("Added", "Updated").replace("{{name}}", data.full_name) + ` (Changed: ${changedFields})`,
           id,
-          diff
+          diff.new
         );
 
         toast.success(t('members.messages.updateSuccess'), { id: loadingToast });
@@ -330,6 +339,12 @@ export default function AddMember() {
             toast.error(t('members.messages.servantAccountError').replace("{{error}}", responseData.error), { id: loadingToast });
           } else {
             const servantId = responseData.user?.id || responseData?.id;
+            
+            // Update profile picture if available
+            if (servantId && photoUrl) {
+              await supabase.from('profiles').update({ avatar_url: photoUrl }).eq('id', servantId);
+            }
+
             await logActivity("CREATE", "SERVANT", t('members.messages.promotingMemberLog').replace("{{name}}", data.full_name), servantId || null, {
               email: data.email,
               source: "Member Registration"
@@ -389,6 +404,11 @@ export default function AddMember() {
 
       const servantId = responseData.user?.id || responseData?.id;
 
+      // Update profile picture if available
+      if (servantId && initialData.photo) {
+        await supabase.from('profiles').update({ avatar_url: initialData.photo }).eq('id', servantId);
+      }
+
       let churchName = t('members.messages.thisChurch');
       if (profile?.role === "pastor" && profile.church_id) {
         churchName = t('members.messages.thisChurch');
@@ -431,131 +451,30 @@ export default function AddMember() {
       transition={{ duration: 0.15 }}
       className="min-h-screen pb-20"
     >
-      {/* Floating Sticky Header (Desktop) */}
-      {isDesktop && (
-        <div className="sticky top-4 md:top-6 z-20 w-full mb-8">
-          <div className="w-full backdrop-blur-2xl border shadow-[0_8px_32px_rgba(75,155,220,0.12)] rounded-2xl md:rounded-[2rem] transition-all duration-300" style={d.modalContent}>
-            <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => navigate(-1)}
-                  className="p-2.5 rounded-xl text-gray-500 transition-all hover:scale-105 active:scale-95 border border-transparent"
-                  style={d.iconBox}
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <div>
-                  <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight leading-none overflow-hidden">
-                    {isEditing ? t('members.editBtn') : t('members.addBtn')}
-                  </h1>
-                  <p className="text-[10px] md:text-xs text-blue-500 font-bold uppercase tracking-wider mt-1 opacity-80">
-                    {isEditing ? t('dashboard.actions.viewAddMembers') : t('login.empoweringMinistry')}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (isEditing) {
-                      setIsMakeServantModalOpen(true);
-                    } else {
-                      setPromoteToServant(!promoteToServant);
-                    }
-                  }}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all border ${promoteToServant ? 'bg-[#4B9BDC] text-white border-[#4B9BDC]' : 'bg-[#4B9BDC]/10 text-[#4B9BDC] hover:bg-[#4B9BDC]/20 border-[#4B9BDC]/20'}`}
-                >
-                  <Shield size={16} />
-                  <span>{promoteToServant ? t('members.form.registeringAsServant') : t('members.form.setAsServant')}</span>
-                </button>
-                {!isEditing && (
-                  <button onClick={saveDraft} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 font-semibold transition-colors px-4 py-2.5 rounded-xl border" style={d.card}>
-                    <Save size={16} /> {t('members.saveDraft')}
-                  </button>
-                )}
-                <button
-                  onClick={handleSubmit(onSubmit)}
-                  disabled={uploading || (isEditing ? (!isDirty && !(watch("photo") instanceof File)) : !watch("full_name"))}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white rounded-xl hover:scale-105 active:scale-95 font-bold shadow-[0_4px_16px_rgba(75,155,220,0.35)] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                >
-                  {uploading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
-                  <span>{isEditing ? t('common.updating') : t('common.save')}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Mobile Fixed Header (Portal) */}
-      {!isDesktop && createPortal(
-        <div className="fixed top-0 left-0 right-0 z-[100] bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 shadow-sm transition-all duration-300">
-          <div className="flex items-center justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
-              >
-                <ArrowLeft size={24} />
-              </button>
-              <div className="min-w-0 flex flex-col">
-                <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate leading-tight">
-                  {isEditing ? t('members.editBtn') : t('members.addBtn')}
-                </h1>
-                {isEditing && (
-                  <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wider truncate opacity-80">
-                    {t('members.messages.updateRecords')}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (isEditing) {
-                    setIsMakeServantModalOpen(true);
-                  } else {
-                    setPromoteToServant(!promoteToServant);
-                  }
-                }}
-                className={`p-2 rounded-xl transition-all border ${promoteToServant ? 'bg-[#4B9BDC] text-white border-[#4B9BDC]' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-transparent'}`}
-                title={promoteToServant ? t('members.form.registeringAsServant') : t('members.form.setAsServant')}
-              >
-                <Shield size={20} className={promoteToServant ? "fill-current" : ""} />
-              </button>
-
-              {!isEditing && (
-                <button
-                  onClick={saveDraft}
-                  className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                  title={t('members.saveDraft')}
-                >
-                  <Save size={20} />
-                </button>
-              )}
-
-              <button
-                onClick={handleSubmit(onSubmit)}
-                disabled={uploading || (isEditing ? (!isDirty && !(watch("photo") instanceof File)) : !watch("full_name"))}
-                className="p-2 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white rounded-xl shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-transform active:scale-95"
-                title={isEditing ? t('members.editBtn') : t('members.addBtn')}
-              >
-                {uploading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle size={20} />}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
 
       <div className="max-w-7xl mx-auto flex gap-6">
         {/* Sidebar Navigation */}
         <div className="hidden lg:block w-64 shrink-0">
           <div className="sticky top-28">
+            {/* Progress */}
+            <div className="mb-6 px-4">
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.analytics.growthAnalytics')}</span>
+                <span className="text-[#4B9BDC] font-bold">
+                  {Math.round(((SECTIONS.findIndex(s => s.id === activeSection) + 1) / SECTIONS.length) * 100)}%
+                </span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={d.iconBox}>
+                <motion.div
+                  className="h-full bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] rounded-full"
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${((SECTIONS.findIndex(s => s.id === activeSection) + 1) / SECTIONS.length) * 100}%` }}
+                  transition={{ duration: 0.15 }}
+                />
+              </div>
+            </div>
+
             <nav className="space-y-1.5">
               {SECTIONS.map((section, index) => {
                 const Icon = section.icon;
@@ -597,23 +516,6 @@ export default function AddMember() {
               })}
             </nav>
 
-            {/* Progress */}
-            <div className="mt-6 px-4">
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.analytics.growthAnalytics')}</span>
-                <span className="text-[#4B9BDC] font-bold">
-                  {Math.round(((SECTIONS.findIndex(s => s.id === activeSection) + 1) / SECTIONS.length) * 100)}%
-                </span>
-              </div>
-              <div className="h-2 rounded-full overflow-hidden" style={d.iconBox}>
-                <motion.div
-                  className="h-full bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] rounded-full"
-                  initial={{ width: '0%' }}
-                  animate={{ width: `${((SECTIONS.findIndex(s => s.id === activeSection) + 1) / SECTIONS.length) * 100}%` }}
-                  transition={{ duration: 0.15 }}
-                />
-              </div>
-            </div>
           </div>
         </div>
 
@@ -654,118 +556,148 @@ export default function AddMember() {
                     <input {...register("full_name")} className="form-input" placeholder={t('members.form.fullNamePlaceholder')} />
                     {errors.full_name && <p className="form-error">{errors.full_name.message}</p>}
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="form-label text-blue-700 flex items-center justify-between">
-                      <span>{t('members.form.assignedDepartment')}</span>
-                      {watch("department_id") && (
+                  {profile?.role !== "servant" && (
+                    <div className="md:col-span-2">
+                      <label className="form-label text-blue-700 flex items-center justify-between">
+                        <span>{t('members.form.assignedDepartment')}</span>
+                        {watch("department_id") && (
+                          <button
+                            type="button"
+                            onClick={() => setValue("department_id", "", { shouldDirty: true })}
+                            className="text-[10px] text-red-500 hover:text-red-600 font-bold uppercase tracking-wider"
+                          >
+                            {t('members.form.clearAssignment')}
+                          </button>
+                        )}
+                      </label>
+                      <div className="relative" ref={deptMenuRef}>
                         <button
                           type="button"
-                          onClick={() => setValue("department_id", "", { shouldDirty: true })}
-                          className="text-[10px] text-red-500 hover:text-red-600 font-bold uppercase tracking-wider"
-                        >
-                          {t('members.form.clearAssignment')}
-                        </button>
-                      )}
-                    </label>
-                    <div className="relative" ref={deptMenuRef}>
-                      <button
-                        type="button"
-                        onClick={() => setIsDeptMenuOpen(!isDeptMenuOpen)}
-                        style={d.searchBar(isDeptMenuOpen)}
-                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 transition-all duration-200 shadow-sm ${isDeptMenuOpen
-                          ? "border-[#4B9BDC] ring-4 ring-[#4B9BDC]/10"
-                          : "border-blue-100/50 hover:border-blue-200"
-                          }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${watch("department_id") ? "bg-blue-500 text-white" : "bg-blue-50 text-blue-400"
-                            }`}>
-                            <Shield size={20} />
-                          </div>
-                          <div className="text-left">
-                            <p className={`text-sm font-bold truncate ${watch("department_id") ? (isDark ? "text-white" : "text-gray-900") : "text-gray-500 dark:text-gray-400"
-                              }`}>
-                              {departments.find(d => d.id === watch("department_id"))?.name || t('members.form.chooseDept')}
-                            </p>
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium leading-none mt-0.5">
-                              {watch("department_id") ? t('members.form.currentlyAssigned') : t('members.form.noDeptAssigned')}
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronRight
-                          size={20}
-                          className={`text-gray-500 dark:text-gray-400 transition-transform duration-300 ${isDeptMenuOpen ? "rotate-90" : ""
+                          onClick={() => setIsDeptMenuOpen(!isDeptMenuOpen)}
+                          style={d.searchBar(isDeptMenuOpen)}
+                          className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 transition-all duration-200 shadow-sm ${isDeptMenuOpen
+                            ? "border-[#4B9BDC] ring-4 ring-[#4B9BDC]/10"
+                            : "border-blue-100/50 hover:border-blue-200"
                             }`}
-                        />
-                      </button>
-
-                      <AnimatePresence>
-                        {isDeptMenuOpen && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            transition={{ duration: 0.15, ease: "easeOut" }}
-                            className="absolute left-0 right-0 top-full mt-2 z-50 bg-white/95 backdrop-blur-xl border border-blue-100 rounded-3xl shadow-[0_20px_50px_rgba(75,155,220,0.15)] overflow-hidden"
-                          >
-                            <div className="p-2 max-h-64 overflow-y-auto custom-scrollbar">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setValue("department_id", "", { shouldDirty: true });
-                                  setIsDeptMenuOpen(false);
-                                }}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors ${!watch("department_id")
-                                  ? "bg-blue-50 text-blue-700 font-bold"
-                                  : "hover:bg-gray-50 text-gray-500 hover:text-gray-900"
-                                  }`}
-                              >
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${!watch("department_id") ? "bg-blue-100" : "bg-gray-100"}`}>
-                                  <Users size={16} />
-                                </div>
-                                <div>
-                                  <p className="text-sm">{t('members.form.noDept')}</p>
-                                  <p className="text-[9px] opacity-70">{t('members.form.genCongregation')}</p>
-                                </div>
-                              </button>
-
-                              <div className="h-px bg-gray-50 my-1 mx-2" />
-
-                              {departments.length === 0 ? (
-                                <div className="p-4 text-center">
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 italic">{t('members.form.noDeptsConfigured')}</p>
-                                </div>
-                              ) : (
-                                departments.map((dept) => {
-                                  const isSelected = watch("department_id") === dept.id;
-                                  return (
-                                    <button
-                                      key={dept.id}
-                                      type="button"
-                                      onClick={() => {
-                                        setValue("department_id", dept.id, { shouldDirty: true });
-                                        setIsDeptMenuOpen(false);
-                                      }}
-                                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left mb-0.5 transition-all ${isSelected
-                                        ? "bg-blue-500 text-white shadow-md shadow-blue-200"
-                                        : "hover:bg-blue-50 text-gray-600 hover:text-blue-700"
-                                        }`}
-                                    >
-                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? "bg-white/20" : "bg-blue-50 text-blue-400"}`}>
-                                        <Briefcase size={16} />
-                                      </div>
-                                      <span className="text-sm font-semibold">{dept.name}</span>
-                                      {isSelected && <CheckCircle size={14} className="ml-auto" />}
-                                    </button>
-                                  );
-                                })
-                              )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${watch("department_id") ? "bg-blue-500 text-white" : "bg-blue-50 text-blue-400"
+                              }`}>
+                              <Shield size={20} />
                             </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                            <div className="text-left">
+                              <p className={`text-sm font-bold truncate ${watch("department_id") ? (isDark ? "text-white" : "text-gray-900") : "text-gray-500 dark:text-gray-400"
+                                }`}>
+                                {departments.find(d => d.id === watch("department_id"))?.name || t('members.form.chooseDept')}
+                              </p>
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium leading-none mt-0.5">
+                                {watch("department_id") ? t('members.form.currentlyAssigned') : t('members.form.noDeptAssigned')}
+                              </p>
+                            </div>
+                          </div>
+                          <ChevronRight
+                            size={20}
+                            className={`text-gray-500 dark:text-gray-400 transition-transform duration-300 ${isDeptMenuOpen ? "rotate-90" : ""
+                              }`}
+                          />
+                        </button>
+
+                        <AnimatePresence>
+                          {isDeptMenuOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                              transition={{ duration: 0.15, ease: "easeOut" }}
+                              className="absolute left-0 right-0 top-full mt-2 z-50 bg-white/95 backdrop-blur-xl border border-blue-100 rounded-3xl shadow-[0_20px_50px_rgba(75,155,220,0.15)] overflow-hidden"
+                            >
+                              <div className="p-2 max-h-64 overflow-y-auto custom-scrollbar">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setValue("department_id", "", { shouldDirty: true });
+                                    setIsDeptMenuOpen(false);
+                                  }}
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors ${!watch("department_id")
+                                    ? "bg-blue-50 text-blue-700 font-bold"
+                                    : "hover:bg-gray-50 text-gray-500 hover:text-gray-900"
+                                    }`}
+                                >
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${!watch("department_id") ? "bg-blue-100" : "bg-gray-100"}`}>
+                                    <Users size={16} />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm">{t('members.form.noDept')}</p>
+                                    <p className="text-[9px] opacity-70">{t('members.form.genCongregation')}</p>
+                                  </div>
+                                </button>
+
+                                <div className="h-px bg-gray-50 my-1 mx-2" />
+
+                                {departments.length === 0 ? (
+                                  <div className="p-4 text-center">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 italic">{t('members.form.noDeptsConfigured')}</p>
+                                  </div>
+                                ) : (
+                                  departments.map((dept) => {
+                                    const isSelected = watch("department_id") === dept.id;
+                                    return (
+                                      <button
+                                        key={dept.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setValue("department_id", dept.id, { shouldDirty: true });
+                                          setIsDeptMenuOpen(false);
+                                        }}
+                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left mb-0.5 transition-all ${isSelected
+                                          ? "bg-blue-500 text-white shadow-md shadow-blue-200"
+                                          : "hover:bg-blue-50 text-gray-600 hover:text-blue-700"
+                                          }`}
+                                      >
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? "bg-white/20" : "bg-blue-50 text-blue-400"}`}>
+                                          <Briefcase size={16} />
+                                        </div>
+                                        <span className="text-sm font-semibold">{dept.name}</span>
+                                        {isSelected && <CheckCircle size={14} className="ml-auto" />}
+                                      </button>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Save as Servant Checkbox */}
+                      <div className="mt-4 flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                        <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full cursor-pointer">
+                          <input
+                            id="promote-servant-switch"
+                            type="checkbox"
+                            className="absolute w-12 h-6 opacity-0 z-10 cursor-pointer"
+                            checked={promoteToServant}
+                            onChange={(e) => {
+                                if (isEditing) {
+                                    setIsMakeServantModalOpen(true);
+                                } else {
+                                    setPromoteToServant(e.target.checked);
+                                }
+                            }}
+                          />
+                          <label
+                            htmlFor="promote-servant-switch"
+                            className={`block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ${promoteToServant ? 'bg-[#4B9BDC]' : 'bg-gray-300 dark:bg-gray-600'}`}
+                          >
+                          </label>
+                          <div className={`absolute left-0 top-0 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-200 ${promoteToServant ? 'translate-x-full' : 'translate-x-0'}`}></div>
+                        </div>
+                        <label htmlFor="promote-servant-switch" className="text-sm font-bold text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                          {isEditing ? t('servants.changeRole') : t('members.form.registeringAsServant')}
+                        </label>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <div>
                     <label className="form-label">{t('members.form.dob')}</label>
                     <input type="date" {...register("dob")} className="form-input" />
@@ -824,31 +756,52 @@ export default function AddMember() {
                   <div><label className="form-label">{t('members.form.placeOfBirth')}</label><input {...register("salvation_place")} className="form-input" placeholder={t('members.form.salvationPlacePlaceholder')} /></div>
                   <div className="md:col-span-2"><label className="form-label">{t('members.form.previousChurch')}</label><input {...register("previous_church")} className="form-input" placeholder={t('members.form.prevChurchPlaceholder')} /></div>
                   <div className="md:col-span-2"><label className="form-label">{t('members.form.reasonForComing')}</label><input {...register("reason_for_coming")} className="form-input" placeholder={t('members.form.reasonPlaceholder')} /></div>
-                  <div className="md:col-span-2"><label className="form-label">{t('members.form.faith')}</label><textarea {...register("faith")} className="form-input !h-auto" rows={4} placeholder={t('members.form.faithPlaceholder')} /></div>
+                  <div className="md:col-span-2">
+                    <label className="form-label">{t('members.form.baptismStatus')}</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {['pending', 'done', 'notYet'].map((status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => setValue("baptism_status", status, { shouldDirty: true })}
+                          className={`py-3 px-4 rounded-xl text-sm font-bold transition-all border-2 ${watch("baptism_status") === status
+                            ? "border-[#4B9BDC] bg-[#4B9BDC]/10 text-[#4B9BDC]"
+                            : "border-gray-100 dark:border-gray-800 text-gray-500 hover:border-gray-200"
+                            }`}
+                        >
+                          {t(`members.form.baptismOptions.${status}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ═══════════ 3. Education & Work ═══════════ */}
+          {/* ═══════════ 3. Education ═══════════ */}
           <div ref={(el) => { sectionRefs.current['education'] = el; }} id="education" className="scroll-mt-28">
             <div className="backdrop-blur-xl rounded-[1.5rem] border shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
-              <div className="bg-gradient-to-r from-amber-500 to-orange-400 px-8 py-5 flex items-center gap-4">
+              <div className="bg-gradient-to-r from-teal-500 to-emerald-400 px-8 py-5 flex items-center gap-4">
                 <div className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <Briefcase size={22} className="text-white" />
+                  <BookOpen size={22} className="text-white" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-white">{t('members.form.sections.education')}</h2>
-                  <p className="text-amber-100 text-xs font-medium">{t('dashboard.stats.activeMinistries')}</p>
+                  <p className="text-teal-100 text-xs font-medium">{t('reports.pdf.education')}</p>
                 </div>
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div><label className="form-label">{t('members.form.fieldOfStudy')}</label><input {...register("field_of_study")} className="form-input" placeholder={t('members.form.fieldOfStudyPlaceholder')} /></div>
+                  <div className="md:col-span-2">
+                    <label className="form-label">{t('members.form.schoolName')}</label>
+                    <input {...register("school_name")} className="form-input" placeholder="e.g. Addis Ababa University" />
+                  </div>
                   <div>
                     <label className="form-label">{t('members.form.educationalLevel')}</label>
                     <select {...register("educational_level")} className="form-select">
                       <option value="">{t('members.form.selectLevel')}</option>
+                      <option value="KG and Pre-school">{t('members.form.kgPreSchool')}</option>
                       <option value="High School">{t('members.form.highSchool')}</option>
                       <option value="Diploma">{t('members.form.diploma')}</option>
                       <option value="Bachelor's">{t('members.form.bachelors')}</option>
@@ -856,6 +809,28 @@ export default function AddMember() {
                       <option value="PhD">{t('members.form.phd')}</option>
                     </select>
                   </div>
+                  <div><label className="form-label">{t('members.form.fieldOfStudy')}</label><input {...register("field_of_study")} className="form-input" placeholder={t('members.form.fieldOfStudyPlaceholder')} /></div>
+                  <div><label className="form-label">{t('members.form.grade')}</label><input {...register("grade")} className="form-input" placeholder="e.g. 10th Grade" /></div>
+                  <div><label className="form-label">{t('members.form.universityYear')}</label><input {...register("university_year")} className="form-input" placeholder="e.g. 3rd Year" /></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ═══════════ 4. Work ═══════════ */}
+          <div ref={(el) => { sectionRefs.current['work'] = el; }} id="work" className="scroll-mt-28">
+            <div className="backdrop-blur-xl rounded-[1.5rem] border shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
+              <div className="bg-gradient-to-r from-amber-500 to-orange-400 px-8 py-5 flex items-center gap-4">
+                <div className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <Briefcase size={22} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">{t('members.form.sections.work')}</h2>
+                  <p className="text-amber-100 text-xs font-medium">{t('dashboard.stats.activeMinistries')}</p>
+                </div>
+              </div>
+              <div className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="form-label">{t('members.form.employmentStatus')}</label>
                     <select {...register("employment_status")} className="form-select">
@@ -948,7 +923,7 @@ export default function AddMember() {
                     {fields.length === 0 && (
                       <div className="text-center py-8 bg-gray-50/60 rounded-xl border-2 border-dashed border-gray-200">
                         <Users size={24} className="text-gray-500 dark:text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">{t('members.noResults')}</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">No children added.</p>
                       </div>
                     )}
                   </div>
@@ -957,16 +932,16 @@ export default function AddMember() {
             </div>
           </div>
 
-          {/* ═══════════ 5. Service History ═══════════ */}
+          {/* ═══════════ 6. Service History ═══════════ */}
           <div ref={(el) => { sectionRefs.current['service'] = el; }} id="service" className="scroll-mt-28">
             <div className="backdrop-blur-xl rounded-[1.5rem] border shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
-              <div className="bg-gradient-to-r from-teal-500 to-emerald-400 px-8 py-5 flex items-center gap-4">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-500 px-8 py-5 flex items-center gap-4">
                 <div className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <BookOpen size={22} className="text-white" />
+                  <Shield size={22} className="text-white" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-white">{t('members.form.sections.service')}</h2>
-                  <p className="text-teal-100 text-xs font-medium">{t('dashboard.stats.servingLeaders')}</p>
+                  <p className="text-blue-100 text-xs font-medium">{t('dashboard.stats.servingLeaders')}</p>
                 </div>
               </div>
               <div className="p-8">
@@ -1035,11 +1010,21 @@ export default function AddMember() {
                 </div>
 
                 {/* Final CTA */}
-                <div className="mt-8 pt-6 border-t border-gray-100">
+                <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col md:flex-row gap-4">
+                  {!isEditing && (
+                    <button
+                      type="button"
+                      onClick={saveDraft}
+                      className="w-full md:w-auto px-8 flex items-center justify-center gap-3 py-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 font-bold text-lg transition-all"
+                    >
+                      <Save size={22} />
+                      {t('members.saveDraft')}
+                    </button>
+                  )}
                   <button
                     onClick={handleSubmit(onSubmit)}
                     disabled={uploading || (isEditing ? (!isDirty && !(watch("photo") instanceof File)) : !watch("full_name"))}
-                    className="w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white rounded-2xl hover:scale-[1.02] active:scale-[0.98] font-bold text-lg shadow-[0_8px_30px_rgba(75,155,220,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white rounded-2xl hover:scale-[1.02] active:scale-[0.98] font-bold text-lg shadow-[0_8px_30px_rgba(75,155,220,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {uploading ? <Loader2 className="animate-spin" size={22} /> : <CheckCircle size={22} />}
                     {isEditing ? t('members.editBtn') : t('members.addBtn')}

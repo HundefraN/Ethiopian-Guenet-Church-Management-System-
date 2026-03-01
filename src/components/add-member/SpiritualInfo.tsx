@@ -57,6 +57,21 @@ const SpiritualInfo: React.FC<SpiritualInfoProps> = ({ register }) => {
         </div>
 
         <div className="md:col-span-2">
+          <label className="form-label">{t('members.form.baptismStatus')}</label>
+          <div className="grid grid-cols-3 gap-3">
+            {['pending', 'done', 'notYet'].map((status) => (
+              <button
+                key={status}
+                type="button"
+                className={`py-3 px-4 rounded-xl text-sm font-bold transition-all border-2 border-gray-100 dark:border-gray-800 text-gray-500 hover:border-gray-200`}
+              >
+                {t(`members.form.baptismOptions.${status}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="md:col-span-2">
           <label className="form-label">{t('members.form.faith')}</label>
           <textarea
             {...register("faith")}

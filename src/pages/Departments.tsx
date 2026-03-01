@@ -64,12 +64,17 @@ export default function Departments() {
 
   useEffect(() => {
     if (profile) {
+      if (profile.role === "servant") {
+        toast.error(t('common.unauthorized'));
+        navigate("/");
+        return;
+      }
       fetchDepartments();
       if (profile.role === "super_admin") {
         fetchChurches();
       }
     }
-  }, [profile]);
+  }, [profile, navigate, t]);
 
   useEffect(() => {
     if (id && departments.length > 0) {
@@ -303,27 +308,28 @@ export default function Departments() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="space-y-8 pb-10"
+        className="space-y-6 pb-10"
       >
         {/* ═══════════════ ULTRA HERO HEADER ═══════════════ */}
-        <div className="relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem] p-5 sm:p-6 md:p-8 shadow-xl" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
-          <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-25 blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
-          <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full opacity-20 blur-[60px]" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
-          <div className="absolute top-1/2 left-1/3 w-72 h-72 rounded-full opacity-10 blur-[100px]" style={{ background: 'radial-gradient(circle, #3178B5, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
+        <div className="relative overflow-hidden rounded-xl sm:rounded-[1.5rem] md:rounded-[2rem] p-3 sm:p-5 md:p-6 shadow-xl" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
+          <div className="absolute top-0 right-0 w-40 sm:w-80 h-40 sm:h-80 rounded-full opacity-25 blur-[50px] sm:blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
+          <div className="absolute bottom-0 left-0 w-32 sm:w-60 h-32 sm:h-60 rounded-full opacity-20 blur-[40px] sm:blur-[60px]" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
+          <div className="absolute top-1/2 left-1/3 w-36 sm:w-72 h-36 sm:h-72 rounded-full opacity-10 blur-[60px] sm:blur-[100px]" style={{ background: 'radial-gradient(circle, #3178B5, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-8">
-            <div className="text-white flex-1">
+          <div className="relative z-10 flex flex-col gap-3 sm:gap-4 md:gap-5 lg:flex-row lg:items-center lg:justify-between">
+            {/* Title Section */}
+            <div className="text-white flex-1 min-w-0">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="flex items-center gap-3 mb-3 md:mb-5"
+                className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2 md:mb-3 flex-wrap"
               >
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                  <Layers size={20} className="text-blue-100 md:w-6 md:h-6" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                  <Layers size={16} className="text-blue-100 sm:w-5 sm:h-5" />
                 </div>
-                <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
+                <div className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
                   <Sparkles size={10} className="inline mr-1" /> {t('dashboard.ministryTitle')}
                 </div>
               </motion.div>
@@ -331,7 +337,7 @@ export default function Departments() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="text-3xl md:text-5xl font-black tracking-tight mb-2 md:mb-4"
+                className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tight mb-0.5 sm:mb-1.5 md:mb-2"
                 style={{ background: 'linear-gradient(135deg, #ffffff 0%, #7EC8F2 50%, #4B9BDC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
               >
                 {t('sidebar.departments')}
@@ -340,38 +346,40 @@ export default function Departments() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-blue-100/70 max-w-md text-sm md:text-base font-medium lg:block hidden"
+                className="text-blue-100/70 max-w-md text-xs sm:text-sm font-medium hidden sm:block"
               >
                 {t('departments.subtitle')}
               </motion.p>
             </div>
 
+            {/* Stats + Action */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
-              className="flex flex-col gap-3 md:gap-4 w-full lg:w-auto"
+              className="flex flex-col gap-2 sm:gap-3 w-full lg:w-auto lg:min-w-[200px]"
             >
-              <div className="flex flex-col gap-3 w-full lg:min-w-[240px]">
+              {/* Stats Row — horizontal on mobile, vertical on lg */}
+              <div className="flex flex-row sm:flex-row lg:flex-col gap-2 sm:gap-2.5 w-full">
                 {/* Stats Card 1 */}
-                <div className="flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 hover:bg-white/10 group/stat" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover/stat:scale-110 shadow-lg" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <Shield size={20} className="text-white" />
+                <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-3 rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/10 group/stat flex-1" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
+                  <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover/stat:scale-110 shadow-lg" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                    <Shield size={14} className="text-white sm:w-4 sm:h-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-2xl md:text-3xl font-black text-white leading-none tracking-tight">{departments.length}</p>
-                    <p className="text-[10px] font-bold text-blue-200/80 uppercase tracking-widest mt-1 group-hover/stat:text-blue-100 transition-colors uppercase">{t('sidebar.departments')}</p>
+                    <p className="text-base sm:text-xl md:text-2xl font-black text-white leading-none tracking-tight">{departments.length}</p>
+                    <p className="text-[7px] sm:text-[9px] font-bold text-blue-200/80 uppercase tracking-widest mt-0.5 group-hover/stat:text-blue-100 transition-colors">{t('sidebar.departments')}</p>
                   </div>
                 </div>
 
                 {/* Stats Card 2 */}
-                <div className="flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 hover:bg-white/10 group/stat" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover/stat:scale-110 shadow-lg" style={{ background: 'linear-gradient(135deg, #7EC8F2, #4B9BDC)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <Users size={20} className="text-white" />
+                <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-3 rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/10 group/stat flex-1" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
+                  <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover/stat:scale-110 shadow-lg" style={{ background: 'linear-gradient(135deg, #7EC8F2, #4B9BDC)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                    <Users size={14} className="text-white sm:w-4 sm:h-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-2xl md:text-3xl font-black text-white leading-none tracking-tight">{totalPeople}</p>
-                    <p className="text-[10px] font-bold text-blue-200/80 uppercase tracking-widest mt-1 group-hover/stat:text-blue-100 transition-colors uppercase">{t('sidebar.members')}</p>
+                    <p className="text-base sm:text-xl md:text-2xl font-black text-white leading-none tracking-tight">{totalPeople}</p>
+                    <p className="text-[7px] sm:text-[9px] font-bold text-blue-200/80 uppercase tracking-widest mt-0.5 group-hover/stat:text-blue-100 transition-colors">{t('sidebar.members')}</p>
                   </div>
                 </div>
               </div>
@@ -381,10 +389,10 @@ export default function Departments() {
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setIsModalOpen(true)}
-                  className="flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl font-black text-xs md:text-sm shrink-0 w-full mt-1"
+                  className="flex items-center justify-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm shrink-0 w-full mt-0.5 sm:mt-1"
                   style={{ background: 'linear-gradient(135deg, #ffffff, #e8f1fa)', color: '#3178B5', boxShadow: '0 12px 24px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.8)' }}
                 >
-                  <Plus size={18} />
+                  <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
                   <span>{t('departments.addDepartment')}</span>
                 </motion.button>
               )}
@@ -399,7 +407,7 @@ export default function Departments() {
           transition={{ delay: 0.3 }}
         >
           <div
-            className="p-1.5 rounded-2xl flex items-center transition-all duration-300 max-w-3xl"
+            className="p-1 sm:p-1.5 rounded-xl sm:rounded-2xl flex items-center transition-all duration-300 w-full max-w-3xl"
             style={{
               background: searchFocused ? (isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.95)') : (isDark ? 'rgba(15,23,42,0.55)' : 'rgba(255,255,255,0.8)'),
               backdropFilter: 'blur(20px)',
@@ -407,8 +415,8 @@ export default function Departments() {
               boxShadow: searchFocused ? (isDark ? '0 8px 32px rgba(0,0,0,0.3), 0 0 0 4px rgba(75,155,220,0.08)' : '0 8px 32px rgba(75,155,220,0.15), 0 0 0 4px rgba(75,155,220,0.05)') : (isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 4px 20px rgba(0,0,0,0.03)'),
             }}
           >
-            <div className="pl-4 pr-2">
-              <Search size={20} className={`transition-colors duration-200 ${searchFocused ? 'text-[#4B9BDC]' : 'text-gray-500 dark:text-gray-400'}`} />
+            <div className="pl-3 sm:pl-4 pr-1.5 sm:pr-2">
+              <Search size={18} className={`transition-colors duration-200 sm:w-5 sm:h-5 ${searchFocused ? 'text-[#4B9BDC]' : 'text-gray-500 dark:text-gray-400'}`} />
             </div>
             <input
               type="text"
@@ -417,15 +425,15 @@ export default function Departments() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
-              className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
+              className="w-full py-2.5 sm:py-3 pr-3 sm:pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-sm sm:text-base text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="p-2 mr-2 text-gray-500 dark:text-gray-400 hover:text-[#4B9BDC] rounded-xl hover:bg-blue-50 transition-colors"
+                className="p-1.5 sm:p-2 mr-1.5 sm:mr-2 text-gray-500 dark:text-gray-400 hover:text-[#4B9BDC] rounded-lg sm:rounded-xl hover:bg-blue-50 transition-colors"
                 title={t('common.clearSearch')}
               >
-                <X size={16} />
+                <X size={14} className="sm:w-4 sm:h-4" />
               </button>
             )}
           </div>
@@ -452,12 +460,12 @@ export default function Departments() {
               <Shield className="h-10 w-10 text-gray-500 dark:text-gray-400" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('departments.messages.noDepartments')}</h3>
-            <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-              {t('common.tryAdjusting')}
-            </p>
-          </motion.div>
+          <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
+            {searchQuery ? t('common.tryAdjusting') : t('departments.deptSubtitle')}
+          </p>
+        </motion.div>
         ) : (
-          <motion.div layout className="flex flex-col gap-3">
+          <motion.div layout className="flex flex-col gap-2 sm:gap-3">
             <AnimatePresence>
               {filteredDepartments.map((dept, index) => {
                 const colors = getDeptColors(dept.name);
@@ -485,7 +493,7 @@ export default function Departments() {
                     key={dept.id}
                     onClick={() => navigate(`/departments/${dept.id}`)}
                     whileHover={{ scale: 1.005, backgroundColor: isDark ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.9)' }}
-                    className={`group cursor-pointer relative overflow-hidden rounded-xl md:rounded-2xl flex items-center p-3 md:p-4 gap-3 md:gap-4 transition-all border border-transparent shadow-sm hover:shadow-lg ${dept.id === id ? 'ring-2' : ''}`}
+                    className={`group cursor-pointer relative overflow-hidden rounded-lg sm:rounded-xl md:rounded-2xl flex items-center p-2.5 sm:p-3 md:p-4 gap-2.5 sm:gap-3 md:gap-4 transition-all border border-transparent shadow-sm hover:shadow-lg ${dept.id === id ? 'ring-2' : ''}`}
                     style={{
                       ...d.card,
                       borderColor: dept.id === id ? colors.accent : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'),
@@ -495,46 +503,53 @@ export default function Departments() {
                     } as React.CSSProperties}
                   >
                     {/* Left accent bar */}
-                    <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: colors.accent }}></div>
+                    <div className="absolute left-0 top-0 bottom-0 w-1 sm:w-1.5" style={{ background: colors.accent }}></div>
 
                     {/* Icon */}
-                    <div className="shrink-0 pl-1 md:pl-2">
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-105"
+                    <div className="shrink-0 pl-1 sm:pl-1.5 md:pl-2">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-105"
                         style={{ background: colors.bg, boxShadow: `0 4px 16px ${colors.border}` }}
                       >
-                        <Shield size={18} style={{ color: colors.accent }} className="md:w-5 md:h-5" />
+                        <Shield size={16} style={{ color: colors.accent }} className="sm:w-[18px] sm:h-[18px] md:w-5 md:h-5" />
                       </div>
                     </div>
 
                     {/* Main Info */}
-                    <div className="flex-1 min-w-0 flex flex-col gap-0.5 md:gap-1">
-                      <h3 className="text-base md:text-lg font-black text-gray-900 dark:text-gray-100 transition-colors leading-tight">
+                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                      <h3 className="text-sm sm:text-base md:text-lg font-black text-gray-900 dark:text-gray-100 transition-colors leading-tight truncate">
                         <span className="group-hover:hidden">{dept.name}</span>
                         <span className="hidden group-hover:inline" style={{ color: colors.accent }}>{dept.name}</span>
                       </h3>
 
-                      {dept.churches && (
-                        <div className="flex items-center gap-1.5 text-xs md:text-sm text-gray-500 font-medium">
-                          <Building size={12} className="text-gray-500 dark:text-gray-400" />
-                          <p className="truncate dark:text-gray-400">{dept.churches.name}</p>
+                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                        {dept.churches && (
+                          <div className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs md:text-sm text-gray-500 font-medium">
+                            <Building size={11} className="text-gray-500 dark:text-gray-400 shrink-0 sm:w-3 sm:h-3" />
+                            <p className="truncate dark:text-gray-400 max-w-[120px] sm:max-w-none">{dept.churches.name}</p>
+                          </div>
+                        )}
+                        {/* Members count — inline on mobile, separate on desktop */}
+                        <div className="flex items-center gap-1 text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-semibold sm:hidden">
+                          <Users size={11} className="shrink-0 opacity-70" />
+                          <span className="tabular-nums">{totalCount}</span>
                         </div>
-                      )}
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-6 mr-4 hidden sm:flex">
-                      <div className="flex flex-col items-center">
-                        <span className="text-xl font-black text-gray-900 dark:text-gray-100 tabular-nums leading-none">
-                          {totalCount}
-                        </span>
-                        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('sidebar.members')}</span>
                       </div>
                     </div>
 
-                    {/* Actions - MOVED TO TOP BAR */}
-                    <div className="flex items-center gap-2 pl-2 border-l border-gray-100 dark:border-gray-800">
-                      <div className="text-gray-500 dark:text-gray-400 group-hover:text-[#4B9BDC] transition-colors">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                    {/* Stats — visible on sm+ */}
+                    <div className="hidden sm:flex items-center gap-6 mr-2 sm:mr-4">
+                      <div className="flex flex-col items-center">
+                        <span className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100 tabular-nums leading-none">
+                          {totalCount}
+                        </span>
+                        <span className="text-[8px] sm:text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('sidebar.members')}</span>
+                      </div>
+                    </div>
+
+                    {/* Chevron */}
+                    <div className="flex items-center pl-1.5 sm:pl-2 border-l border-gray-100 dark:border-gray-800">
+                      <div className="text-gray-400 dark:text-gray-500 group-hover:text-[#4B9BDC] transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5"><path d="m9 18 6-6-6-6" /></svg>
                       </div>
                     </div>
                   </motion.div>
@@ -551,7 +566,7 @@ export default function Departments() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 flex items-center justify-center z-[200] p-4"
+              className="fixed inset-0 flex items-end sm:items-center justify-center z-[200] p-0 sm:p-4"
               style={d.modalOverlay}
             >
               <motion.div
@@ -559,14 +574,14 @@ export default function Departments() {
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 30 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className="w-full max-w-md p-8 relative overflow-hidden rounded-[2rem]"
+                className="w-full max-w-md p-5 sm:p-8 relative overflow-hidden rounded-t-[1.5rem] sm:rounded-[2rem] max-h-[90vh] overflow-y-auto"
                 style={d.modalContent}
               >
                 <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #3178B5, #4B9BDC, #7EC8F2)' }}></div>
 
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-5 sm:mb-8">
                   <div>
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
                       {editingDept ? t('departments.editDepartment') : t('departments.addDepartment')}
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">{t('departments.deptSubtitle')}</p>
@@ -621,11 +636,11 @@ export default function Departments() {
                     </div>
                   )}
 
-                  <div className="flex justify-end gap-3 mt-8 pt-6" style={d.modalFooterBorder}>
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6" style={d.modalFooterBorder}>
                     <button
                       type="button"
                       onClick={handleCloseModal}
-                      className="px-6 py-3 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                      className="px-5 sm:px-6 py-2.5 sm:py-3 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors text-center"
                     >
                       {t('common.cancel')}
                     </button>
@@ -634,7 +649,7 @@ export default function Departments() {
                       whileTap={{ scale: 0.97 }}
                       type="submit"
                       disabled={submitting || !hasChanges}
-                      className="px-6 py-3 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                      className="px-5 sm:px-6 py-2.5 sm:py-3 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                       style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)', boxShadow: '0 8px 24px rgba(49,120,181,0.25)' }}
                     >
                       {submitting ? (

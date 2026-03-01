@@ -85,7 +85,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       name: t("sidebar.departments"),
       path: "/departments",
       icon: Layers,
-      roles: ["super_admin", "pastor", "servant"],
+      roles: ["super_admin", "pastor"],
     },
     {
       name: t("sidebar.members"),

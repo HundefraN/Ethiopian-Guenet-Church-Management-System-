@@ -198,8 +198,8 @@
         "didntReceive": "Iimeeliin si hin geenye?",
         "tryAgain": "Irra deebii yaali",
         "establishingSession": "Quunnamtii uumaa jira...",
-        "empoweringMinistry": "Tajaajila Teknooloojiin humneessuu",
-        "description": "Sirna bulchiinsaa guutuu bulchiinsa waldaa qajeelchuuf, miseensota walitti hidhuuf fi guddina hafuuraa deeggaruuf qophaa'e."
+        "empoweringMinistry": "Waldaa Guuwwannat Naannoo Finfinnee",
+        "description": "Isa injifatuuf muka jireenyaa isa jannata Waaqayyoo keessa jiru irraa akka nyaatu isaaf nan heyyama. Mul'ata 2:7"
     },
     "dashboard": {
         "title": "Giddugala To'annoo",
@@ -519,11 +519,18 @@
             "sections": {
                 "personal": "Oduu Dhuunfaa",
                 "spiritual": "Jireenya Hafuuraa",
-                "education": "Barnoota fi Hojii",
+                "education": "Oduu Barnootaa",
+                "work": "Oduu Hojii",
                 "family": "Haala Maatii",
                 "service": "Seenaa Tajaajilaa",
                 "fellowship": "Waldaa Maatii",
                 "signatures": "Ilaaluu fi Mallattoo"
+            },
+            "baptismStatus": "Haala Cuuphaa",
+            "baptismOptions": {
+                "pending": "Eeggachaa jira",
+                "done": "Cuuphameera",
+                "notYet": "Hamma yoonaa hin cuuphamne"
             },
             "photo": "Fakkii",
             "fullName": "Maqaa Guutuu",
@@ -536,7 +543,7 @@
             "salvationPlacePlaceholder": "Magaalaa/Waldaa",
             "previousChurch": "Waldaa/Tajaajila duraanii (yoo jiraate)",
             "prevChurchPlaceholder": "Maqaa waldaa duraanii",
-            "reasonForComing": "Sababa gara W.G.B.I dhufaniif",
+            "reasonForComing": "Sababa gara churchi dhufaniif",
             "reasonPlaceholder": "fkn. Jijjiirama, Amantii Haaraa",
             "fieldOfStudy": "Akaakuu Barnootaa",
             "fieldOfStudyPlaceholder": "fkn. Injiinariingii",
@@ -544,6 +551,9 @@
             "employmentStatus": "Haala Hojii",
             "workplaceAddress": "Teessoo Bakka Hojii",
             "workplacePlaceholder": "Koompanii/Dhaabbata",
+            "schoolName": "Maqaa Mana Barumsaa/Yunivarsiitii",
+            "grade": "Kutaa (Grade)",
+            "universityYear": "Waggaa Yunivarsiitii",
             "phoneNumber": "Lakkoofsa Bilbilaa",
             "phonePlaceholder": "+251...",
             "maritalStatus": {
@@ -590,6 +600,7 @@
             "bachelors": "Digrii 1ffaa",
             "masters": "Digrii 2ffaa",
             "phd": "Pi-eech-dii (PhD)",
+            "kgPreSchool": "KG fi Barnoota duraa (KG & Pre-school)",
             "selectStatus": "Haala Filadhu",
             "employed": "Kan qaxarame",
             "selfEmployed": "Hojii dhuunfaa",
@@ -710,16 +721,16 @@
         "generate": "Gabaasa Uumi",
         "exportPdf": "PDF baasi",
         "exportExcel": "Excel baasi",
-        "forecasting": "Raagduu Guddinaa",
+        "forecasting": "Miseensota fi Guddina",
         "demographics": "Qoodinsa miseensotaa",
         "finances": "Haala Faayinaansii",
-        "branchDensity": "Raabsama Dameewwan",
+        "branchDensity": "Meresha Dameewwan",
         "dateRange": "Yeroo",
         "selectChurch": "Waldaa Filadhu",
         "allChurches": "Waldaalee Hunda",
         "brandLogo": "Logo dabaladhu",
         "projections": "Raagduuwwan",
-        "distribution": "Tuuta Miseensotaa",
+        "distribution": "Ilaalcha Kaartaa",
         "totalIncome": "Galii Waliigalaa",
         "totalExpense": "Baasii Waliigalaa",
         "netGrowth": "Guddina Miseensotaa Qulqulluu",
@@ -727,7 +738,7 @@
         "historicalData": "Oduu Darbe",
         "aiForecast": "Raagduu AI",
         "branches": "Dameewwan",
-        "noMapLink": "Liinkii kaartaa kan hin qabne",
+        "noMapLink": "Bakki hin mirkanaofne",
         "memberInsights": "Hubannoo miseensaa",
         "ageDistribution": "Qoodinsa Umrii",
         "maritalStatus": "Haala Gaa'ilaa",
@@ -770,7 +781,8 @@
             "generatedBy": "Sirna Bulchiinsa Waldaa Guuwwannat Itoophiyaatiin qophaa'e",
             "totalMembers": "MISEENSOTA WALIIGALAA",
             "totalBranches": "DAMEEWWAN WALIIGALAA",
-            "currentScope": "SCOPE AMMAA"
+            "currentScope": "SCOPE AMMAA",
+            "exportSuccess": "PDF milkaa'inaan ergameera!"
         },
         "excel": {
             "allChurches": "Waldaalee_Hunda",

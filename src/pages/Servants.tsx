@@ -62,6 +62,7 @@ export default function Servants() {
   const [changeRoleUser, setChangeRoleUser] = useState<Servant | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const { pathname } = useLocation();
 
   // Reset states on route change (fixes pop back bug)
@@ -101,10 +102,19 @@ export default function Servants() {
 
   useEffect(() => {
     if (editingServant) {
-      const deptIds =
+      if (editingServant.church_id) {
+        fetchDepartments(editingServant.church_id);
+      }
+      
+      let deptIds =
         (editingServant.profile_departments
-          ?.map((pd) => pd.departments?.id)
+          ?.map((pd: any) => pd.departments?.id || pd.department_id)
           .filter(Boolean) as string[]) || [];
+
+      if (deptIds.length === 0 && (editingServant as any).department_id) {
+          deptIds = [(editingServant as any).department_id];
+      }
+
       setFormData({
         full_name: editingServant.full_name,
         email: editingServant.email || "",
@@ -112,9 +122,6 @@ export default function Servants() {
         church_id: editingServant.church_id || "",
         department_ids: deptIds,
       });
-      if (editingServant.church_id) {
-        fetchDepartments(editingServant.church_id);
-      }
     } else {
       setFormData({
         full_name: "",
@@ -168,7 +175,7 @@ export default function Servants() {
     try {
       let query = supabase
         .from("profiles")
-        .select(`*, churches ( name, map_link ), profile_departments ( departments ( id, name ) )`)
+        .select(`*, churches ( name, map_link ), profile_departments ( department_id, departments ( id, name ) )`)
         .eq("role", "servant")
         .order("created_at", { ascending: false });
 
@@ -430,7 +437,7 @@ export default function Servants() {
     if (!query) return servants;
     return servants.filter((servant) => {
       const deptNames =
-        servant.profile_departments?.map((pd) => pd.departments?.name?.toLowerCase()).filter(Boolean).join(" ") || "";
+        profile?.role !== "servant" ? (servant.profile_departments?.map((pd) => pd.departments?.name?.toLowerCase()).filter(Boolean).join(" ") || "") : "";
       return (
         (servant.full_name && servant.full_name.toLowerCase().includes(query)) ||
         (servant.email && servant.email.toLowerCase().includes(query)) ||
@@ -465,24 +472,24 @@ export default function Servants() {
       className="space-y-8 pb-10"
     >
       {/* ═══════════════ ULTRA HERO HEADER ═══════════════ */}
-      <div className="relative overflow-hidden rounded-[2rem] p-8 md:p-10 shadow-lg" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
+      <div className="relative overflow-hidden rounded-xl sm:rounded-[1.5rem] md:rounded-[2rem] p-4 sm:p-6 md:p-8 shadow-lg" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-25 blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
         <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full opacity-20 blur-[60px]" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
         <div className="absolute top-1/2 left-1/3 w-72 h-72 rounded-full opacity-10 blur-[100px]" style={{ background: 'radial-gradient(circle, #3178B5, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
           <div className="text-white">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="flex items-center gap-3 mb-4"
+              className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4"
             >
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                <Flame size={24} className="text-blue-100" />
+              <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <Flame size={20} className="text-blue-100 sm:w-6 sm:h-6" />
               </div>
-              <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
+              <div className="px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
                 <Sparkles size={10} className="inline mr-1" /> {t('dashboard.ministryTeam')}
               </div>
             </motion.div>
@@ -490,7 +497,7 @@ export default function Servants() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="text-4xl md:text-5xl font-black tracking-tight mb-3"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight mb-2 sm:mb-3"
               style={{ background: 'linear-gradient(135deg, #ffffff 0%, #7EC8F2 50%, #4B9BDC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
             >
               {t('servants.title')}
@@ -499,7 +506,7 @@ export default function Servants() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-blue-100/70 max-w-lg text-sm md:text-base font-medium"
+              className="text-blue-100/70 max-w-lg text-xs sm:text-sm md:text-base font-medium"
             >
               {t('servants.subtitle')}
             </motion.p>
@@ -509,15 +516,15 @@ export default function Servants() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
-            className="flex flex-wrap items-center gap-4"
+            className="flex flex-wrap items-center gap-3 sm:gap-4"
           >
-            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)' }}>
-                <Users size={18} className="text-white" />
+            <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)' }}>
+                <Users size={16} className="text-white sm:w-[18px] sm:h-[18px]" />
               </div>
               <div>
-                <p className="text-2xl font-black text-white leading-none">{servants.length}</p>
-                <p className="text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">{t('sidebar.servants')}</p>
+                <p className="text-lg sm:text-2xl font-black text-white leading-none">{servants.length}</p>
+                <p className="text-[9px] sm:text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">{t('sidebar.servants')}</p>
               </div>
             </div>
 
@@ -526,10 +533,10 @@ export default function Servants() {
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsModalOpen(true)}
-                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shrink-0"
+                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm shrink-0"
                 style={{ background: 'linear-gradient(135deg, #ffffff, #e8f1fa)', color: '#3178B5', boxShadow: '0 8px 32px rgba(49,120,181,0.3), inset 0 1px 0 rgba(255,255,255,0.8)' }}
               >
-                <Plus size={18} />
+                <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
                 <span>{t('servants.registerServant')}</span>
               </motion.button>
             )}
@@ -544,7 +551,7 @@ export default function Servants() {
         transition={{ delay: 0.3 }}
       >
         <div
-          className="p-1.5 rounded-2xl flex items-center transition-all duration-300 max-w-3xl"
+          className="p-1 sm:p-1.5 rounded-xl sm:rounded-2xl flex items-center transition-all duration-300 max-w-3xl"
           style={{
             background: searchFocused ? (isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.95)') : (isDark ? 'rgba(15,23,42,0.55)' : 'rgba(255,255,255,0.8)'),
             backdropFilter: 'blur(20px)',
@@ -552,8 +559,8 @@ export default function Servants() {
             boxShadow: searchFocused ? (isDark ? '0 8px 32px rgba(0,0,0,0.3), 0 0 0 4px rgba(75,155,220,0.08)' : '0 8px 32px rgba(75,155,220,0.15), 0 0 0 4px rgba(75,155,220,0.05)') : (isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 4px 20px rgba(0,0,0,0.03)'),
           }}
         >
-          <div className="pl-4 pr-2">
-            <Search size={20} className={`transition-colors duration-200 ${searchFocused ? 'text-[#4B9BDC]' : 'text-gray-500 dark:text-gray-400'}`} />
+          <div className="pl-3 sm:pl-4 pr-1.5 sm:pr-2">
+            <Search size={18} className={`transition-colors duration-200 sm:w-5 sm:h-5 ${searchFocused ? 'text-[#4B9BDC]' : 'text-gray-500 dark:text-gray-400'}`} />
           </div>
           <input
             type="text"
@@ -562,15 +569,15 @@ export default function Servants() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
+            className="w-full py-2.5 sm:py-3 pr-3 sm:pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-sm sm:text-base text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="p-2 mr-2 text-gray-500 dark:text-gray-400 hover:text-[#4B9BDC] rounded-xl hover:bg-blue-50 transition-colors"
+              className="p-1.5 sm:p-2 mr-1.5 sm:mr-2 text-gray-500 dark:text-gray-400 hover:text-[#4B9BDC] rounded-lg sm:rounded-xl hover:bg-blue-50 transition-colors"
               title={t('common.clearSearch')}
             >
-              <X size={16} />
+              <X size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
           )}
         </div>
@@ -598,11 +605,11 @@ export default function Servants() {
           </div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('servants.messages.noResults')}</h3>
           <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-            {t('common.tryAdjusting')}
+            {searchQuery ? t('common.tryAdjusting') : t('servants.subtitle')}
           </p>
         </motion.div>
       ) : (
-        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
           <AnimatePresence>
             {filteredServants.map((servant, index) => (
               <motion.div
@@ -626,33 +633,34 @@ export default function Servants() {
                 }}
                 key={servant.id}
                 whileHover={{ y: -4, scale: 1.01 }}
-                className="group relative overflow-hidden rounded-[1.5rem] flex flex-col"
+                className="group relative overflow-hidden rounded-xl sm:rounded-[1.5rem] flex flex-col"
 
                 style={d.card}
               >
                 <div className={`h-1 ${servant.is_blocked ? 'bg-red-500' : ''}`} style={!servant.is_blocked ? { background: 'linear-gradient(90deg, #3178B5, #4B9BDC, #7EC8F2)' } : {}}></div>
 
-                <div className="p-5 flex flex-col flex-1">
+                <div className="p-4 sm:p-5 flex flex-col flex-1">
                   <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] -mr-8 -mt-8 opacity-0 group-hover:opacity-20 transition-opacity duration-500" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)' }}></div>
 
-                  <div className="flex items-start justify-between mb-4 mt-1">
+                  <div className="flex items-start justify-between mb-3 sm:mb-4 mt-1">
                     <div className="relative">
-                      {servant.avatar_url ? (
+                      {servant.avatar_url && !imageErrors[servant.id] ? (
                         <img
                           src={servant.avatar_url}
                           alt={servant.full_name || "Servant"}
-                          className={`w-14 h-14 rounded-2xl object-cover shadow-sm transition-all duration-300 ${servant.is_blocked ? "grayscale-[0.8] opacity-60 scale-95" : ""}`}
+                          onError={() => setImageErrors((prev) => ({ ...prev, [servant.id]: true }))}
+                          className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl object-cover shadow-sm transition-all duration-300 ${servant.is_blocked ? "grayscale-[0.8] opacity-60 scale-95" : ""}`}
                           style={{ border: servant.is_blocked ? '2px solid #fca5a5' : '2px solid rgba(249,115,22,0.2)' }}
                         />
                       ) : (
                         <div
-                          className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner transition-all duration-300 ${servant.is_blocked ? "grayscale scale-95" : "group-hover:scale-105"}`}
+                          className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner transition-all duration-300 ${servant.is_blocked ? "grayscale scale-95" : "group-hover:scale-105"}`}
                           style={{
                             background: servant.is_blocked ? 'linear-gradient(135deg, #fef2f2, #fee2e2)' : (isDark ? 'rgba(75,155,220,0.12)' : 'linear-gradient(135deg, #f2f8fd, #e8f1fa)'),
                             color: servant.is_blocked ? '#fca5a5' : '#f97316'
                           }}
                         >
-                          <User size={28} />
+                          <User size={24} className="sm:w-7 sm:h-7" />
                         </div>
                       )}
                       {servant.is_blocked ? (
@@ -732,7 +740,7 @@ export default function Servants() {
                           </a>
                         )}
                       </div>
-                      {servant.profile_departments && servant.profile_departments.length > 0 && (
+                      {profile?.role !== "servant" && servant.profile_departments && servant.profile_departments.length > 0 && (
                         <div className="flex items-start gap-2 pt-2" style={d.innerBorder}>
                           <Shield size={13} className="text-[#4B9BDC] mt-0.5" />
                           <div className="flex flex-wrap gap-1">

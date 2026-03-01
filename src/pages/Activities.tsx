@@ -62,10 +62,9 @@ const getActionIcon = (action: string) => {
   }
 };
 
-const ACTION_FILTERS = ["All", "CREATE", "UPDATE", "DELETE", "BLOCK", "UNBLOCK", "ROLE_CHANGE", "PASSWORD_CHANGE", "LOGIN", "LOGOUT"];
-const ENTITY_FILTERS = ["All", "SERVANT", "PASTOR", "MEMBER", "CHURCH", "DEPARTMENT", "PROFILE", "SETTINGS", "SYSTEM"];
-
 const PAGE_SIZE = 20;
+
+const ACTION_FILTERS = ["All", "CREATE", "UPDATE", "DELETE", "BLOCK", "UNBLOCK", "ROLE_CHANGE", "LOGIN", "LOGOUT", "UPLOAD", "PASSWORD_CHANGE"];
 
 export default function Activities() {
   const { isDark } = useTheme();
@@ -81,6 +80,10 @@ export default function Activities() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
+
+  const ENTITY_FILTERS = profile?.role === "servant"
+    ? ["All", "SERVANT", "PASTOR", "MEMBER", "CHURCH", "PROFILE", "SETTINGS", "SYSTEM"]
+    : ["All", "SERVANT", "PASTOR", "MEMBER", "CHURCH", "DEPARTMENT", "PROFILE", "SETTINGS", "SYSTEM"];
 
   // Role-based scope description
   const scopeLabel = profile?.role === "super_admin"
@@ -332,6 +335,7 @@ export default function Activities() {
       <div className="space-y-2">
         {Object.entries(changes).map(([key, value]: [string, any]) => {
           if (key === "password") return null;
+          if (profile?.role === "servant" && (key === "department_id" || key === "department")) return null;
 
           const isDiff = value && typeof value === "object" && ("old" in value || "new" in value);
 
@@ -386,19 +390,19 @@ export default function Activities() {
     >
       {/* Header */}
       <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#1A365D] to-[#4B9BDC] p-8 shadow-lg">
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl md:rounded-3xl bg-gradient-to-r from-[#1A365D] to-[#4B9BDC] p-4 sm:p-6 md:p-8 shadow-lg">
           <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate(-1)}
                 className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-white"
               >
-                <ArrowLeft size={20} />
+                <ArrowLeft size={18} className="sm:w-5 sm:h-5" />
               </button>
               <div className="text-white">
-                <h1 className="text-3xl font-extrabold tracking-tight mb-1">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight mb-0.5 sm:mb-1">
                   {t("activity.title")}
                 </h1>
                 <p className="text-blue-100 text-sm flex items-center gap-2">
