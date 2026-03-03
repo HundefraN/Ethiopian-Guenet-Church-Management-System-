@@ -40,6 +40,7 @@ create table public.members (
   department_id uuid references public.departments(id) on delete set null,
   full_name text not null,
   phone text,
+  work_type text,
   email text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
