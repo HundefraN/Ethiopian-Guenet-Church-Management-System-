@@ -16,7 +16,6 @@ import {
   Briefcase,
   X,
   Sparkles,
-  Heart,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../supabaseClient";
@@ -124,13 +123,11 @@ export default function Members() {
       if (membersRes.error) throw membersRes.error;
       if (profilesRes.error) {
         console.error("Error fetching profiles as members:", profilesRes.error);
-        // We continue with regular members if profiles fail
       }
 
       const regularMembers = (membersRes.data as any[]) || [];
       const fetchedProfiles = (profilesRes.data as any[]) || [];
 
-      // Avoid duplicates: if a member already has the same email, don't show the profile twice
       const memberEmails = new Set(regularMembers.map((m: any) => m.email?.toLowerCase()).filter(Boolean));
 
       const profileMembers = fetchedProfiles
@@ -151,9 +148,7 @@ export default function Members() {
         } as unknown as MemberWithDetails));
 
       let allMembers = [...regularMembers, ...profileMembers];
-
       allMembers.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
-
       setMembers(allMembers);
     } catch (error) {
       console.error("Error fetching members:", error);
@@ -259,38 +254,38 @@ export default function Members() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="space-y-8 pb-10"
+        className="space-y-6 pb-10"
       >
         {/* ═══════════════ ULTRA HERO HEADER ═══════════════ */}
-        <div className="relative overflow-hidden rounded-xl sm:rounded-[1.5rem] md:rounded-[2rem] p-4 sm:p-8 md:p-10 shadow-lg" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
+        <div className="relative overflow-hidden rounded-xl sm:rounded-[1.5rem] md:rounded-[2rem] p-4 sm:p-6 md:p-8 shadow-xl" style={{ background: 'linear-gradient(135deg, #0c1929 0%, #173254 40%, #3178B5 70%, #4B9BDC 100%)' }}>
           {/* Animated mesh orbs */}
           <div className="absolute top-0 right-0 w-40 sm:w-80 h-40 sm:h-80 rounded-full opacity-25 blur-[50px] sm:blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
           <div className="absolute bottom-0 left-0 w-32 sm:w-60 h-32 sm:h-60 rounded-full opacity-20 blur-[40px] sm:blur-[60px]" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
           <div className="absolute top-1/2 left-1/3 w-36 sm:w-72 h-36 sm:h-72 rounded-full opacity-10 blur-[60px] sm:blur-[100px]" style={{ background: 'radial-gradient(circle, #3178B5, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
-
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
-          <div className="relative z-10 flex flex-col gap-4 sm:gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="relative z-10 flex flex-col gap-3 sm:gap-4 md:gap-5 lg:flex-row lg:items-center lg:justify-between">
             {/* Title Section */}
             <div className="text-white flex-1 min-w-0">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-4 flex-wrap"
+                className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2 md:mb-3 flex-wrap"
               >
-                <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                  <Heart size={18} className="text-blue-100 sm:w-6 sm:h-6" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                  <Users size={16} className="text-blue-100 sm:w-5 sm:h-5" />
                 </div>
-                <div className="px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
+                <div className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
                   <Sparkles size={10} className="inline mr-1" /> {t("members.subtitle")}
                 </div>
               </motion.div>
+
               <motion.h1
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="text-xl sm:text-4xl md:text-5xl font-black tracking-tight mb-1 sm:mb-3"
+                className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tight mb-0.5 sm:mb-1.5 md:mb-2"
                 style={{ background: 'linear-gradient(135deg, #ffffff 0%, #7EC8F2 50%, #4B9BDC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
               >
                 {t("members.title")}
@@ -299,38 +294,41 @@ export default function Members() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-blue-100/70 max-w-lg text-[10px] sm:text-sm md:text-base font-medium hidden sm:block"
+                className="text-blue-100/70 max-w-md text-xs sm:text-sm font-medium hidden sm:block"
               >
                 {t("members.description")}
               </motion.p>
             </div>
 
-            {/* Stats + Add Button */}
+            {/* Stats + Action Widget Stack */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
-              className="flex flex-row items-center gap-2 sm:gap-4 w-full xl:w-auto flex-wrap xl:flex-nowrap"
+              className="flex flex-col gap-2 sm:gap-3 w-full lg:w-auto lg:min-w-[200px]"
             >
-              <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl flex-1 xl:flex-initial min-w-[100px]" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)' }}>
-                  <Users size={14} className="text-white sm:w-[18px] sm:h-[18px]" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-lg sm:text-2xl font-black text-white leading-none truncate">{members.length}</p>
-                  <p className="text-[7px] sm:text-[10px] font-bold text-blue-200/70 uppercase tracking-wider truncate">{t("members.title")}</p>
+              {/* Stats Row */}
+              <div className="flex flex-row sm:flex-row lg:flex-col gap-2 sm:gap-2.5 w-full">
+                <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-3 rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/10 group/stat flex-1" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
+                  <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover/stat:scale-110 shadow-lg" style={{ background: 'linear-gradient(135deg, #4B9BDC, #3178B5)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                    <Users size={14} className="text-white sm:w-4 sm:h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-base sm:text-xl md:text-2xl font-black text-white leading-none tracking-tight">{members.length}</p>
+                    <p className="text-[7px] sm:text-[9px] font-bold text-blue-200/80 uppercase tracking-widest mt-0.5 group-hover/stat:text-blue-100 transition-colors">{t("members.title")}</p>
+                  </div>
                 </div>
               </div>
 
               {profile?.role !== "super_admin" && (
                 <motion.button
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleAddMember}
-                  className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-5 md:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-bold text-xs md:text-sm shrink-0 flex-1 xl:flex-initial"
-                  style={{ background: 'linear-gradient(135deg, #ffffff, #e8f1fa)', color: '#3178B5', boxShadow: '0 8px 32px rgba(49,120,181,0.3), inset 0 1px 0 rgba(255,255,255,0.8)' }}
+                  className="flex items-center justify-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm shrink-0 w-full mt-0.5 sm:mt-1"
+                  style={{ background: 'linear-gradient(135deg, #ffffff, #e8f1fa)', color: '#3178B5', boxShadow: '0 12px 24px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.8)' }}
                 >
-                  <Plus size={14} className="sm:w-4 sm:h-4 md:w-[18px] md:h-[18px]" />
+                  <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
                   <span>{t("members.addBtn")}</span>
                 </motion.button>
               )}
@@ -403,10 +401,7 @@ export default function Members() {
             </p>
           </motion.div>
         ) : (
-          <motion.div
-            layout
-            className="flex flex-col gap-2 sm:gap-3"
-          >
+          <motion.div layout className="flex flex-col gap-2 sm:gap-3">
             <AnimatePresence>
               {filteredMembers.map((member, index) => {
                 const colors = getMemberColors(member.full_name);
@@ -497,7 +492,7 @@ export default function Members() {
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Completion Badge */}
                     <div className="hidden sm:flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-lg border border-gray-100 dark:border-gray-700/50">
                         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: completion >= 80 ? '#10b981' : completion >= 50 ? '#f59e0b' : '#ef4444' }}></div>
@@ -505,8 +500,8 @@ export default function Members() {
                     </div>
 
                     {/* Chevron */}
-                    <div className="flex items-center pl-1.5 sm:pl-2">
-                      <div className="text-gray-400 dark:text-gray-500 group-hover:text-[#4B9BDC] transition-colors">
+                    <div className="flex items-center pl-1.5 sm:pl-2 border-l border-gray-100 dark:border-gray-800 ml-2">
+                      <div className="text-gray-400 dark:text-gray-500 group-hover:text-[#4B9BDC] transition-colors ml-2">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5"><path d="m9 18 6-6-6-6" /></svg>
                       </div>
                     </div>
@@ -517,7 +512,6 @@ export default function Members() {
           </motion.div>
         )}
 
-        {/* Confirmation Dialog */}
         <ConfirmDialog
           isOpen={confirmOpen}
           title={confirmTitle}
