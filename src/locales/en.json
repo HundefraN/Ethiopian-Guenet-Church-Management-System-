@@ -552,6 +552,8 @@
             "employmentStatus": "Employment Status",
             "workplaceAddress": "Workplace Address",
             "workplacePlaceholder": "Company/Organization",
+            "workType": "Work Type",
+            "workTypePlaceholder": "e.g. Full-time, Part-time, Contractor",
             "schoolName": "School/University Name",
             "grade": "Grade",
             "universityYear": "University Year",

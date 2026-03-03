@@ -234,6 +234,7 @@ export default function MemberDetails({ member }: MemberDetailsProps) {
           <SectionHeader icon={Briefcase} title={t('members.form.sections.work')} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 md:gap-y-4 gap-x-6">
             <InfoItem label={t('members.form.employmentStatus')} value={member.employment_status} />
+            <InfoItem label={t('members.form.workType')} value={member.work_type} />
             <InfoItem label={t('members.form.workplaceAddress')} value={member.workplace_address} />
             <InfoItem label={t('members.form.monthlyIncome')} value={member.income_amount ? `${t('members.form.currency')} ${member.income_amount}` : null} />
           </div>

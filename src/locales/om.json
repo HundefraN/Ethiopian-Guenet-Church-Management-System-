@@ -551,6 +551,8 @@
             "employmentStatus": "Haala Hojii",
             "workplaceAddress": "Teessoo Bakka Hojii",
             "workplacePlaceholder": "Koompanii/Dhaabbata",
+               "workType": "Akaakuu Hojii",
+               "workTypePlaceholder": "fkn. Yeroo guutuu, Yeroo hafuuraa, Kontraaktara",
             "schoolName": "Maqaa Mana Barumsaa/Yunivarsiitii",
             "grade": "Kutaa (Grade)",
             "universityYear": "Waggaa Yunivarsiitii",

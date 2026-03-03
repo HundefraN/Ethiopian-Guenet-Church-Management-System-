@@ -65,6 +65,14 @@ const EducationAndWorkInfo: React.FC<EducationAndWorkInfoProps> = ({
         </div>
 
         <div>
+          <label className="form-label">{t('members.form.workType')}</label>
+          <input
+            {...register("work_type")}
+            className="form-input"
+            placeholder={t('members.form.workTypePlaceholder') || "e.g. Full-time, Part-time, Contractor"}
+          />
+        </div>
+        <div>
           <label className="form-label">{t('members.form.monthlyIncome')}</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm font-medium">

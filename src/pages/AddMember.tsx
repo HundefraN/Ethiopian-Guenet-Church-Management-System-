@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import ImageCropper from "../components/ImageCropper";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -22,7 +21,6 @@ import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 
-// --- Schema Definition ---
 const memberSchema = z.object({
   photo: z.any().optional(),
   full_name: z.string().min(2, "Full name is required"),
@@ -43,6 +41,7 @@ const memberSchema = z.object({
   university_year: z.string().optional().nullable(),
   school_name: z.string().optional().nullable(),
   employment_status: z.string().optional().nullable(),
+  work_type: z.string().optional().nullable(),
   workplace_address: z.string().optional().nullable(),
   income_amount: z.string().optional().nullable(),
   marital_status: z.enum(["Single", "Married", "Divorced", "Widowed"]).optional().nullable(),
@@ -112,7 +111,6 @@ export default function AddMember() {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Servant Promoton State
   const [isMakeServantModalOpen, setIsMakeServantModalOpen] = useState(false);
   const [promoteToServant, setPromoteToServant] = useState(false);
   const [servantPassword, setServantPassword] = useState("");
@@ -150,6 +148,7 @@ export default function AddMember() {
       navigate("/members");
       return;
     }
+
     if (isEditing && id) {
       const fetchMember = async () => {
         setLoadingMember(true);
@@ -181,17 +180,14 @@ export default function AddMember() {
         try {
           const parsed = JSON.parse(draft);
           reset(parsed);
-          // toast.success(t('members.draftRestored'), { icon: "📝" });
         }
         catch (e) { console.error("Failed to parse draft", e); }
       } else if (profile?.department_id) {
-        // Set default department for new members if not editing
         setValue("department_id", profile.department_id);
       }
     }
-  }, [id, isEditing, navigate, reset, setValue, profile]);
+  }, [id, isEditing, navigate, reset, setValue, profile, t]);
 
-  // Intersection observer for active section tracking
   useEffect(() => {
     const observers: IntersectionObserver[] = [];
     SECTIONS.forEach((section) => {
@@ -211,9 +207,8 @@ export default function AddMember() {
       observers.push(observer);
     });
     return () => observers.forEach((o) => o.disconnect());
-  }, [loadingMember]);
+  }, [loadingMember, SECTIONS]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (deptMenuRef.current && !deptMenuRef.current.contains(event.target as Node)) {
@@ -280,8 +275,6 @@ export default function AddMember() {
         photoUrl = publicUrl;
       } else if (typeof data.photo === 'string') { photoUrl = data.photo; }
 
-      // Include all data, but be aware that if columns don't exist in DB, Supabase will return an error.
-      // We've provided a migration file to add these missing columns.
       const dataToSave = { ...data };
 
       const payload = {
@@ -295,20 +288,16 @@ export default function AddMember() {
       };
 
       if (isEditing && id) {
-        // Calculate differences to log and update only changed data
         const diff = initialData ? getObjectDiff(initialData, payload) : null;
-
         if (!diff) {
           toast.success(t('members.messages.noChanges'), { id: loadingToast });
           setUploading(false);
           return;
         }
-
         if (Object.keys(diff.new).length > 0) {
           const { error } = await supabase.from("members").update(diff.new).eq("id", id);
           if (error) throw error;
         }
-
         const changedFields = Object.keys(diff.new).join(", ");
         await logActivity(
           "UPDATE",
@@ -317,12 +306,10 @@ export default function AddMember() {
           id,
           diff.new
         );
-
         toast.success(t('members.messages.updateSuccess'), { id: loadingToast });
       } else {
         const { data: newMember, error } = await supabase.from("members").insert([payload]).select().single();
         if (error) throw error;
-
         let servantCreatedMsg = "";
         if (promoteToServant) {
           const { data: responseData } = await invokeSupabaseFunction("create-user", {
@@ -339,12 +326,9 @@ export default function AddMember() {
             toast.error(t('members.messages.servantAccountError').replace("{{error}}", responseData.error), { id: loadingToast });
           } else {
             const servantId = responseData.user?.id || responseData?.id;
-            
-            // Update profile picture if available
             if (servantId && photoUrl) {
               await supabase.from('profiles').update({ avatar_url: photoUrl }).eq('id', servantId);
             }
-
             await logActivity("CREATE", "SERVANT", t('members.messages.promotingMemberLog').replace("{{name}}", data.full_name), servantId || null, {
               email: data.email,
               source: "Member Registration"
@@ -352,11 +336,8 @@ export default function AddMember() {
             servantCreatedMsg = t('members.messages.servantCreatedLog');
           }
         }
-
-        // For creation, we log the whole payload but maybe exclude some internal things
         const logPayload = { ...payload };
-        delete logPayload.photo; // Don't log base64 or large URLs if possible, or keep it if it's just a URL
-
+        delete logPayload.photo;
         await logActivity("CREATE", "MEMBER", t('members.messages.addedNewMemberLog').replace("{{name}}", data.full_name), newMember.id, logPayload);
         toast.success(t('members.messages.deleteSuccess').replace("deleted", "registered") + servantCreatedMsg, { id: loadingToast });
         localStorage.removeItem("member_draft");
@@ -371,21 +352,17 @@ export default function AddMember() {
   const handleMakeServant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!initialData) return;
-
     const email = watch("email");
     if (!email) {
       toast.error(t('members.messages.emailRequiredServantRegister'));
       return;
     }
-
     if (servantPassword.length < 6) {
       toast.error(t('members.messages.passwordMinLength'));
       return;
     }
-
     setMakingServant(true);
     const loadingToast = toast.loading(t('members.messages.creatingServantAccount'));
-
     try {
       const { data: responseData } = await invokeSupabaseFunction("create-user", {
         body: {
@@ -397,29 +374,18 @@ export default function AddMember() {
           department_id: watch("department_id") || initialData.department_id || null,
         },
       });
-
       if (responseData?.error) {
         throw new Error(responseData.error);
       }
-
       const servantId = responseData.user?.id || responseData?.id;
-
-      // Update profile picture if available
       if (servantId && initialData.photo) {
         await supabase.from('profiles').update({ avatar_url: initialData.photo }).eq('id', servantId);
       }
-
-      let churchName = t('members.messages.thisChurch');
-      if (profile?.role === "pastor" && profile.church_id) {
-        churchName = t('members.messages.thisChurch');
-      }
-
       await logActivity("CREATE", "SERVANT", t('members.messages.promotingMemberLog').replace("{{name}}", watch("full_name") || initialData.full_name), servantId || null, {
         email: email,
         member_id: id,
         source: "Member Promotion"
       });
-
       toast.success(t('members.messages.promoteSuccess'), { id: loadingToast });
       setIsMakeServantModalOpen(false);
       setServantPassword("");
@@ -451,13 +417,9 @@ export default function AddMember() {
       transition={{ duration: 0.15 }}
       className="min-h-screen pb-20"
     >
-
-
       <div className="max-w-7xl mx-auto flex gap-6">
-        {/* Sidebar Navigation */}
         <div className="hidden lg:block w-64 shrink-0">
           <div className="sticky top-28">
-            {/* Progress */}
             <div className="mb-6 px-4">
               <div className="flex items-center justify-between text-xs mb-2">
                 <span className="text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.analytics.growthAnalytics')}</span>
@@ -474,7 +436,6 @@ export default function AddMember() {
                 />
               </div>
             </div>
-
             <nav className="space-y-1.5">
               {SECTIONS.map((section, index) => {
                 const Icon = section.icon;
@@ -483,16 +444,10 @@ export default function AddMember() {
                   <button
                     key={section.id}
                     onClick={() => scrollToSection(section.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all duration-150 group ${isActive
-                      ? 'shadow-[0_4px_20px_rgba(0,0,0,0.06)] scale-[1.02]'
-                      : ''
-                      }`}
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all duration-150 group ${isActive ? 'shadow-[0_4px_20px_rgba(0,0,0,0.06)] scale-[1.02]' : ''}`}
                     style={isActive ? d.card : {}}
                   >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-150 ${isActive
-                      ? `bg-gradient-to-br ${section.color} text-white shadow-md`
-                      : 'text-gray-500 dark:text-gray-400 group-hover:bg-gray-200 dark:group-hover:bg-gray-800'
-                      }`}
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-150 ${isActive ? `bg-gradient-to-br ${section.color} text-white shadow-md` : 'text-gray-500 dark:text-gray-400 group-hover:bg-gray-200 dark:group-hover:bg-gray-800'}`}
                       style={!isActive ? d.iconBox : {}}
                     >
                       <Icon size={18} />
@@ -515,14 +470,10 @@ export default function AddMember() {
                 );
               })}
             </nav>
-
           </div>
         </div>
 
-        {/* Main Form Content */}
         <div className="flex-1 min-w-0 space-y-6" ref={scrollContainerRef}>
-
-          {/* ═══════════ 1. Personal Information ═══════════ */}
           <div ref={(el) => { sectionRefs.current['personal'] = el; }} id="personal" className="scroll-mt-28">
             <div className="backdrop-blur-xl rounded-[1.5rem] border shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
               <div className="bg-gradient-to-r from-blue-500 to-cyan-400 px-8 py-5 flex items-center gap-4">
@@ -581,13 +532,11 @@ export default function AddMember() {
                             }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${watch("department_id") ? "bg-blue-500 text-white" : "bg-blue-50 text-blue-400"
-                              }`}>
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${watch("department_id") ? "bg-blue-50 text-white" : "bg-blue-50 text-blue-400"}`}>
                               <Shield size={20} />
                             </div>
                             <div className="text-left">
-                              <p className={`text-sm font-bold truncate ${watch("department_id") ? (isDark ? "text-white" : "text-gray-900") : "text-gray-500 dark:text-gray-400"
-                                }`}>
+                              <p className={`text-sm font-bold truncate ${watch("department_id") ? (isDark ? "text-white" : "text-gray-900") : "text-gray-500 dark:text-gray-400"}`}>
                                 {departments.find(d => d.id === watch("department_id"))?.name || t('members.form.chooseDept')}
                               </p>
                               <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium leading-none mt-0.5">
@@ -597,11 +546,9 @@ export default function AddMember() {
                           </div>
                           <ChevronRight
                             size={20}
-                            className={`text-gray-500 dark:text-gray-400 transition-transform duration-300 ${isDeptMenuOpen ? "rotate-90" : ""
-                              }`}
+                            className={`text-gray-500 dark:text-gray-400 transition-transform duration-300 ${isDeptMenuOpen ? "rotate-90" : ""}`}
                           />
                         </button>
-
                         <AnimatePresence>
                           {isDeptMenuOpen && (
                             <motion.div
@@ -631,9 +578,7 @@ export default function AddMember() {
                                     <p className="text-[9px] opacity-70">{t('members.form.genCongregation')}</p>
                                   </div>
                                 </button>
-
                                 <div className="h-px bg-gray-50 my-1 mx-2" />
-
                                 {departments.length === 0 ? (
                                   <div className="p-4 text-center">
                                     <p className="text-xs text-gray-500 dark:text-gray-400 italic">{t('members.form.noDeptsConfigured')}</p>
@@ -668,8 +613,6 @@ export default function AddMember() {
                           )}
                         </AnimatePresence>
                       </div>
-
-                      {/* Save as Servant Checkbox */}
                       <div className="mt-4 flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
                         <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full cursor-pointer">
                           <input
@@ -678,18 +621,17 @@ export default function AddMember() {
                             className="absolute w-12 h-6 opacity-0 z-10 cursor-pointer"
                             checked={promoteToServant}
                             onChange={(e) => {
-                                if (isEditing) {
-                                    setIsMakeServantModalOpen(true);
-                                } else {
-                                    setPromoteToServant(e.target.checked);
-                                }
+                              if (isEditing) {
+                                setIsMakeServantModalOpen(true);
+                              } else {
+                                setPromoteToServant(e.target.checked);
+                              }
                             }}
                           />
                           <label
                             htmlFor="promote-servant-switch"
                             className={`block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ${promoteToServant ? 'bg-[#4B9BDC]' : 'bg-gray-300 dark:bg-gray-600'}`}
-                          >
-                          </label>
+                          ></label>
                           <div className={`absolute left-0 top-0 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-200 ${promoteToServant ? 'translate-x-full' : 'translate-x-0'}`}></div>
                         </div>
                         <label htmlFor="promote-servant-switch" className="text-sm font-bold text-gray-700 dark:text-gray-300 cursor-pointer select-none">
@@ -738,7 +680,6 @@ export default function AddMember() {
             </div>
           </div>
 
-          {/* ═══════════ 2. Spiritual Life ═══════════ */}
           <div ref={(el) => { sectionRefs.current['spiritual'] = el; }} id="spiritual" className="scroll-mt-28">
             <div className="backdrop-blur-xl rounded-[1.5rem] border shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
               <div className="bg-gradient-to-r from-purple-500 to-pink-400 px-8 py-5 flex items-center gap-4">
@@ -779,7 +720,6 @@ export default function AddMember() {
             </div>
           </div>
 
-          {/* ═══════════ 3. Education ═══════════ */}
           <div ref={(el) => { sectionRefs.current['education'] = el; }} id="education" className="scroll-mt-28">
             <div className="backdrop-blur-xl rounded-[1.5rem] border shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
               <div className="bg-gradient-to-r from-teal-500 to-emerald-400 px-8 py-5 flex items-center gap-4">
@@ -817,7 +757,6 @@ export default function AddMember() {
             </div>
           </div>
 
-          {/* ═══════════ 4. Work ═══════════ */}
           <div ref={(el) => { sectionRefs.current['work'] = el; }} id="work" className="scroll-mt-28">
             <div className="backdrop-blur-xl rounded-[1.5rem] border shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
               <div className="bg-gradient-to-r from-amber-500 to-orange-400 px-8 py-5 flex items-center gap-4">
@@ -842,6 +781,10 @@ export default function AddMember() {
                       <option value="Retired">{t('members.form.retired')}</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="form-label">{t('members.form.workType')}</label>
+                    <input {...register("work_type")} className="form-input" placeholder={t('members.form.workTypePlaceholder')} />
+                  </div>
                   <div><label className="form-label">{t('members.form.workplaceAddress')}</label><input {...register("workplace_address")} className="form-input" placeholder={t('members.form.workplacePlaceholder')} /></div>
                   <div>
                     <label className="form-label">{t('members.form.monthlyIncome')}</label>
@@ -855,7 +798,6 @@ export default function AddMember() {
             </div>
           </div>
 
-          {/* ═══════════ 4. Family Status ═══════════ */}
           <div ref={(el) => { sectionRefs.current['family'] = el; }} id="family" className="scroll-mt-28">
             <div className="backdrop-blur-xl rounded-[1.5rem] border shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
               <div className="bg-gradient-to-r from-rose-500 to-pink-400 px-8 py-5 flex items-center gap-4">
@@ -889,8 +831,6 @@ export default function AddMember() {
                     </>
                   )}
                 </div>
-
-                {/* Children section */}
                 <div className="mt-8">
                   <div className="flex justify-between items-center mb-5">
                     <h3 className="text-base font-bold text-gray-800">{t('members.form.childrenInfo')}</h3>
@@ -932,7 +872,6 @@ export default function AddMember() {
             </div>
           </div>
 
-          {/* ═══════════ 6. Service History ═══════════ */}
           <div ref={(el) => { sectionRefs.current['service'] = el; }} id="service" className="scroll-mt-28">
             <div className="backdrop-blur-xl rounded-[1.5rem] border shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
               <div className="bg-gradient-to-r from-blue-600 to-indigo-500 px-8 py-5 flex items-center gap-4">
@@ -957,7 +896,6 @@ export default function AddMember() {
             </div>
           </div>
 
-          {/* ═══════════ 6. Fellowship ═══════════ */}
           <div ref={(el) => { sectionRefs.current['fellowship'] = el; }} id="fellowship" className="scroll-mt-28">
             <div className="backdrop-blur-xl rounded-[1.5rem] border shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
               <div className="bg-gradient-to-r from-indigo-500 to-blue-400 px-8 py-5 flex items-center gap-4">
@@ -980,7 +918,6 @@ export default function AddMember() {
             </div>
           </div>
 
-          {/* ═══════════ 7. Review & Sign ═══════════ */}
           <div ref={(el) => { sectionRefs.current['signatures'] = el; }} id="signatures" className="scroll-mt-28">
             <div className="backdrop-blur-xl rounded-[1.5rem] border shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden" style={d.card}>
               <div className="bg-gradient-to-r from-slate-600 to-slate-400 px-8 py-5 flex items-center gap-4">
@@ -1008,8 +945,6 @@ export default function AddMember() {
                     <input type="date" {...register("form_filled_date")} className="form-input" />
                   </div>
                 </div>
-
-                {/* Final CTA */}
                 <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col md:flex-row gap-4">
                   {!isEditing && (
                     <button
@@ -1036,7 +971,6 @@ export default function AddMember() {
         </div>
       </div>
 
-      {/* ═══════════════ MAKE SERVANT MODAL ═══════════════ */}
       <AnimatePresence>
         {isMakeServantModalOpen && (
           <motion.div
@@ -1055,7 +989,6 @@ export default function AddMember() {
               style={d.modalContent}
             >
               <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: 'linear-gradient(90deg, #3178B5, #4B9BDC, #7EC8F2)' }}></div>
-
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h2 className="text-2xl font-black text-gray-900 tracking-tight">{t('servants.changeRole')}</h2>
@@ -1069,7 +1002,6 @@ export default function AddMember() {
                   <X size={18} />
                 </button>
               </div>
-
               {!watch("email") ? (
                 <div className="p-4 rounded-xl border text-sm font-semibold flex gap-3" style={d.emptyInner}>
                   <Shield className="shrink-0 mt-0.5" size={18} style={{ color: '#ef4444' }} />
@@ -1080,7 +1012,6 @@ export default function AddMember() {
                   <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-xl border border-blue-100 dark:border-blue-500/20 text-sm text-blue-800 dark:text-blue-300 font-medium mb-4">
                     Creating an account for <strong>{watch("email")}</strong>. They will use this email and the password below to log in as a servant.
                   </div>
-
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">{t('members.form.tempPassword')}</label>
                     <div className="relative">
@@ -1097,10 +1028,8 @@ export default function AddMember() {
                         placeholder={t('members.form.passwordTip')}
                       />
                     </div>
-                    {/* Reusing existing PasswordStrengthMeter if it is imported */}
                     <PasswordStrengthMeter password={servantPassword} />
                   </div>
-
                   <div className="mt-8 flex gap-3">
                     <button
                       type="button"

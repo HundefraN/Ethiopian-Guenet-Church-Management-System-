@@ -550,6 +550,8 @@
             "employmentStatus": "ኩነታት ስራሕ",
             "workplaceAddress": "ኣድራሻ ቦታ ስራሕ",
             "workplacePlaceholder": "ትካል/ቤት ጽሕፈት",
+            "workType": "ኣይነት ስራሕ",
+            "workTypePlaceholder": "ምሳሌ፦ ሙሉ-ሰዓት፣ ከፊል-ሰዓት፣ ኮንትራክተር",
             "schoolName": "ስም ቤት ትምህርቲ/ዩኒቨርሲቲ",
             "grade": "ክፍሊ (Grade)",
             "universityYear": "ዓመት ዩኒቨርሲቲ",
