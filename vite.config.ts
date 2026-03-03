@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
     base: "/Ethiopian-Guenet-Church-Management-System-/",
     plugins: [react(), tailwindcss()],
     define: {
-      "process.env.GEMINI_API_KEY": JSON.stringify(env.GEMINI_API_KEY),
+      "process.env.SOME_API_KEY": JSON.stringify(env.SOME_API_KEY),
     },
     resolve: {
       alias: {

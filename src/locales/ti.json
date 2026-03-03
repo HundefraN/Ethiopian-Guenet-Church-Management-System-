@@ -735,7 +735,6 @@
         "totalIncome": "ጠቕላላ እቶት",
         "totalExpense": "ጠቕላላ ወጻኢ",
         "netGrowth": "ዕብየት ኣባላት",
-        "predictiveAi": "AI ተኸፊቱ ኣሎ",
         "historicalData": "ናይ ቀደም ሓበሬታ",
         "aiForecast": "ትንቢት AI",
         "branches": "ጨንፈራት",
@@ -756,7 +755,6 @@
             "all_time": "ኹሉ ግዜ"
         },
         "intelligent": "ኢንተለጀንት",
-        "predictiveAiEnabled": "PREDICTIVE AI ENABLED",
         "pdf": {
             "title": "ናይ ኢትዮጵያ ገነት ቤተ ክርስቲያን",
             "scope": "ወሰን ጸብጻብ",

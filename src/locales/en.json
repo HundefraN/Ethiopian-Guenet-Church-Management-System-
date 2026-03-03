@@ -504,7 +504,7 @@
     "members": {
         "title": "Members",
         "subtitle": "Community",
-        "description": "View and manage all church members, their contact details, and ministry engagements.",
+        "description": "manage all church members",
         "addBtn": "Add Member",
         "addChild": "Add Child",
         "editBtn": "Edit Member",
@@ -553,7 +553,7 @@
             "workplaceAddress": "Workplace Address",
             "workplacePlaceholder": "Company/Organization",
             "workType": "Work Type",
-            "workTypePlaceholder": "e.g. Full-time, Part-time, Contractor",
+            "workTypePlaceholder": "e.g. Engineer, Doctor, Contractor",
             "schoolName": "School/University Name",
             "grade": "Grade",
             "universityYear": "University Year",

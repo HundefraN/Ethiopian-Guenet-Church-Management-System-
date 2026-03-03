@@ -736,7 +736,6 @@
         "totalIncome": "Galii Waliigalaa",
         "totalExpense": "Baasii Waliigalaa",
         "netGrowth": "Guddina Miseensotaa Qulqulluu",
-        "predictiveAi": "AI HOJIIRRA OOLEERA",
         "historicalData": "Oduu Darbe",
         "aiForecast": "Raagduu AI",
         "branches": "Dameewwan",
@@ -757,7 +756,6 @@
             "all_time": "Yeroo hunda"
         },
         "intelligent": "Intelligent",
-        "predictiveAiEnabled": "PREDICTIVE AI ENABLED",
         "pdf": {
             "title": "WALDAA GUUWWANNAT ITOOPHIYAA",
             "scope": "Scope Gabaasaa",
