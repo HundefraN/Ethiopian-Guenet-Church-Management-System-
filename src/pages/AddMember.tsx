@@ -81,7 +81,7 @@ export default function AddMember() {
   const { isDark } = useTheme();
   const { t } = useLanguage();
 
-  const SECTIONS = React.useMemo(() => [
+  const SECTIONS = React.useMemo(() =>[
     { id: 'personal', title: t('members.form.sections.personal'), icon: User, color: 'from-blue-500 to-cyan-400' },
     { id: 'spiritual', title: t('members.form.sections.spiritual'), icon: Heart, color: 'from-purple-500 to-pink-400' },
     { id: 'education', title: t('members.form.sections.education'), icon: BookOpen, color: 'from-teal-500 to-emerald-400' },
@@ -113,13 +113,13 @@ export default function AddMember() {
 
   const [isMakeServantModalOpen, setIsMakeServantModalOpen] = useState(false);
   const [promoteToServant, setPromoteToServant] = useState(false);
-  const [servantPassword, setServantPassword] = useState("");
+  const[servantPassword, setServantPassword] = useState("");
   const [makingServant, setMakingServant] = useState(false);
 
   const { register, control, handleSubmit, watch, setValue, trigger, reset, formState: { errors, isDirty } } = useForm<MemberFormValues>({
     resolver: zodResolver(memberSchema),
     defaultValues: {
-      children: [],
+      children:[],
       status: "Active",
       marital_status: "Single",
       full_name: "",
@@ -161,7 +161,7 @@ export default function AddMember() {
               return acc;
             }, {});
             formattedData.income_amount = data.income_amount ? String(data.income_amount) : "";
-            formattedData.children = Array.isArray(data.children) ? data.children : [];
+            formattedData.children = Array.isArray(data.children) ? data.children :[];
             if (data.photo) { setPhotoPreview(data.photo); formattedData.photo = data.photo; }
             else { formattedData.photo = undefined; }
             setInitialData(formattedData);
@@ -186,10 +186,10 @@ export default function AddMember() {
         setValue("department_id", profile.department_id);
       }
     }
-  }, [id, isEditing, navigate, reset, setValue, profile, t]);
+  },[id, isEditing, navigate, reset, setValue, profile, t]);
 
   useEffect(() => {
-    const observers: IntersectionObserver[] = [];
+    const observers: IntersectionObserver[] =[];
     SECTIONS.forEach((section) => {
       const el = sectionRefs.current[section.id];
       if (!el) return;
@@ -217,7 +217,7 @@ export default function AddMember() {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  },[]);
 
   const scrollToSection = (sectionId: string) => {
     const el = sectionRefs.current[sectionId];
@@ -304,7 +304,7 @@ export default function AddMember() {
           "MEMBER",
           t('members.messages.addedNewMemberLog').replace("Added", "Updated").replace("{{name}}", data.full_name) + ` (Changed: ${changedFields})`,
           id,
-          diff.new
+          diff
         );
         toast.success(t('members.messages.updateSuccess'), { id: loadingToast });
       } else {

@@ -102,30 +102,35 @@ export const getObjectDiff = (oldData: any, newData: any) => {
 
   let hasChanges = false;
 
-  // Combine all unique keys from both objects
   const allKeys = Array.from(new Set([...Object.keys(oldData), ...Object.keys(newData)]));
 
   for (const key of allKeys) {
-    // Skip internal fields if any (like id, created_at)
-    if (['id', 'created_at', 'updated_at', 'user_id', 'church_id', 'department_id'].includes(key)) continue;
+    if (['id', 'created_at', 'updated_at', 'user_id'].includes(key)) continue;
 
     const oldVal = oldData[key];
     const newVal = newData[key];
 
-    // Deep compare check for arrays (like children)
     if (Array.isArray(oldVal) || Array.isArray(newVal)) {
-      if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-        diff.old[key] = oldVal;
-        diff.new[key] = newVal;
+      if (JSON.stringify(oldVal || []) !== JSON.stringify(newVal || [])) {
+        diff.old[key] = oldVal || [];
+        diff.new[key] = newVal ||[];
         hasChanges = true;
       }
       continue;
     }
 
-    // Standard compare
-    if (oldVal !== newVal) {
-      diff.old[key] = oldVal ?? null;
-      diff.new[key] = newVal ?? null;
+    const normalizedOld = (oldVal === "" || oldVal === undefined) ? null : oldVal;
+    const normalizedNew = (newVal === "" || newVal === undefined) ? null : newVal;
+
+    if (normalizedOld !== normalizedNew) {
+      if (normalizedOld !== null && normalizedNew !== null) {
+        if (String(normalizedOld) === String(normalizedNew)) {
+          continue;
+        }
+      }
+
+      diff.old[key] = normalizedOld;
+      diff.new[key] = normalizedNew;
       hasChanges = true;
     }
   }
@@ -168,6 +173,5 @@ export const logActivity = async (
     }
   } catch (error) {
     console.error("Unexpected error logging activity:", error);
-    // Don't block the UI if logging fails
   }
 };

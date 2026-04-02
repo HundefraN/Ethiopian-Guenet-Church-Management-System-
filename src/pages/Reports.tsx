@@ -93,12 +93,12 @@ const EMPLOYMENT_OPTIONS = ["Employed", "Self-Employed", "Unemployed", "Student"
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.05 } }
 };
 
 const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 30, scale: 0.95 },
-    visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", bounce: 0.4, duration: 0.8 } }
+    hidden: { opacity: 0, y: 24, scale: 0.96, filter: "blur(4px)" },
+    visible: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", transition: { type: "spring", stiffness: 400, damping: 24, mass: 0.6, duration: 0.7 } }
 };
 
 export default function Reports() {
@@ -1129,14 +1129,21 @@ export default function Reports() {
             {/* ═══════════════ ULTRA HERO HEADER ═══════════════ */}
             <motion.div
                 variants={itemVariants}
-                className="relative overflow-hidden rounded-xl sm:rounded-[1.5rem] md:rounded-[2rem] p-3.5 sm:p-6 md:p-10 shadow-2xl"
-                style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3b82f6 100%)" }}
+                className="relative overflow-hidden rounded-xl sm:rounded-[1.5rem] md:rounded-[2rem] p-3.5 sm:p-6 md:p-10 shadow-2xl hero-mesh"
+                style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 25%, #2563eb 50%, #1e3a8a 75%, #3b82f6 100%)", backgroundSize: "400% 400%" }}
             >
-                {/* Animated mesh orbs */}
-                <div className="absolute top-0 right-0 w-40 sm:w-80 h-40 sm:h-80 rounded-full opacity-25 blur-[50px] sm:blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
-                <div className="absolute bottom-0 left-0 w-32 sm:w-60 h-32 sm:h-60 rounded-full opacity-20 blur-[40px] sm:blur-[60px]" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)', animation: 'orbFloat2 10s ease-in-out infinite' }}></div>
-                <div className="absolute top-1/2 left-1/3 w-36 sm:w-72 h-36 sm:h-72 rounded-full opacity-10 blur-[60px] sm:blur-[100px]" style={{ background: 'radial-gradient(circle, #3178B5, transparent)', animation: 'orbFloat3 12s ease-in-out infinite' }}></div>
+                {/* Aurora orbs */}
+                <div className="absolute top-0 right-0 w-40 sm:w-80 h-40 sm:h-80 rounded-full opacity-20 blur-[50px] sm:blur-[80px] aurora-orb" style={{ background: 'radial-gradient(circle, #7EC8F2, transparent)' }}></div>
+                <div className="absolute bottom-0 left-0 w-32 sm:w-60 h-32 sm:h-60 rounded-full opacity-15 blur-[40px] sm:blur-[60px] aurora-orb-reverse" style={{ background: 'radial-gradient(circle, #4B9BDC, transparent)' }}></div>
+                <div className="absolute top-1/2 left-1/3 w-36 sm:w-72 h-36 sm:h-72 rounded-full opacity-8 blur-[60px] sm:blur-[100px] aurora-orb" style={{ background: 'radial-gradient(circle, #3178B5, transparent)' }}></div>
 
+                {/* Floating particles */}
+                <div className="absolute top-1/4 right-1/4 w-2 h-2 bg-cyan-300 rounded-full" style={{ animation: "floatParticle 6s ease-in-out infinite" }} />
+                <div className="absolute top-1/3 left-1/3 w-1.5 h-1.5 bg-blue-300 rounded-full" style={{ animation: "floatParticle2 8s ease-in-out infinite" }} />
+                <div className="absolute bottom-1/4 right-1/3 w-1 h-1 bg-sky-200 rounded-full" style={{ animation: "floatParticle3 5s ease-in-out infinite" }} />
+                <div className="absolute top-2/3 right-1/5 w-1.5 h-1.5 bg-indigo-300 rounded-full" style={{ animation: "floatParticle 7s ease-in-out infinite 1s" }} />
+
+                {/* Grid overlay */}
                 <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
                 <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -1151,7 +1158,7 @@ export default function Reports() {
                             <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, rgba(126,200,242,0.3), rgba(75,155,220,0.3))', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
                                 <TrendingUp size={18} className="text-blue-100 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                             </div>
-                            <div className="px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
+                            <div className="px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] badge-shine" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#7EC8F2' }}>
                                 <Sparkles size={10} className="inline mr-1" /> {t("reports.title")}
                             </div>
                         </motion.div>
@@ -1274,8 +1281,8 @@ export default function Reports() {
                 {/* Analytics Overview */}
                 <motion.div
                     variants={itemVariants}
-                    whileHover={{ y: -6, scale: 1.01 }}
-                    className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl overflow-hidden relative"
+                    whileHover={{ y: -6, scale: 1.01, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } }}
+                    className="dashboard-card rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl overflow-hidden relative"
                     style={d.card}
                 >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
@@ -1314,7 +1321,9 @@ export default function Reports() {
                                         contentStyle={{
                                             borderRadius: "16px",
                                             border: "none",
-                                            boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                                            boxShadow: "0 16px 48px rgba(0,0,0,0.12), 0 0 0 1px rgba(75,155,220,0.08)",
+                                            backdropFilter: "blur(20px)",
+                                            background: "rgba(255,255,255,0.92)",
                                         }}
                                     />
                                     <Bar dataKey="amount" radius={[0, 10, 10, 0]}>
@@ -1354,8 +1363,8 @@ export default function Reports() {
                 {/* Growth Forecasting */}
                 <motion.div
                     variants={itemVariants}
-                    whileHover={{ y: -6, scale: 1.01 }}
-                    className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl relative overflow-hidden"
+                    whileHover={{ y: -6, scale: 1.01, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } }}
+                    className="dashboard-card rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl relative overflow-hidden"
                     style={d.card}
                 >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
@@ -1382,9 +1391,22 @@ export default function Reports() {
                             <AreaChart data={growthData}>
                                 <defs>
                                     <linearGradient id="colorMembers" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
+                                        <stop offset="50%" stopColor="#06b6d4" stopOpacity={0.15} />
+                                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                                     </linearGradient>
+                                    <linearGradient id="strokeGradient" x1="0" y1="0" x2="1" y2="0">
+                                        <stop offset="0%" stopColor="#10b981" />
+                                        <stop offset="50%" stopColor="#06b6d4" />
+                                        <stop offset="100%" stopColor="#10b981" />
+                                    </linearGradient>
+                                    <filter id="chartGlow">
+                                        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                                        <feMerge>
+                                            <feMergeNode in="coloredBlur" />
+                                            <feMergeNode in="SourceGraphic" />
+                                        </feMerge>
+                                    </filter>
                                 </defs>
                                 <CartesianGrid
                                     strokeDasharray="3 3"
@@ -1406,19 +1428,21 @@ export default function Reports() {
                                     contentStyle={{
                                         borderRadius: "16px",
                                         border: "none",
-                                        boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                                        boxShadow: "0 16px 48px rgba(0,0,0,0.12), 0 0 0 1px rgba(75,155,220,0.08)",
+                                        backdropFilter: "blur(20px)",
+                                        background: "rgba(255,255,255,0.92)",
                                     }}
                                 />
                                 <Area
                                     type="monotone"
                                     dataKey="members"
-                                    stroke="#10b981"
-                                    strokeWidth={4}
+                                    stroke="url(#strokeGradient)"
+                                    strokeWidth={3.5}
                                     fillOpacity={1}
                                     fill="url(#colorMembers)"
-                                    dot={{ r: 5, fill: "#fff", stroke: "#10b981", strokeWidth: 2 }}
-                                    activeDot={{ r: 7, strokeWidth: 0 }}
-                                    animationDuration={1500}
+                                    dot={{ r: 5, fill: "#fff", stroke: "#10b981", strokeWidth: 2.5, filter: "drop-shadow(0 2px 4px rgba(16,185,129,0.3))" }}
+                                    activeDot={{ r: 8, strokeWidth: 0, fill: "#10b981", filter: "drop-shadow(0 0 8px rgba(16,185,129,0.5))" }}
+                                    animationDuration={2000}
                                     animationEasing="ease-in-out"
                                 />
                             </AreaChart>
@@ -1539,8 +1563,8 @@ export default function Reports() {
                 {/* Demographic Heatmap */}
                 <motion.div
                     variants={itemVariants}
-                    whileHover={{ y: -6, scale: 1.01 }}
-                    className="rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl relative overflow-hidden"
+                    whileHover={{ y: -6, scale: 1.01, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } }}
+                    className="dashboard-card rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-transparent shadow-xl relative overflow-hidden"
                     style={d.card}
                 >
                     <div className="flex items-center gap-3 mb-6 sm:mb-8">
@@ -1620,11 +1644,13 @@ export default function Reports() {
                                                 </span>
                                                 <span className="text-gray-900 dark:text-gray-100 font-black">{item.count} ({pct.toFixed(0)}%)</span>
                                             </div>
-                                            <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                                            <div className="h-2.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden relative">
                                                 <motion.div
                                                     initial={{ width: 0 }}
                                                     whileInView={{ width: `${pct}%` }}
-                                                    className="h-full rounded-full"
+                                                    viewport={{ once: true }}
+                                                    transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                                                    className="h-full rounded-full relative progress-shimmer"
                                                     style={{ backgroundColor: item.fill }}
                                                 />
                                             </div>

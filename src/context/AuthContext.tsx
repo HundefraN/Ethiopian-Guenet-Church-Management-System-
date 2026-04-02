@@ -4,6 +4,11 @@ import { supabase } from "../supabaseClient";
 import { Profile, GlobalSettings } from "../types";
 import { logActivity } from "../utils/activityLogger";
 import { UAParser } from 'ua-parser-js';
+import {
+  enforceHTTPS,
+  storeSessionFingerprint,
+  validateSessionFingerprint,
+} from "../utils/security";
 
 import toast from "react-hot-toast";
 
@@ -47,6 +52,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       localStorage.setItem('guenet-calendar', profile.calendar_type);
     }
   }, [profile]);
+
+  // ── Security: Enforce HTTPS in production ──
+  useEffect(() => {
+    enforceHTTPS();
+  }, []);
+
+  // ── Security: Validate session fingerprint when tab becomes visible ──
+  useEffect(() => {
+    if (!user) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (!validateSessionFingerprint()) {
+          toast.error("Security alert: session integrity check failed.");
+          supabase.auth.signOut();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user]);
+
+  // ── Security: Best-effort logout logging on tab / browser close ──
+  useEffect(() => {
+    if (!session || !user) return;
+
+    const handleBeforeUnload = () => {
+      try {
+        const url =
+          import.meta.env.VITE_SUPABASE_URL ||
+          'https://ugcpcfjgppuynntsskjv.supabase.co';
+        const key =
+          import.meta.env.VITE_SUPABASE_ANON_KEY ||
+          'sb_publishable__I5hK0arHHUdhIXasEgL7A_hUJeY63e';
+
+        // fetch with keepalive survives page unload
+        fetch(`${url}/rest/v1/activity_logs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: key,
+            Authorization: `Bearer ${session.access_token}`,
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            action_type: 'LOGOUT',
+            entity_type: 'SYSTEM',
+            details: 'Session ended (tab/browser closed)',
+          }),
+          keepalive: true,
+        });
+      } catch {
+        // best effort
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [session, user]);
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -122,6 +188,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             `User logged in from ${deviceType} (${deviceName})`,
             session.user.id
           );
+
+          // Security: Store browser fingerprint for session integrity
+          storeSessionFingerprint();
         }
       } else {
         setProfile(null);

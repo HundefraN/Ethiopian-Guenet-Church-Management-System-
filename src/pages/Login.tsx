@@ -4,10 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle, Globe, Sun, Moon, Quote } from "lucide-react";
+import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle, Globe, Sun, Moon, Quote, AlertTriangle, ShieldOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { springPresets, interactivePresets } from "../utils/animations";
+import { isLoginLocked, recordLoginAttempt, formatLockoutTime, SECURITY_CONFIG } from "../utils/security";
 
 import logo from "../assets/logo.png";
 
@@ -22,11 +23,28 @@ export default function Login() {
   const { t, language, setLanguage } = useLanguage();
   const { theme, toggleTheme, isDark } = useTheme();
 
+  // Security: Rate limiting state
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [attemptsLeft, setAttemptsLeft] = useState(SECURITY_CONFIG.MAX_LOGIN_ATTEMPTS);
+  const isLockedOut = lockoutSeconds > 0;
+
   React.useEffect(() => {
     if (session && profile) {
       navigate("/");
     }
   }, [session, profile, navigate]);
+
+  // Security: Lockout countdown timer
+  React.useEffect(() => {
+    const tick = () => {
+      const status = isLoginLocked();
+      setLockoutSeconds(status.isLocked ? status.remainingSeconds : 0);
+      setAttemptsLeft(status.attemptsLeft);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   if (authLoading || (session && profile)) {
     return (
@@ -46,8 +64,15 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
+    // Security: Check rate limit before attempting
+    const lockStatus = isLoginLocked();
+    if (lockStatus.isLocked) {
+      toast.error(`Account locked. Try again in ${formatLockoutTime(lockStatus.remainingSeconds)}.`);
+      return;
+    }
+
+    setLoading(true);
     const loadingToast = toast.loading(t("login.signingIn"));
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -55,11 +80,24 @@ export default function Login() {
     });
 
     if (error) {
-      toast.error(error.message, { id: loadingToast });
+      const result = recordLoginAttempt(false);
+      if (result.isLocked) {
+        toast.error(
+          `Too many failed attempts. Account locked for ${formatLockoutTime(result.remainingSeconds)}.`,
+          { id: loadingToast }
+        );
+      } else if (result.attemptsLeft <= 2 && result.attemptsLeft > 0) {
+        toast.error(
+          `${error.message} — ${result.attemptsLeft} attempt(s) remaining before lockout.`,
+          { id: loadingToast }
+        );
+      } else {
+        toast.error(error.message, { id: loadingToast });
+      }
       setLoading(false);
     } else {
+      recordLoginAttempt(true);
       toast.success(t("common.success"), { id: loadingToast });
-      // Navigation is now handled by the useEffect once the profile is loaded
     }
   };
 
@@ -193,6 +231,33 @@ export default function Login() {
                   </p>
                 </div>
 
+                {/* Security: Lockout Banner */}
+                <AnimatePresence>
+                  {isLockedOut && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="mb-4 p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 shadow-sm"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-red-100 dark:bg-red-900/40 rounded-xl">
+                          <ShieldOff size={20} className="text-red-600 dark:text-red-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-red-800 dark:text-red-300">
+                            Account Temporarily Locked
+                          </p>
+                          <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                            Too many failed login attempts. Please try again in{" "}
+                            <span className="font-mono font-bold">{formatLockoutTime(lockoutSeconds)}</span>
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <form onSubmit={handleLogin} className="space-y-5">
                   <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">
@@ -205,10 +270,11 @@ export default function Login() {
                       <input
                         type="email"
                         required
+                        disabled={isLockedOut}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all dark:text-gray-200 sm:text-sm"
-                        placeholder="email@gmail.com" // This is a generic placeholder, but could be translated if needed
+                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all dark:text-gray-200 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="email@gmail.com"
                       />
                     </div>
                   </motion.div>
@@ -224,28 +290,26 @@ export default function Login() {
                       <input
                         type="password"
                         required
+                        disabled={isLockedOut}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all dark:text-gray-200 sm:text-sm"
+                        className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[#4B9BDC]/50 focus:border-[#4B9BDC] outline-none transition-all dark:text-gray-200 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="••••••••"
                       />
                     </div>
                   </motion.div>
 
                   <div className="flex items-center justify-between pt-2">
+                    {/* Security: Remaining attempts warning */}
                     <div className="flex items-center">
-                      <input
-                        id="remember-me"
-                        name="remember-me"
-                        type="checkbox"
-                        className="h-4 w-4 text-[#4B9BDC] focus:ring-[#4B9BDC] border-gray-300 rounded"
-                      />
-                      <label
-                        htmlFor="remember-me"
-                        className="ml-2 block text-sm text-gray-700 dark:text-gray-400"
-                      >
-                        {t("login.rememberMe")}
-                      </label>
+                      {!isLockedOut && attemptsLeft < SECURITY_CONFIG.MAX_LOGIN_ATTEMPTS && attemptsLeft > 0 && (
+                        <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                          <AlertTriangle size={14} />
+                          <span className="text-xs font-medium">
+                            {attemptsLeft} attempt{attemptsLeft !== 1 ? 's' : ''} left
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-sm">
@@ -263,7 +327,7 @@ export default function Login() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || isLockedOut}
                     className="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-2xl shadow-[0_8px_30px_rgb(75,155,220,0.3)] text-sm font-bold text-white bg-gradient-to-r from-[#4B9BDC] to-[#3a85c2] hover:from-[#3a85c2] hover:to-[#295b86] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4B9BDC] transition-all duration-150 disabled:opacity-70 disabled:cursor-not-allowed mt-8 group"
                   >
                     {loading ? (

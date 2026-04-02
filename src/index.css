@@ -2327,3 +2327,465 @@ html.dark .placeholder-gray-500::placeholder {
 .marker-pulse-ring {
   animation: churchMarkerPulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
 }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ░░░ PREMIUM DASHBOARD ANIMATIONS & EFFECTS ░░░           */
+/* ═══════════════════════════════════════════════════════════ */
+
+/* ─── Gradient Shimmer Effect ─── */
+@keyframes gradientShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #ffffff 0%,
+    #7EC8F2 25%,
+    #4B9BDC 50%,
+    #7EC8F2 75%,
+    #ffffff 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShimmer 4s linear infinite;
+}
+
+/* ─── Hero Mesh Gradient ─── */
+@keyframes meshGradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.hero-mesh {
+  background-size: 400% 400%;
+  animation: meshGradient 12s ease infinite;
+}
+
+/* ─── Floating Particles ─── */
+@keyframes floatParticle {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translateY(-15px) translateX(8px) scale(1.1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-25px) translateX(-5px) scale(0.9);
+    opacity: 0.4;
+  }
+  75% {
+    transform: translateY(-10px) translateX(12px) scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes floatParticle2 {
+  0%, 100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0.4;
+  }
+  33% {
+    transform: translateY(-20px) translateX(-10px) rotate(120deg);
+    opacity: 0.8;
+  }
+  66% {
+    transform: translateY(-8px) translateX(15px) rotate(240deg);
+    opacity: 0.5;
+  }
+}
+
+@keyframes floatParticle3 {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-30px) scale(1.3);
+    opacity: 0.7;
+  }
+}
+
+/* ─── Counter Glow ─── */
+@keyframes counterGlow {
+  0%, 100% {
+    text-shadow: 0 0 10px rgba(75, 155, 220, 0);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(75, 155, 220, 0.3);
+  }
+}
+
+.counter-glow {
+  animation: counterGlow 3s ease-in-out infinite;
+}
+
+/* ─── Card Hover Glow ─── */
+.dashboard-card {
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dashboard-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(75, 155, 220, 0),
+    rgba(75, 155, 220, 0),
+    rgba(75, 155, 220, 0)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 0;
+}
+
+.dashboard-card:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(75, 155, 220, 0.3),
+    rgba(126, 200, 242, 0.2),
+    rgba(75, 155, 220, 0.3)
+  );
+}
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 60px rgba(75, 155, 220, 0.12), 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.dark .dashboard-card:hover {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 40px rgba(75, 155, 220, 0.08);
+}
+
+/* ─── Stat Card Icon Pulse ─── */
+@keyframes iconPulse {
+  0%, 100% {
+    box-shadow: 0 6px 16px rgba(75, 155, 220, 0.25);
+  }
+  50% {
+    box-shadow: 0 8px 24px rgba(75, 155, 220, 0.4), 0 0 0 4px rgba(75, 155, 220, 0.1);
+  }
+}
+
+.stat-icon-pulse:hover {
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+/* ─── Progress Bar Shimmer ─── */
+@keyframes barShimmer {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.progress-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: barShimmer 2s ease-in-out infinite;
+  border-radius: inherit;
+}
+
+/* ─── Donut Chart Glow ─── */
+@keyframes donutGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px rgba(75, 155, 220, 0.15));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(75, 155, 220, 0.3));
+  }
+}
+
+.donut-glow {
+  animation: donutGlow 4s ease-in-out infinite;
+}
+
+/* ─── Recharts Tooltip ─── */
+.recharts-tooltip-wrapper {
+  z-index: 50 !important;
+}
+
+.recharts-default-tooltip {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(75, 155, 220, 0.08) !important;
+  padding: 12px 16px !important;
+}
+
+.dark .recharts-default-tooltip {
+  background: rgba(15, 23, 42, 0.92) !important;
+  border: 1px solid rgba(75, 155, 220, 0.15) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4) !important;
+}
+
+.recharts-tooltip-label {
+  font-weight: 700 !important;
+  font-size: 0.8rem !important;
+  color: #0f172a !important;
+  margin-bottom: 4px !important;
+}
+
+.dark .recharts-tooltip-label {
+  color: #f8fafc !important;
+}
+
+.recharts-tooltip-item {
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+}
+
+/* ─── Recharts Dot Active Glow ─── */
+.recharts-dot.recharts-active-dot circle {
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+}
+
+/* ─── Live Indicator Pulse ─── */
+@keyframes livePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.live-dot {
+  animation: livePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ─── Hero Aurora Effect ─── */
+@keyframes auroraShift {
+  0% {
+    transform: translateX(-25%) translateY(-25%) rotate(0deg);
+  }
+  33% {
+    transform: translateX(25%) translateY(-10%) rotate(120deg);
+  }
+  66% {
+    transform: translateX(-10%) translateY(25%) rotate(240deg);
+  }
+  100% {
+    transform: translateX(-25%) translateY(-25%) rotate(360deg);
+  }
+}
+
+.aurora-orb {
+  animation: auroraShift 20s ease-in-out infinite;
+}
+
+.aurora-orb-reverse {
+  animation: auroraShift 25s ease-in-out infinite reverse;
+}
+
+/* ─── Activity Feed Item Hover ─── */
+.activity-feed-item {
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.activity-feed-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 3px;
+  height: 60%;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #4B9BDC, #7EC8F2);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.activity-feed-item:hover::before {
+  transform: translateY(-50%) scaleY(1);
+}
+
+.activity-feed-item:hover {
+  padding-left: 12px;
+}
+
+/* ─── Metric Panel Glass ─── */
+.metric-glass {
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-glass::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(75, 155, 220, 0.03) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  animation: auroraShift 15s ease-in-out infinite;
+}
+
+/* ─── Scrollbar Premium ─── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(75, 155, 220, 0.2);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 155, 220, 0.35);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(75, 155, 220, 0.15);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 155, 220, 0.3);
+}
+
+/* ─── Badge Shine ─── */
+@keyframes badgeShine {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.badge-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.badge-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: badgeShine 3s ease-in-out infinite;
+}
+
+/* ─── Number Counter Pop ─── */
+@keyframes numberPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ─── Glassmorphic Stat Card Inner ─── */
+.stat-card-inner {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card-inner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  pointer-events: none;
+}
+
+/* ─── Chart Card premium border animation ─── */
+@keyframes borderRotate {
+  0% {
+    --angle: 0deg;
+  }
+  100% {
+    --angle: 360deg;
+  }
+}
+
+/* ─── Premium skeleton loading ─── */
+@keyframes skeletonShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-premium {
+  background: linear-gradient(
+    90deg,
+    rgba(75, 155, 220, 0.06) 25%,
+    rgba(75, 155, 220, 0.12) 50%,
+    rgba(75, 155, 220, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+.dark .skeleton-premium {
+  background: linear-gradient(
+    90deg,
+    rgba(75, 155, 220, 0.08) 25%,
+    rgba(75, 155, 220, 0.16) 50%,
+    rgba(75, 155, 220, 0.08) 75%
+  );
+  background-size: 200% 100%;
+}

@@ -5,6 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ethiopian Guenet Church Management System</title>
     <link rel="icon" type="image/png" href="/logo.png" />
+
+    <!-- Security headers -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src  'self' 'unsafe-inline' 'unsafe-eval';
+        style-src   'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src    'self' data: https://fonts.gstatic.com;
+        img-src     'self' data: blob: https://*.supabase.co https://*.tile.openstreetmap.org https://api.mapbox.com;
+        connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mapbox.com ws://localhost:* wss://localhost:* http://localhost:*;
+        frame-src   'none';
+        object-src  'none';
+        base-uri    'self';
+        form-action 'self';
+      "
+    />
   </head>
   <body>
     <div id="root"></div>
