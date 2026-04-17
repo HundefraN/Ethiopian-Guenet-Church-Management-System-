@@ -27,6 +27,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { supabase } from "../supabaseClient";
 import toast from "react-hot-toast";
 import { logActivity, getObjectDiff } from "../utils/activityLogger";
+import { blockNumbers, stripNumbers } from "../utils/inputValidation";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 
 export default function Settings() {
@@ -641,8 +642,9 @@ export default function Settings() {
                         type="text"
                         value={formData.full_name}
                         onChange={(e) =>
-                          setFormData({ ...formData, full_name: e.target.value })
+                          setFormData({ ...formData, full_name: stripNumbers(e.target.value) })
                         }
+                        onKeyDown={blockNumbers}
                         className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-guenet-green/20 focus:border-guenet-green outline-none transition-all dark:text-gray-200"
                         placeholder={t("settings.profile.fullName")}
                       />

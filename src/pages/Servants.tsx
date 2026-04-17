@@ -32,6 +32,7 @@ import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
+import { blockNumbers, stripNumbers } from "../utils/inputValidation";
 
 interface Servant extends Profile {
   email?: string;
@@ -567,6 +568,7 @@ export default function Servants() {
             placeholder={t('servants.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={blockNumbers}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             className="w-full py-2.5 sm:py-3 pr-3 sm:pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-sm sm:text-base text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
@@ -849,7 +851,8 @@ export default function Servants() {
                         type="text"
                         required
                         value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, full_name: stripNumbers(e.target.value) })}
+                        onKeyDown={blockNumbers}
                         className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                         style={d.formInput}
                         placeholder={t('members.form.fullNamePlaceholder')}

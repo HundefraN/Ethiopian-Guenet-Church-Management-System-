@@ -25,6 +25,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
+import { blockNumbers } from "../utils/inputValidation";
 import MemberDetails from "../components/MemberDetails";
 import MasterDetailLayout from "../components/common/MasterDetailLayout";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -359,6 +360,7 @@ export default function Members() {
               placeholder={t("members.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={blockNumbers}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               className="w-full py-2.5 sm:py-3 pr-3 sm:pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-sm sm:text-base text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"

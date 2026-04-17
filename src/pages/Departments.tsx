@@ -26,6 +26,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
+import { blockNumbers, stripNumbers } from "../utils/inputValidation";
 import MasterDetailLayout from "../components/common/MasterDetailLayout";
 import DepartmentDetails from "../components/DepartmentDetails";
 import { getDeptColors } from "../utils/departmentColors";
@@ -423,6 +424,7 @@ export default function Departments() {
               placeholder={t('common.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={blockNumbers}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               className="w-full py-2.5 sm:py-3 pr-3 sm:pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-sm sm:text-base text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
@@ -605,7 +607,8 @@ export default function Departments() {
                         type="text"
                         required
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, name: stripNumbers(e.target.value) })}
+                        onKeyDown={blockNumbers}
                         className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                         style={d.formInput}
                         placeholder={t('departments.form.namePlaceholder')}

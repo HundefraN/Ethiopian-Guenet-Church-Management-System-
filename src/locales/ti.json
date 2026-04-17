@@ -654,6 +654,21 @@
             "promoteSuccess": "ኣባል ብዓወት ናብ ኣገልጋሊ ተቐይሩ!",
             "promoteError": "መለያ ኣገልጋሊ ምፍጣር ኣይተኻእለን",
             "updateRecords": "መዝገባት ኣሐድስ"
+        },
+        "validation": {
+            "fullNameRequired": "ምሉእ ስም የድሊ",
+            "invalidEmail": "ኢሜይል ቅኑዕ ኣይኮነን",
+            "dobFuture": "ዕለት ልደት ንመጻኢ ክኸውን ኣይክእልን እዩ",
+            "salvationBeforeDob": "ዝደሓነሉ ዕለት ካብ ዕለት ልደት ክቕድም ኣይክእልን እዩ",
+            "salvationFuture": "ዝደሓነሉ ዕለት ንመጻኢ ክኸውን ኣይክእልን እዩ",
+            "marriageBeforeDob": "ዕለት መውስቦ ካብ ዕለት ልደት ክቕድም ኣይክእልን እዩ",
+            "marriageFuture": "ዕለት መውስቦ ንመጻኢ ክኸውን ኣይክእልን እዩ",
+            "fellowshipBeforeDob": "ሕብረት ዝጀመረሉ ዕለት ካብ ዕለት ልደት ክቕድም ኣይክእልን እዩ",
+            "fellowshipFuture": "ሕብረት ዝጀመረሉ ዕለት ንመጻኢ ክኸውን ኣይክእልን እዩ",
+            "formDateBeforeDob": "ፎርም ዝተመልኣሉ ዕለት ካብ ዕለት ልደት ክቕድም ኣይክእልን እዩ",
+            "formDateFuture": "ፎርም ዝተመልኣሉ ዕለት ንመጻኢ ክኸውን ኣይክእልን እዩ",
+            "lettersOnly": "ፊደላት ጥራይ ይፍቀዱ (ቁጽርታት ኣይፍቀዱን)",
+            "invalidPhone": "በጃኻ ቅኑዕ ናይ ኢትዮጵያ ቁጽሪ ስልኪ ኣእቱ (ንኣብነት 0912345678 ወይ +251912345678)"
         }
     },
     "activity": {

@@ -11,6 +11,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { logActivity, getObjectDiff } from "../utils/activityLogger";
 import { ds } from "../utils/darkStyles";
+import { blockNumbers, stripNumbers } from "../utils/inputValidation";
 import ConfirmDialog from "../components/ConfirmDialog";
 
 interface ChurchWithCount extends Church {
@@ -577,6 +578,7 @@ export default function Churches() {
                 placeholder={t('churches.details.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={blockNumbers}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
                 className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
@@ -771,7 +773,8 @@ export default function Churches() {
                     type="text"
                     required
                     value={newChurch.name}
-                    onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
+                    onChange={(e) => setNewChurch({ ...newChurch, name: stripNumbers(e.target.value) })}
+                    onKeyDown={blockNumbers}
                     className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                     style={d.formInput}
                     placeholder={t('churches.form.namePlaceholder')}
@@ -783,7 +786,8 @@ export default function Churches() {
                   <input
                     type="text"
                     value={newChurch.location}
-                    onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
+                    onChange={(e) => setNewChurch({ ...newChurch, location: stripNumbers(e.target.value) })}
+                    onKeyDown={blockNumbers}
                     className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                     style={d.formInput}
                     placeholder={t('churches.form.locationPlaceholder')}
@@ -884,7 +888,8 @@ export default function Churches() {
                       type="text"
                       required
                       value={newChurch.name}
-                      onChange={(e) => setNewChurch({ ...newChurch, name: e.target.value })}
+                      onChange={(e) => setNewChurch({ ...newChurch, name: stripNumbers(e.target.value) })}
+                      onKeyDown={blockNumbers}
                       className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                       style={d.formInput}
                       placeholder={t('churches.form.namePlaceholder')}
@@ -896,7 +901,8 @@ export default function Churches() {
                     <input
                       type="text"
                       value={newChurch.location}
-                      onChange={(e) => setNewChurch({ ...newChurch, location: e.target.value })}
+                      onChange={(e) => setNewChurch({ ...newChurch, location: stripNumbers(e.target.value) })}
+                      onKeyDown={blockNumbers}
                       className="w-full px-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                       style={d.formInput}
                       placeholder={t('churches.form.locationPlaceholder')}

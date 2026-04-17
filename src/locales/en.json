@@ -655,8 +655,24 @@
             "thisChurch": "This Church",
             "promoteSuccess": "Member successfully promoted to Servant!",
             "promoteError": "Failed to create servant account",
+            "saveError": "Failed to save member",
             "updateRecords": "Update Records",
             "updateSuccess": "Member updated successfully"
+        },
+        "validation": {
+            "fullNameRequired": "Full name is required",
+            "invalidEmail": "Invalid email address",
+            "dobFuture": "Date of birth cannot be in the future",
+            "salvationBeforeDob": "Salvation date cannot be before date of birth",
+            "salvationFuture": "Salvation date cannot be in the future",
+            "marriageBeforeDob": "Marriage date cannot be before date of birth",
+            "marriageFuture": "Marriage date cannot be in the future",
+            "fellowshipBeforeDob": "Fellowship start date cannot be before date of birth",
+            "fellowshipFuture": "Fellowship start date cannot be in the future",
+            "formDateBeforeDob": "Form filled date cannot be before date of birth",
+            "formDateFuture": "Form filled date cannot be in the future",
+            "lettersOnly": "Only letters are allowed (no numbers)",
+            "invalidPhone": "Please enter a valid Ethiopian phone number (e.g. 0912345678 or +251912345678)"
         }
     },
     "activity": {

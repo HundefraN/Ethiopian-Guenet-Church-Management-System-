@@ -659,6 +659,21 @@
             "promoteSuccess": "አባል በተሳካ ሁኔታ ወደ አገልጋይነት ተቀይሯል!",
             "promoteError": "የአገልጋይ አካውንት መፍጠር አልተቻለም",
             "updateRecords": "መዝገቦችን ያዘምኑ"
+        },
+        "validation": {
+            "fullNameRequired": "ሙሉ ስም ያስፈልጋል",
+            "invalidEmail": "የኢሜይል አድራሻ ትክክል አይደለም",
+            "dobFuture": "የትውልድ ዘመን ወደፊት ሊሆን አይችልም",
+            "salvationBeforeDob": "ጌታን የተቀበሉበት ጊዜ ከትውልድ ዘመን በፊት ሊሆን አይችልም",
+            "salvationFuture": "ጌታን የተቀበሉበት ጊዜ ወደፊት ሊሆን አይችልም",
+            "marriageBeforeDob": "የጋብቻ ጊዜ ከትውልድ ዘመን በፊት ሊሆን አይችልም",
+            "marriageFuture": "የጋብቻ ጊዜ ወደፊት ሊሆን አይችልም",
+            "fellowshipBeforeDob": "የቤተሰብ ህብረት የጀመሩበት ጊዜ ከትውልድ ዘመን በፊት ሊሆን አይችልም",
+            "fellowshipFuture": "የቤተሰብ ህብረት የጀመሩበት ጊዜ ወደፊት ሊሆን አይችልም",
+            "formDateBeforeDob": "መዝገቡ የተሞላበት ቀን ከትውልድ ዘመን በፊት ሊሆን አይችልም",
+            "formDateFuture": "መዝገቡ የተሞላበት ቀን ወደፊት ሊሆን አይችልም",
+            "lettersOnly": "ፊደላት ብቻ ይፈቀዳሉ (ቁጥሮች አይፈቀዱም)",
+            "invalidPhone": "እባክዎ ትክክለኛ የኢትዮጵያ ስልክ ቁጥር ያስገቡ (ምሳሌ፡ 0912345678 ወይም +251912345678)"
         }
     },
     "activity": {

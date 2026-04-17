@@ -655,6 +655,21 @@
             "promoteSuccess": "Miseensi milkaa'inaan gara tajaajilaatti guddateera!",
             "promoteError": "Akkawuntii tajaajilaa uumuun hin danda'amne",
             "updateRecords": "Galmee Haaromsi"
+        },
+        "validation": {
+            "fullNameRequired": "Maqaan guutuun ni barbaachisa",
+            "invalidEmail": "Teessoon iimeelii sirrii miti",
+            "dobFuture": "Guyyaan dhalootaa gara fuulduraa ta'uu hin danda'u",
+            "salvationBeforeDob": "Guyyaan fayyinaa guyyaa dhalootaa dura ta'uu hin danda'u",
+            "salvationFuture": "Guyyaan fayyinaa gara fuulduraa ta'uu hin danda'u",
+            "marriageBeforeDob": "Guyyaan gaa'ilaa guyyaa dhalootaa dura ta'uu hin danda'u",
+            "marriageFuture": "Guyyaan gaa'ilaa gara fuulduraa ta'uu hin danda'u",
+            "fellowshipBeforeDob": "Guyyaan tokkummaa maatii guyyaa dhalootaa dura ta'uu hin danda'u",
+            "fellowshipFuture": "Guyyaan tokkummaa maatii gara fuulduraa ta'uu hin danda'u",
+            "formDateBeforeDob": "Guyyaan galmeen itti guutame guyyaa dhalootaa dura ta'uu hin danda'u",
+            "formDateFuture": "Guyyaan galmeen itti guutame gara fuulduraa ta'uu hin danda'u",
+            "lettersOnly": "Qubeen qofa hayyamamadha (lakkoofsi hin hayyamamu)",
+            "invalidPhone": "Maaloo lakkoofsa bilbilaa Itoophiyaa sirrii galchi (fkn. 0912345678 ykn +251912345678)"
         }
     },
     "activity": {

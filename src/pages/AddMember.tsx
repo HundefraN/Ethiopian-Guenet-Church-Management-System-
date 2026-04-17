@@ -21,14 +21,17 @@ import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 
-const memberSchema = z.object({
+import { ethioPhoneRegex, lettersOnlyRegex, blockNumbers, blockLetters } from "../utils/inputValidation";
+
+
+const baseMemberSchema = z.object({
   photo: z.any().optional(),
-  full_name: z.string().min(2, "Full name is required"),
+  full_name: z.string(),
   dob: z.string().optional().nullable(),
   place_of_birth: z.string().optional().nullable(),
   mother_tongue: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
-  email: z.string().email("Invalid email").optional().or(z.literal("")).nullable(),
+  email: z.string().optional().nullable(),
   salvation_date: z.string().optional().nullable(),
   salvation_place: z.string().optional().nullable(),
   previous_church: z.string().optional().nullable(),
@@ -49,7 +52,11 @@ const memberSchema = z.object({
   marriage_date: z.string().optional().nullable(),
   marriage_place: z.string().optional().nullable(),
   children: z.array(z.object({
-    name: z.string(), gender: z.string(), age: z.string(), education: z.string(), faith: z.string()
+    name: z.string().regex(lettersOnlyRegex, "Only letters are allowed").optional().or(z.literal("")),
+    gender: z.string().optional().or(z.literal("")),
+    age: z.string().optional().or(z.literal("")),
+    education: z.string().optional().or(z.literal("")),
+    faith: z.string().regex(lettersOnlyRegex, "Only letters are allowed").optional().or(z.literal(""))
   })).optional(),
   additional_family_info: z.string().optional().nullable(),
   living_situation: z.string().optional().nullable(),
@@ -75,7 +82,69 @@ const memberSchema = z.object({
   department_id: z.string().optional().nullable(),
 });
 
-export type MemberFormValues = z.infer<typeof memberSchema>;
+export type MemberFormValues = z.infer<typeof baseMemberSchema>;
+
+const getMemberSchema = (t: any) => baseMemberSchema.extend({
+  full_name: z.string().min(2, t('members.validation.fullNameRequired')).regex(lettersOnlyRegex, t('members.validation.lettersOnly')),
+  email: z.string().email(t('members.validation.invalidEmail')).optional().or(z.literal("")).nullable(),
+  phone: z.string().regex(ethioPhoneRegex, t('members.validation.invalidPhone')).optional().or(z.literal("")).nullable(),
+  spouse_name: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  mother_tongue: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  field_of_study: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  work_type: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  spiritual_gift: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  place_of_birth: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  faith: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  fellowship_name: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  fellowship_responsibility: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  fellowship_mentor: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  employment_status: z.string().optional().or(z.literal("")).nullable(),
+  marriage_place: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  service_type: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  service_responsibility: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+  current_service: z.string().regex(lettersOnlyRegex, t('members.validation.lettersOnly')).optional().or(z.literal("")).nullable(),
+}).superRefine((data, ctx) => {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  const dob = data.dob ? new Date(data.dob) : null;
+  
+  const addError = (path: string, messageKey: string) => {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [path],
+      message: t(messageKey),
+    });
+  };
+
+  if (dob && dob > today) {
+    addError("dob", "members.validation.dobFuture");
+  }
+
+  if (data.salvation_date) {
+    const salvationDate = new Date(data.salvation_date);
+    if (salvationDate > today) addError("salvation_date", "members.validation.salvationFuture");
+    if (dob && salvationDate < dob) addError("salvation_date", "members.validation.salvationBeforeDob");
+  }
+
+  if (data.marriage_date) {
+    const marriageDate = new Date(data.marriage_date);
+    if (marriageDate > today) addError("marriage_date", "members.validation.marriageFuture");
+    if (dob && marriageDate < dob) addError("marriage_date", "members.validation.marriageBeforeDob");
+  }
+
+  if (data.fellowship_start_date) {
+    const fellowshipStart = new Date(data.fellowship_start_date);
+    if (fellowshipStart > today) addError("fellowship_start_date", "members.validation.fellowshipFuture");
+    if (dob && fellowshipStart < dob) addError("fellowship_start_date", "members.validation.fellowshipBeforeDob");
+  }
+
+  if (data.form_filled_date) {
+    const formDate = new Date(data.form_filled_date);
+    if (formDate > today) addError("form_filled_date", "members.validation.formDateFuture");
+    if (dob && formDate < dob) addError("form_filled_date", "members.validation.formDateBeforeDob");
+  }
+});
 
 export default function AddMember() {
   const { isDark } = useTheme();
@@ -116,8 +185,10 @@ export default function AddMember() {
   const[servantPassword, setServantPassword] = useState("");
   const [makingServant, setMakingServant] = useState(false);
 
+  const schema = React.useMemo(() => getMemberSchema(t), [t]);
+
   const { register, control, handleSubmit, watch, setValue, trigger, reset, formState: { errors, isDirty } } = useForm<MemberFormValues>({
-    resolver: zodResolver(memberSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       children:[],
       status: "Active",
@@ -503,9 +574,14 @@ export default function AddMember() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="md:col-span-2">
-                    <label className="form-label">{t('members.form.fullName')} <span className="text-red-400">*</span></label>
-                    <input {...register("full_name")} className="form-input" placeholder={t('members.form.fullNamePlaceholder')} />
-                    {errors.full_name && <p className="form-error">{errors.full_name.message}</p>}
+                    <label className="form-label">{t('members.form.fullName')} <span className="text-red-500">*</span></label>
+                    <input 
+                      {...register("full_name")} 
+                      className="form-input" 
+                      placeholder={t('members.form.fullNamePlaceholder')}
+                      onKeyDown={blockNumbers}
+                    />
+                    {errors.full_name && <p className="form-error">{errors.full_name.message as string}</p>}
                   </div>
                   {profile?.role !== "servant" && (
                     <div className="md:col-span-2">
@@ -643,18 +719,18 @@ export default function AddMember() {
                   <div>
                     <label className="form-label">{t('members.form.dob')}</label>
                     <input type="date" {...register("dob")} className="form-input" />
+                    {errors.dob && <p className="form-error">{errors.dob.message as string}</p>}
                   </div>
-                  <div>
-                    <label className="form-label">{t('members.form.placeOfBirth')}</label>
-                    <input {...register("place_of_birth")} className="form-input" placeholder={t('members.form.placeOfBirthPlaceholder')} />
-                  </div>
+                  <div><label className="form-label">{t('members.form.placeOfBirth')}</label><input {...register("place_of_birth")} className="form-input" placeholder={t('members.form.placeOfBirthPlaceholder')} onKeyDown={blockNumbers} />{errors.place_of_birth && <p className="form-error">{errors.place_of_birth.message as string}</p>}</div>
                   <div>
                     <label className="form-label">{t('members.form.motherTongue')}</label>
-                    <input {...register("mother_tongue")} className="form-input" placeholder={t('members.form.motherTonguePlaceholder')} />
+                    <input {...register("mother_tongue")} className="form-input" placeholder={t('members.form.motherTonguePlaceholder')} onKeyDown={blockNumbers} />
+                    {errors.mother_tongue && <p className="form-error">{errors.mother_tongue.message as string}</p>}
                   </div>
                   <div>
                     <label className="form-label">{t('members.form.phoneNumber')}</label>
-                    <input {...register("phone")} className="form-input" placeholder={t('members.form.phonePlaceholder')} />
+                    <input {...register("phone")} className="form-input" placeholder={t('members.form.phonePlaceholder')} onKeyDown={blockLetters} />
+                    {errors.phone && <p className="form-error">{errors.phone.message as string}</p>}
                   </div>
                   <div className="md:col-span-2">
                     <label className="form-label">{t('login.email')} {promoteToServant && !isEditing && <span className="text-red-400">*</span>}</label>
@@ -693,7 +769,7 @@ export default function AddMember() {
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div><label className="form-label">{t('members.form.salvationInfo')}</label><input type="date" {...register("salvation_date")} className="form-input" /></div>
+                  <div><label className="form-label">{t('members.form.salvationInfo')}</label><input type="date" {...register("salvation_date")} className="form-input" />{errors.salvation_date && <p className="form-error">{errors.salvation_date.message as string}</p>}</div>
                   <div><label className="form-label">{t('members.form.placeOfBirth')}</label><input {...register("salvation_place")} className="form-input" placeholder={t('members.form.salvationPlacePlaceholder')} /></div>
                   <div className="md:col-span-2"><label className="form-label">{t('members.form.previousChurch')}</label><input {...register("previous_church")} className="form-input" placeholder={t('members.form.prevChurchPlaceholder')} /></div>
                   <div className="md:col-span-2"><label className="form-label">{t('members.form.reasonForComing')}</label><input {...register("reason_for_coming")} className="form-input" placeholder={t('members.form.reasonPlaceholder')} /></div>
@@ -749,7 +825,7 @@ export default function AddMember() {
                       <option value="PhD">{t('members.form.phd')}</option>
                     </select>
                   </div>
-                  <div><label className="form-label">{t('members.form.fieldOfStudy')}</label><input {...register("field_of_study")} className="form-input" placeholder={t('members.form.fieldOfStudyPlaceholder')} /></div>
+                  <div><label className="form-label">{t('members.form.fieldOfStudy')}</label><input {...register("field_of_study")} className="form-input" placeholder={t('members.form.fieldOfStudyPlaceholder')} onKeyDown={blockNumbers} />{errors.field_of_study && <p className="form-error">{errors.field_of_study.message as string}</p>}</div>
                   <div><label className="form-label">{t('members.form.grade')}</label><input {...register("grade")} className="form-input" placeholder="e.g. 10th Grade" /></div>
                   <div><label className="form-label">{t('members.form.universityYear')}</label><input {...register("university_year")} className="form-input" placeholder="e.g. 3rd Year" /></div>
                 </div>
@@ -783,7 +859,8 @@ export default function AddMember() {
                   </div>
                   <div>
                     <label className="form-label">{t('members.form.workType')}</label>
-                    <input {...register("work_type")} className="form-input" placeholder={t('members.form.workTypePlaceholder')} />
+                    <input {...register("work_type")} className="form-input" placeholder={t('members.form.workTypePlaceholder')} onKeyDown={blockNumbers} />
+                    {errors.work_type && <p className="form-error">{errors.work_type.message as string}</p>}
                   </div>
                   <div><label className="form-label">{t('members.form.workplaceAddress')}</label><input {...register("workplace_address")} className="form-input" placeholder={t('members.form.workplacePlaceholder')} /></div>
                   <div>
@@ -825,8 +902,12 @@ export default function AddMember() {
                   )}
                   {maritalStatus === "Married" && (
                     <>
-                      <div><label className="form-label">{t('members.form.spouseName')}</label><input {...register("spouse_name")} className="form-input" /></div>
-                      <div><label className="form-label">{t('members.form.marriageInfo')}</label><input type="date" {...register("marriage_date")} className="form-input" /></div>
+                      <div>
+                        <label className="form-label">{t('members.form.spouseName')}</label>
+                        <input {...register("spouse_name")} className="form-input" onKeyDown={blockNumbers} />
+                        {errors.spouse_name && <p className="form-error">{errors.spouse_name.message as string}</p>}
+                      </div>
+                      <div><label className="form-label">{t('members.form.marriageInfo')}</label><input type="date" {...register("marriage_date")} className="form-input" />{errors.marriage_date && <p className="form-error">{errors.marriage_date.message as string}</p>}</div>
                       <div><label className="form-label">{t('members.form.placeOfBirth')}</label><input {...register("marriage_place")} className="form-input" /></div>
                     </>
                   )}
@@ -848,15 +929,15 @@ export default function AddMember() {
                           <X size={12} />
                         </button>
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                          <input {...register(`children.${index}.name`)} className="form-input" placeholder={t('members.form.fullName')} />
+                          <input {...register(`children.${index}.name`)} className="form-input" placeholder={t('members.form.fullName')} onKeyDown={blockNumbers} />
                           <select {...register(`children.${index}.gender`)} className="form-select">
                             <option value="">{t('common.gender.label')}</option>
                             <option value="Male">{t('common.gender.male')}</option>
                             <option value="Female">{t('common.gender.female')}</option>
                           </select>
-                          <input {...register(`children.${index}.age`)} className="form-input" placeholder={t('members.form.age')} />
+                          <input {...register(`children.${index}.age`)} type="number" min="0" max="100" className="form-input" placeholder={t('members.form.age')} onKeyDown={blockLetters} />
                           <input {...register(`children.${index}.education`)} className="form-input" placeholder={t('members.form.educationalLevel')} />
-                          <input {...register(`children.${index}.faith`)} className="form-input" placeholder={t('members.form.faith')} />
+                          <input {...register(`children.${index}.faith`)} className="form-input" placeholder={t('members.form.faith')} onKeyDown={blockNumbers} />
                         </div>
                       </motion.div>
                     ))}
@@ -885,11 +966,11 @@ export default function AddMember() {
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div><label className="form-label">{t('members.form.serviceType')}</label><input {...register("service_type")} className="form-input" placeholder={t('members.form.serviceTypePlaceholder')} /></div>
+                  <div><label className="form-label">{t('members.form.serviceType')}</label><input {...register("service_type")} className="form-input" placeholder={t('members.form.serviceTypePlaceholder')} onKeyDown={blockNumbers} />{errors.service_type && <p className="form-error">{errors.service_type.message as string}</p>}</div>
                   <div><label className="form-label">{t('members.form.serviceDuration')}</label><input {...register("service_duration")} className="form-input" placeholder={t('members.form.serviceDurationPlaceholder')} /></div>
-                  <div><label className="form-label">{t('members.form.serviceResponsibility')}</label><input {...register("service_responsibility")} className="form-input" placeholder={t('members.form.serviceResponsibilityPlaceholder')} /></div>
-                  <div><label className="form-label">{t('members.form.currentServiceInfo')}</label><input {...register("current_service")} className="form-input" placeholder={t('members.form.currentServicePlaceholder')} /></div>
-                  <div className="md:col-span-2"><label className="form-label">{t('members.form.spiritualGiftInfo')}</label><input {...register("spiritual_gift")} className="form-input" placeholder={t('members.form.spiritualGiftPlaceholder')} /></div>
+                  <div><label className="form-label">{t('members.form.serviceResponsibility')}</label><input {...register("service_responsibility")} className="form-input" placeholder={t('members.form.serviceResponsibilityPlaceholder')} onKeyDown={blockNumbers} />{errors.service_responsibility && <p className="form-error">{errors.service_responsibility.message as string}</p>}</div>
+                  <div><label className="form-label">{t('members.form.currentServiceInfo')}</label><input {...register("current_service")} className="form-input" placeholder={t('members.form.currentServicePlaceholder')} onKeyDown={blockNumbers} />{errors.current_service && <p className="form-error">{errors.current_service.message as string}</p>}</div>
+                  <div className="md:col-span-2"><label className="form-label">{t('members.form.spiritualGiftInfo')}</label><input {...register("spiritual_gift")} className="form-input" placeholder={t('members.form.spiritualGiftPlaceholder')} onKeyDown={blockNumbers} />{errors.spiritual_gift && <p className="form-error">{errors.spiritual_gift.message as string}</p>}</div>
                   <div className="md:col-span-2"><label className="form-label">{t('members.form.futureService')}</label><textarea {...register("future_service")} className="form-input !h-auto" rows={3} placeholder={t('members.form.futureServicePlaceholder')} /></div>
                 </div>
               </div>
@@ -909,9 +990,9 @@ export default function AddMember() {
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div><label className="form-label">{t('members.form.fellowshipStartTime')}</label><input type="date" {...register("fellowship_start_date")} className="form-input" /></div>
-                  <div><label className="form-label">{t('members.form.fellowshipName')}</label><input {...register("fellowship_name")} className="form-input" /></div>
-                  <div><label className="form-label">{t('members.form.fellowshipResponsibility')}</label><input {...register("fellowship_responsibility")} className="form-input" /></div>
+                  <div><label className="form-label">{t('members.form.fellowshipStartTime')}</label><input type="date" {...register("fellowship_start_date")} className="form-input" />{errors.fellowship_start_date && <p className="form-error">{errors.fellowship_start_date.message as string}</p>}</div>
+                  <div><label className="form-label">{t('members.form.fellowshipName')}</label><input {...register("fellowship_name")} className="form-input" onKeyDown={blockNumbers} />{errors.fellowship_name && <p className="form-error">{errors.fellowship_name.message as string}</p>}</div>
+                  <div><label className="form-label">{t('members.form.fellowshipResponsibility')}</label><input {...register("fellowship_responsibility")} className="form-input" onKeyDown={blockNumbers} />{errors.fellowship_responsibility && <p className="form-error">{errors.fellowship_responsibility.message as string}</p>}</div>
                   <div><label className="form-label">{t('members.form.fellowshipMemberType')}</label><input {...register("fellowship_leader")} className="form-input" /></div>
                 </div>
               </div>
@@ -937,12 +1018,13 @@ export default function AddMember() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="form-label">{t('members.form.memberSignature')}</label>
-                    <input {...register("member_signature")} className="form-input italic" placeholder={t('members.form.memberSignature')} />
+                    <input {...register("member_signature")} className="form-input italic" placeholder={t('members.form.memberSignature')} onKeyDown={blockNumbers} />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-medium">{t('members.form.memberSignature')}</p>
                   </div>
                   <div>
                     <label className="form-label">{t('dashboard.stats.total')}</label>
                     <input type="date" {...register("form_filled_date")} className="form-input" />
+                    {errors.form_filled_date && <p className="form-error">{errors.form_filled_date.message as string}</p>}
                   </div>
                 </div>
                 <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col md:flex-row gap-4">

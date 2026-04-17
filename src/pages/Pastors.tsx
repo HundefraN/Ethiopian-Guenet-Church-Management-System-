@@ -31,6 +31,7 @@ import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { ds } from "../utils/darkStyles";
+import { blockNumbers, stripNumbers } from "../utils/inputValidation";
 
 interface Pastor extends Profile {
   email?: string;
@@ -432,6 +433,7 @@ export default function Pastors() {
             placeholder={t('pastors.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={blockNumbers}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
@@ -658,7 +660,8 @@ export default function Pastors() {
                         type="text"
                         required
                         value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, full_name: stripNumbers(e.target.value) })}
+                        onKeyDown={blockNumbers}
                         className="w-full pl-12 pr-5 py-3.5 border-0 rounded-2xl focus:outline-none transition-all font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400"
                         style={d.formInput}
                         placeholder={t('pastors.form.namePlaceholder')}
@@ -709,6 +712,7 @@ export default function Pastors() {
                                   autoFocus
                                   value={memberSearchQuery}
                                   onChange={(e) => setMemberSearchQuery(e.target.value)}
+                                  onKeyDown={blockNumbers}
                                   placeholder="Search by name or email..."
                                   className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B9BDC]/50 text-sm font-medium text-gray-900 dark:text-white placeholder-gray-400"
                                 />
