@@ -417,7 +417,7 @@ export default function Pastors() {
         transition={{ delay: 0.3 }}
       >
         <div
-          className="p-1.5 rounded-2xl flex items-center transition-all duration-300 max-w-3xl"
+          className="p-2.5 rounded-2xl flex items-center transition-all duration-300 max-w-3xl"
           style={{
             background: searchFocused ? (isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.95)') : (isDark ? 'rgba(15,23,42,0.55)' : 'rgba(255,255,255,0.8)'),
             backdropFilter: 'blur(20px)',
@@ -436,7 +436,7 @@ export default function Pastors() {
             onKeyDown={blockNumbers}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
+            className="w-full py-4 pr-5 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
           />
           {searchQuery && (
             <button

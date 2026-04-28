@@ -567,7 +567,7 @@ export default function Churches() {
             className="mb-8 relative"
           >
             <div
-              className="p-1.5 rounded-2xl flex items-center transition-all duration-300"
+              className="p-2.5 rounded-2xl flex items-center transition-all duration-300"
               style={d.searchBar(searchFocused)}
             >
               <div className="pl-4 pr-2">
@@ -581,7 +581,7 @@ export default function Churches() {
                 onKeyDown={blockNumbers}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
-                className="w-full py-3 pr-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
+                className="w-full py-4 pr-5 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-200 font-medium placeholder-gray-400"
               />
               {searchQuery && (
                 <button

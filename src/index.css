@@ -166,7 +166,7 @@ body::after {
 .form-select,
 input[type="date"] {
   width: 100%;
-  padding: 0.875rem .125rem;
+  padding: 1rem 1.25rem;
   background: #ffffff !important;
   border: 1.5px solid rgba(75, 155, 220, 0.18) !important;
   border-radius: 16px !important;
@@ -254,7 +254,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .form-textarea,
 textarea.form-input {
   width: 100%;
-  padding: 0.875rem rem;
+  padding: 1rem 1.25rem;
   background: rgba(255, 255, 255, 0.9) !important;
   border: 1.5px solid rgba(75, 155, 220, 0.15) !important;
   border-radius: 14px !important;

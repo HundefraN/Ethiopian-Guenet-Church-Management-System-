@@ -515,7 +515,7 @@ export default function AddMember() {
                   <button
                     key={section.id}
                     onClick={() => scrollToSection(section.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all duration-150 group ${isActive ? 'shadow-[0_4px_20px_rgba(0,0,0,0.06)] scale-[1.02]' : ''}`}
+                    className={`w-full flex items-center gap-3 px-6 py-4.5 rounded-xl text-left transition-all duration-150 group ${isActive ? 'shadow-[0_4px_20px_rgba(0,0,0,0.06)] scale-[1.02]' : ''}`}
                     style={isActive ? d.card : {}}
                   >
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-150 ${isActive ? `bg-gradient-to-br ${section.color} text-white shadow-md` : 'text-gray-500 dark:text-gray-400 group-hover:bg-gray-200 dark:group-hover:bg-gray-800'}`}
@@ -602,7 +602,7 @@ export default function AddMember() {
                           type="button"
                           onClick={() => setIsDeptMenuOpen(!isDeptMenuOpen)}
                           style={d.searchBar(isDeptMenuOpen)}
-                          className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 transition-all duration-200 shadow-sm ${isDeptMenuOpen
+                          className={`w-full flex items-center justify-between px-6 py-4.5 rounded-2xl border-2 transition-all duration-200 shadow-sm ${isDeptMenuOpen
                             ? "border-[#4B9BDC] ring-4 ring-[#4B9BDC]/10"
                             : "border-blue-100/50 hover:border-blue-200"
                             }`}
@@ -781,7 +781,7 @@ export default function AddMember() {
                           key={status}
                           type="button"
                           onClick={() => setValue("baptism_status", status, { shouldDirty: true })}
-                          className={`py-3 px-4 rounded-xl text-sm font-bold transition-all border-2 ${watch("baptism_status") === status
+                          className={`py-4 px-6 rounded-xl text-sm font-bold transition-all border-2 ${watch("baptism_status") === status
                             ? "border-[#4B9BDC] bg-[#4B9BDC]/10 text-[#4B9BDC]"
                             : "border-gray-100 dark:border-gray-800 text-gray-500 hover:border-gray-200"
                             }`}
@@ -1032,7 +1032,7 @@ export default function AddMember() {
                     <button
                       type="button"
                       onClick={saveDraft}
-                      className="w-full md:w-auto px-8 flex items-center justify-center gap-3 py-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 font-bold text-lg transition-all"
+                      className="w-full md:w-auto px-10 flex items-center justify-center gap-3 py-5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 font-bold text-lg transition-all"
                     >
                       <Save size={22} />
                       {t('members.saveDraft')}
@@ -1041,7 +1041,7 @@ export default function AddMember() {
                   <button
                     onClick={handleSubmit(onSubmit)}
                     disabled={uploading || (isEditing ? (!isDirty && !(watch("photo") instanceof File)) : !watch("full_name"))}
-                    className="flex-1 w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white rounded-2xl hover:scale-[1.02] active:scale-[0.98] font-bold text-lg shadow-[0_8px_30px_rgba(75,155,220,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 w-full flex items-center justify-center gap-3 py-5 bg-gradient-to-r from-[#4B9BDC] to-[#7EC8F2] text-white rounded-2xl hover:scale-[1.02] active:scale-[0.98] font-bold text-lg shadow-[0_8px_30px_rgba(75,155,220,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {uploading ? <Loader2 className="animate-spin" size={22} /> : <CheckCircle size={22} />}
                     {isEditing ? t('members.editBtn') : t('members.addBtn')}
